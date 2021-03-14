@@ -2,9 +2,14 @@ from copy import deepcopy
 import numpy as np
 import random
 
+import components.item as items
 
 class World(object):
-    def __init__(self): pass
+    pass
+
+
+class Position(object):
+    pass
 
 
 class Position(object):
@@ -13,6 +18,12 @@ class Position(object):
         assert y is not None
         self.x = x
         self.y = y
+
+    def __add__(self, pos: Position):
+        return Position(x=self.x + pos.x, y=self.y + pos.y)
+
+    def __sub__(self, pos: Position):
+        return Position(x=self.x - pos.x, y=self.y - pos.y)
 
     def __mul__(self, scale: int):
         return Position(x=self.x * scale, y=self.y * scale)
@@ -37,6 +48,20 @@ class Field(object):
         self.p1 = Position(x=p1_x, y=p1_y)
         self.p2 = Position(x=p2_x, y=p2_y)
 
+    @property
+    def area(self):
+        return (self.p2.x - self.p1.x + 1) * (self.p2.y - self.p1.y + 1)
+
+    def tick(self):
+        self.generate_item()
+
+    def generate_item(self, prob=0.1):
+        for y in range(self.p1.y, self.p1.y + 1):
+            for x in range(self.p2.x, self.p2.x + 1):
+                if random.random() < prob:
+                    ret = self.world.spawn_item(items.Apple, Position(x=x, y=y))
+                    print('spawn', x, y, ret)
+
 
 
 class World(object):
@@ -54,8 +79,6 @@ class World(object):
 
         self._create_random_field()
         self._spawn_random_agents()
-
-
 
     def _build_grid(self):
         self.grid = np.empty(shape=(self.size), dtype=object)
@@ -96,11 +119,24 @@ class World(object):
         self.grid[pos.y][pos.x] = block
         return spawned
 
+    def spawn_item(self, item: items.Item, pos: Position) -> bool:
+        if self.grid[pos.y][pos.x] is not None:
+            self.grid[pos.y][pos.x] = item
+            return True
+        else:
+            return False
+
     def add_fruits_field(self, field: Field):
         self.fruits_fields.append(field)
 
     def get_agents(self) -> []:
         return self.agents
+
+    def map_contains(self, pos: Position):
+        return 0 <= pos.x < self.width and 0 <= pos.y < self.height
+
+    def tick(self):
+        [field.tick() for field in self.fruits_fields]
 
     @property
     def width(self) -> int:
