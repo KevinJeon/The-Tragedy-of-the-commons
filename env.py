@@ -6,18 +6,7 @@ from components.resource import Resource
 import numpy as np
 import cv2 as cv
 
-
-def _put_rgba_to_image(src, dest, x_offset, y_offset) -> np.array:
-    y1, y2 = y_offset, y_offset + src.shape[0]
-    x1, x2 = x_offset, x_offset + src.shape[1]
-
-    alpha_s = src[:, :, 3] / 255.0
-    alpha_l = 1.0 - alpha_s
-
-    for c in range(0, 3): # Loop for BGR channels
-        dest[y1:y2, x1:x2, c] = (alpha_s * src[:, :, c] + alpha_l * dest[y1:y2, x1:x2, c])
-    return dest
-
+from utils.image import put_rgba_to_image
 
 class TOCEnv(object):
 
@@ -50,11 +39,11 @@ class TOCEnv(object):
         layer_field = np.zeros(shape=image_size)
 
         # Draw respawn fields
+
         for field in self.world.fruits_fields:
-            print(field.p1 * self.pixel_per_block)
             cv.rectangle(layer_field, pt1=(field.p1 * self.pixel_per_block).to_tuple(), \
                          pt2=(field.p2 * self.pixel_per_block).to_tuple(), \
-                         color=(0.3, 0.3, 0.3), \
+                         color=(200, 200, 200), \
                          thickness=-1 \
                          )
 
@@ -65,15 +54,20 @@ class TOCEnv(object):
             # resized_agent = cv.resize(Resource.Agent, dsize=(self.pixel_per_block, self.pixel_per_block))
             resized_agent = cv.resize(Resource.Agent, dsize=(self.pixel_per_block, self.pixel_per_block))
 
-            print(iter_agent.position)
             pos_x, pos_y = (iter_agent.position * self.pixel_per_block).to_tuple()
-            _put_rgba_to_image(resized_agent, layer_actors, pos_x, pos_y)
-        layer_actors = layer_actors / 255.
+            put_rgba_to_image(resized_agent, layer_actors, pos_x, pos_y)
 
+        gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
 
-        result_image = cv.add(layer_field, layer_actors)
+        ret, mask = cv.threshold(gray_layer_actors, 1, 255, cv.THRESH_BINARY)
+        mask_inv = cv.bitwise_not(mask)
 
-        cv.imshow('window', result_image)
+        masked_layer_field = cv.bitwise_and(layer_field, layer_field, mask=mask_inv)
+        masked_layer_actors = cv.bitwise_and(layer_actors, layer_actors, mask=mask)
+
+        output_layer = cv.add(masked_layer_field, masked_layer_actors)
+
+        cv.imshow('window', output_layer / 255.)
         cv.waitKey(0)
 
         output = layer_field

@@ -52,26 +52,7 @@ class World(object):
 
         self.num_agents = num_agents
 
-        # TODO Hard-coded, but should change to random sampled
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(3, 10),
-                p2=Position(7, 14),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(0, 3),
-                p2=Position(3, 6),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(13, 15),
-                p2=Position(14, 10),
-            )
-        )
-
+        self._create_random_field()
         self._spawn_random_agents()
 
 
@@ -83,6 +64,27 @@ class World(object):
         for _ in range(self.num_agents):
             pos = Position(x=random.randint(0,  self.width - 1), y=random.randint(0, self.height - 1))
             self.spawn_agent(pos=pos)
+
+    def _create_random_field(self):
+        # TODO Hard-coded, but should change to random sampled
+        self.add_fruits_field(Field(
+                world=self,
+                p1=Position(3, 10),
+                p2=Position(7, 13),
+            )
+        )
+        self.add_fruits_field(Field(
+                world=self,
+                p1=Position(0, 3),
+                p2=Position(3, 5),
+            )
+        )
+        self.add_fruits_field(Field(
+                world=self,
+                p1=Position(5, 5),
+                p2=Position(9, 10),
+            )
+        )
 
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)
