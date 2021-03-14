@@ -1,8 +1,5 @@
 from copy import deepcopy
 
-import components.block as block
-import components.agent as agent
-
 
 class Position(object):
     def __init__(self, x=None, y=None):
@@ -22,21 +19,18 @@ class World(object):
 
         self.on_changed_callbacks = []
 
-        
-
         [self.spawn_agent(pos=Position(x=1, y=2)) for _ in range(num_agents)]
 
     def _build_grid(self):
         self.grid = None
-
 
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)
         self.agents.append(agent)
         return spawned
 
-    def spawn_block(self, pos: Position, type: block.BlockType):
-        spawned = block.Block(world=self, type=type)
+    def spawn_block(self, pos: Position):
+        spawned = block.Block(world=self)
         self.grid[pos.y][pos.x] = block
         return spawned
 
@@ -54,3 +48,8 @@ class World(object):
     @property
     def num_agents(self) -> int:
         return len(self.agents)
+
+
+# Lazy import (Circular import issue)
+import components.agent as agent
+import components.block as block

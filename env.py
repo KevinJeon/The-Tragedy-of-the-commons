@@ -1,5 +1,5 @@
 from components.agent import Agent
-from components.block import Block
+# from components.block import Block
 from components.world import World
 
 import numpy as np
