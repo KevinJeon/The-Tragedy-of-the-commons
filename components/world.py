@@ -59,9 +59,7 @@ class Field(object):
         for y in range(self.p1.y, self.p1.y + 1):
             for x in range(self.p2.x, self.p2.x + 1):
                 if random.random() < prob:
-                    ret = self.world.spawn_item(items.Apple, Position(x=x, y=y))
-                    print('spawn', x, y, ret)
-
+                    ret = self.world.spawn_item(items.Apple(), Position(x=x, y=y))
 
 
 class World(object):
@@ -120,7 +118,7 @@ class World(object):
         return spawned
 
     def spawn_item(self, item: items.Item, pos: Position) -> bool:
-        if self.grid[pos.y][pos.x] is not None:
+        if self.grid[pos.y][pos.x] is None:
             self.grid[pos.y][pos.x] = item
             return True
         else:

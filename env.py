@@ -2,7 +2,7 @@ from components.agent import Agent
 # from components.block import Block
 from components.world import World, Position
 from components.resource import Resource
-from components.item import Apple
+import components.item as items
 
 import numpy as np
 import cv2 as cv
@@ -43,7 +43,7 @@ class TOCEnv(object):
         # Draw respawn fields
         for field in self.world.fruits_fields:
             cv.rectangle(layer_field, pt1=(field.p1 * self.pixel_per_block).to_tuple(), \
-                         pt2=(field.p2 * self.pixel_per_block).to_tuple(), \
+                         pt2=(Position(0, image_size[0])-(field.p2 * self.pixel_per_block)).to_tuple(), \
                          color=(200, 200, 200), \
                          thickness=-1 \
                          )
@@ -58,11 +58,11 @@ class TOCEnv(object):
         for y in range(self.world.height):
             for x in range(self.world.width):
                 content = self.world.grid[y][x]
-                if content is not None: print(x, y, content)
+                if content is None: continue
 
-                if isinstance(content, Apple):
-                    pos_x, pos_y = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
-                    put_rgba_to_image(resized_apple, layer_actors, pos_x, pos_y)
+                if isinstance(content, items.Apple):
+                    pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
+                    put_rgba_to_image(resized_apple, layer_items, pos_x, pos_y)
 
         gray_layer_items = cv.cvtColor(layer_items.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_items, 1, 255, cv.THRESH_BINARY)
@@ -86,6 +86,12 @@ class TOCEnv(object):
         masked_layer_actors = cv.bitwise_and(layer_actors, layer_actors, mask=mask)
 
         output_layer = cv.add(masked_layer_field, masked_layer_actors)
+
+        for y in range(self.world.height):
+            for x in range(self.world.width):
+                cv.putText(output_layer, '{0}_{1}'.format(x, y), (512 - y * self.pixel_per_block, x * self.pixel_per_block), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+
+
 
         return output_layer / 255.
 
