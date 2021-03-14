@@ -3,6 +3,17 @@ import names
 import components.world as world
 
 
+class Action:
+    Move_Up         = 0
+    Move_Down       = 1
+    Move_Left       = 2
+    Move_Right      = 3
+    Attack_Up       = 4
+    Attack_Down     = 5
+    Attack_Left     = 6
+    Attack_Right    = 7
+
+
 class Direction:
     Up = 'Up'
     Down = 'Down'
@@ -17,10 +28,20 @@ class Agent(object):
         self.position = pos
         self.name = name if name is not None else names.get_full_name()
 
-    def move(self, pos: world.Position):
+        # Agent's accumulated reward during one step;
+        self.tick_reward = None
+
+    def act(self, action: Action):
+        pass
+
+    def _move(self, direction: Direction):
         raise NotImplementedError
 
-    def attack(self, direction: Direction):
+    def _attack(self, direction: Direction):
         raise NotImplementedError
+
+    def __repr__(self):
+        return '<Agent (name={0}, position={1})>'.format(self.name, self.position)
+
 
 

@@ -9,16 +9,6 @@ class Block(object):
         self.can_walk = False
 
 
-class AppleSpawner(Block):
-
-    def __init__(self) -> None:
-        super(AppleSpawner, self).__init__()
-
-        self.can_walk = True
-
-
-
-
 class Wall(Block):
 
     def __init__(self) -> None:

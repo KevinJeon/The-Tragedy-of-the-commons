@@ -10,13 +10,10 @@ class Item(object):
     def on_collapsed(self): pass
 
 
-
 class Apple(Item):
 
     def __init__(self):
-        pass
-
-
+        self.reward = 1.
 
 
 
