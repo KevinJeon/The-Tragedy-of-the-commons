@@ -19,6 +19,9 @@ class Position(object):
         self.x = x
         self.y = y
 
+    def subtract_y(self, scalar: int) -> Position:
+        return Position(x=self.x, y=scalar - self.y)
+
     def __add__(self, pos: Position):
         return Position(x=self.x + pos.x, y=self.y + pos.y)
 
@@ -31,8 +34,11 @@ class Position(object):
     def __str__(self):
         return 'Position(x={0}, y={1})'.format(self.x, self.y)
 
-    def to_tuple(self):
-        return self.y , self.x
+    def to_tuple(self, reverse=False):
+        if reverse:
+            return self.x, self.y
+        else:
+            return self.y, self.x
 
 
 class Field(object):
@@ -55,11 +61,11 @@ class Field(object):
     def tick(self):
         self.generate_item()
 
-    def generate_item(self, prob=0.1):
-        for y in range(self.p1.y, self.p1.y + 1):
-            for x in range(self.p2.x, self.p2.x + 1):
+    def generate_item(self, prob=0.02):
+        for y in range(self.p1.y, self.p2.y + 1):
+            for x in range(self.p1.x, self.p2.x + 1):
                 if random.random() < prob:
-                    ret = self.world.spawn_item(items.Apple(), Position(x=x, y=y))
+                    self.world.spawn_item(items.Apple(), Position(x=x, y=y))
 
 
 class World(object):
@@ -90,20 +96,20 @@ class World(object):
         # TODO Hard-coded, but should change to random sampled
         self.add_fruits_field(Field(
                 world=self,
-                p1=Position(3, 10),
-                p2=Position(7, 13),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(0, 3),
-                p2=Position(3, 5),
+                p1=Position(1, 1),
+                p2=Position(4, 4),
             )
         )
         self.add_fruits_field(Field(
                 world=self,
                 p1=Position(5, 5),
-                p2=Position(9, 10),
+                p2=Position(6, 6),
+            )
+        )
+        self.add_fruits_field(Field(
+                world=self,
+                p1=Position(12, 12),
+                p2=Position(15, 15),
             )
         )
 
@@ -118,6 +124,8 @@ class World(object):
         return spawned
 
     def spawn_item(self, item: items.Item, pos: Position) -> bool:
+        if not self.map_contains(pos): return False
+
         if self.grid[pos.y][pos.x] is None:
             self.grid[pos.y][pos.x] = item
             return True

@@ -33,7 +33,6 @@ class TOCEnv(object):
     def reset(self):
         del self.world
         self.world = World()
-        self.render()
 
     def render(self) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
@@ -43,10 +42,11 @@ class TOCEnv(object):
         # Draw respawn fields
         for field in self.world.fruits_fields:
             cv.rectangle(layer_field, pt1=(field.p1 * self.pixel_per_block).to_tuple(), \
-                         pt2=(Position(0, image_size[0])-(field.p2 * self.pixel_per_block)).to_tuple(), \
+                         pt2=((field.p2 + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
                          color=(200, 200, 200), \
                          thickness=-1 \
                          )
+        layer_field = cv.flip(layer_field, 0) # Vertical flip
 
         layer_actors = np.zeros(shape=image_size)
 
@@ -62,7 +62,8 @@ class TOCEnv(object):
 
                 if isinstance(content, items.Apple):
                     pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
-                    put_rgba_to_image(resized_apple, layer_items, pos_x, pos_y)
+                    put_rgba_to_image(resized_apple, layer_items, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+
 
         gray_layer_items = cv.cvtColor(layer_items.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_items, 1, 255, cv.THRESH_BINARY)
@@ -79,6 +80,7 @@ class TOCEnv(object):
             pos_x, pos_y = (iter_agent.position * self.pixel_per_block).to_tuple()
             put_rgba_to_image(resized_agent, layer_actors, pos_x, pos_y)
 
+
         gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_actors, 1, 255, cv.THRESH_BINARY)
         mask_inv = cv.bitwise_not(mask)
@@ -87,11 +89,9 @@ class TOCEnv(object):
 
         output_layer = cv.add(masked_layer_field, masked_layer_actors)
 
-        for y in range(self.world.height):
-            for x in range(self.world.width):
-                cv.putText(output_layer, '{0}_{1}'.format(x, y), (512 - y * self.pixel_per_block, x * self.pixel_per_block), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
-
-
+        # for y in range(self.world.height):
+        #     for x in range(self.world.width):
+        #        cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
         return output_layer / 255.
 
