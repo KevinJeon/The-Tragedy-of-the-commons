@@ -1,0 +1,11 @@
+name: toc
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - pip:
+    - names
+    - numpy
+    - opencv-python
+prefix: /Users/inchang/opt/anaconda3/envs/toc
+
