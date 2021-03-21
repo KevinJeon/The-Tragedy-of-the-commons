@@ -5,14 +5,16 @@ import components.world as world
 
 class Action:
     No_Op = 0
+
     Move_Up = 1
     Move_Down = 2
     Move_Left = 3
     Move_Right = 4
-    Attack_Up = 5
-    Attack_Down = 6
-    Attack_Left = 7
-    Attack_Right = 8
+
+    Rotate_Left = 5
+    Rotate_Right = 6
+
+    Attack = 7
 
 
 class Direction(object):
@@ -26,6 +28,7 @@ class DirectionType:
     Down = 2
     Left = 1
     Right = 4
+
 
 class Direction(object):
 
@@ -67,7 +70,7 @@ class Agent(object):
 
         self.name = name if name is not None else names.get_full_name()
 
-        # Agent's accumulated reward during one step;
+        # Agent's accumulated reward during one step
         self.tick_reward = 0.
 
     def act(self, action: Action):
@@ -81,8 +84,11 @@ class Agent(object):
             self._move(DirectionType.Right)
         elif action is Action.No_Op:
             pass
+        elif action is Action.Rotate_Left:
+            self._rotate(DirectionType.Left)
+        elif action is Action.Rotate_Right:
+            self._rotate(DirectionType.Right)
         else:
-
             raise IndexError('Unknown action')
 
     def _move(self, direction: DirectionType):
@@ -103,6 +109,14 @@ class Agent(object):
 
         return self
 
+    def _rotate(self, direction: DirectionType):
+        if direction is DirectionType.Left:
+            self.direction.turn_left()
+        elif direction is DirectionType.Right:
+            self.direction.turn_right()
+        else:
+            raise IndexError('Unknown direction type')
+
     def _attack(self, direction: Direction):
         raise NotImplementedError
 
@@ -119,13 +133,11 @@ class Agent(object):
 
     def reset_reward(self) -> int:
         tick_reward = self.tick_reward
-        self.tick_reward = 0
+        self.tick_reward = 0.
         return tick_reward
 
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
 
 # Lazy import (Circular import issue)
-import components.agent as agent
-import components.block as block
 import components.item as items
