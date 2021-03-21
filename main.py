@@ -18,15 +18,15 @@ def main():
 
             image = env.render()
             cv.imshow('Env', image)
-            key = cv.waitKey(0)
-
-            if key == 0: # Up
+            key = cv.waitKeyEx()
+            print(key)
+            if key == 0x260000: # Up
                 action_1 = 1
-            elif key == 1: # Down
+            elif key == 0x280000: # Down
                 action_1 = 2
-            elif key == 2: # Left
+            elif key == 0x250000: # Left
                 action_1 = 3
-            elif key == 3: # Right
+            elif key == 0x270000: # Right
                 action_1 = 4
             else: # No-op
                 action_1 = None
