@@ -2,6 +2,17 @@
 This repo is implementation of environment in paper 'Social diversity and social preferences in mixed-motive reinforcement learning'
 
 
+## Envrionment Specification
+### Settings
+Placeholder
+
+### Observation
+Placeholder
+
+### Action
+Placeholder
+
+## Example
 ```python
 env = TOCEnv(num_agents=4) # n=4
 
