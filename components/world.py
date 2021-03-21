@@ -1,8 +1,8 @@
-from copy import deepcopy
+from typing import Union
+
 import numpy as np
 import random
 
-import components.item as items
 
 class World(object):
     pass
@@ -10,6 +10,10 @@ class World(object):
 
 class Position(object):
     pass
+
+
+import components.item as items
+import components.agent as agent
 
 
 class Position(object):
@@ -30,6 +34,9 @@ class Position(object):
 
     def __mul__(self, scale: int):
         return Position(x=self.x * scale, y=self.y * scale)
+
+    def __eq__(self, other: Position):
+        return self.x == other.x and self.y == other.y
 
     def __str__(self):
         return 'Position(x={0}, y={1})'.format(self.x, self.y)
@@ -61,7 +68,7 @@ class Field(object):
     def tick(self):
         self.generate_item()
 
-    def generate_item(self, prob=0.02):
+    def generate_item(self, prob=0.01):
         for y in range(self.p1.y, self.p2.y + 1):
             for x in range(self.p1.x, self.p2.x + 1):
                 if random.random() < prob:
@@ -70,7 +77,7 @@ class Field(object):
 
 class World(object):
 
-    def __init__(self, size=(16, 16), num_agents=4):
+    def __init__(self, num_agents, size):
         self.size = size
         self.agents = []
         self.grid = None
@@ -78,14 +85,13 @@ class World(object):
 
         self.on_changed_callbacks = []
         self.fruits_fields = []
-
         self.num_agents = num_agents
 
         self._create_random_field()
         self._spawn_random_agents()
 
     def _build_grid(self):
-        self.grid = np.empty(shape=(self.size), dtype=object)
+        self.grid = np.empty(shape=self.size, dtype=object)
 
     def _spawn_random_agents(self):
         for _ in range(self.num_agents):
@@ -123,6 +129,7 @@ class World(object):
         self.grid[pos.y][pos.x] = block
         return spawned
 
+
     def spawn_item(self, item: items.Item, pos: Position) -> bool:
         if not self.map_contains(pos): return False
 
@@ -138,8 +145,33 @@ class World(object):
     def get_agents(self) -> []:
         return self.agents
 
-    def map_contains(self, pos: Position):
+    def map_contains(self, pos: Position) -> bool:
         return 0 <= pos.x < self.width and 0 <= pos.y < self.height
+
+    def get_item(self, pos: Position) -> Union[items.Item, None]:
+        return self.grid[pos.y][pos.x]
+
+    def get_agent(self, pos: Position) -> Union[agent.Agent, None]:
+        for iter_agent in self.agents:
+            if iter_agent.position == pos:
+                return iter_agent
+        return None
+
+    def remove_item(self, pos: Position) -> bool:
+        if self.get_item(pos):
+            self.grid[pos.y][pos.x] = None
+            return True
+        else:
+            return False
+
+    def correct_item(self, pos: Position) -> Union[items.Item, None]:
+        item = self.get_item(pos)
+
+        if item:
+            self.remove_item(pos)
+            return item
+        else:
+            return None
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]
@@ -153,7 +185,7 @@ class World(object):
         return self.size[0]
 
 
-
 # Lazy import (Circular import issue)
 import components.agent as agent
 import components.block as block
+import components.item as items
