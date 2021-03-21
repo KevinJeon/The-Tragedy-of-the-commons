@@ -7,7 +7,7 @@ from components.agent import Action
 
 
 def main():
-    num_agents = 1
+    num_agents = 4
 
     env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
 
@@ -19,7 +19,7 @@ def main():
             image = env.render()
             cv.imshow('Env', image)
             key = cv.waitKeyEx()
-            print(key)
+
             if key == 0x260000: # Up
                 action_1 = 1
             elif key == 0x280000: # Down

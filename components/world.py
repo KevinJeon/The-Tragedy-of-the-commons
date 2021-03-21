@@ -79,17 +79,34 @@ class Field(object):
     def area(self):
         return (self.p2.x - self.p1.x + 1) * (self.p2.y - self.p1.y + 1)
 
+    @property
+    def positions(self):
+        positions = []
+        for y in range(self.p1.y, self.p2.y + 1):
+            for x in range(self.p1.x, self.p2.x + 1):
+                positions.append(Position(x=x, y=y))
+        return positions
+
     def tick(self):
         self.generate_item()
 
-    def generate_item(self, prob=0.01):
+    def force_spawn_item(self, ratio=0.5):
+        positions = self.positions
+        num_samples = max(math.ceil(len(positions) * ratio), 1)
+
+        sampled_position = random.sample(positions, num_samples)
+        for pos in sampled_position:
+            self.world.spawn_item(items.Apple(), Position(x=pos.x, y=pos.y))
+
+    def generate_item(self, prob=0.5**4):
         for y in range(self.p1.y, self.p2.y + 1):
             for x in range(self.p1.x, self.p2.x + 1):
-                # TODO Check surrounded apples calculate respawn probabilities
 
+                surrounded_positions = self.world.get_surrounded_positions(pos=Position(x=x, y=y), radius=3)
+                surrounded_items = self.world.get_surrounded_items(pos=Position(x=x, y=y), radius=3)
+                apple_ratio = len(surrounded_items) / len(surrounded_positions) * prob
 
-
-                if random.random() < prob:
+                if random.random() < apple_ratio:
                     self.world.spawn_item(items.Apple(), Position(x=x, y=y))
 
 
@@ -137,6 +154,7 @@ class World(object):
             )
         )
 
+
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)
         self.agents.append(spawned)
@@ -159,6 +177,7 @@ class World(object):
 
     def add_fruits_field(self, field: Field):
         self.fruits_fields.append(field)
+        field.force_spawn_item()
 
     def get_agents(self) -> []:
         return self.agents
@@ -198,6 +217,17 @@ class World(object):
             if self.map_contains(position):
                 surr_positions.append(position)
         return surr_positions
+
+    def get_surrounded_items(self, pos: Position, radius: int) -> [items.Item]:
+        positions = self.get_surrounded_positions(pos=pos, radius=radius)
+
+        items = []
+        for position in positions:
+            item = self.get_item(pos=position)
+            if item is not None:
+                items.append(item)
+        return items
+
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]

@@ -15,11 +15,3 @@ class Apple(Item):
     def __init__(self):
         self.reward = 1.
 
-
-
-
-
-
-
-
-
