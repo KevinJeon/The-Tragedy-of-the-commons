@@ -13,16 +13,19 @@ class TOCEnv(object):
 
     def __init__(self,
                  render=False,
-                 apple_respawn_rate=1
+                 apple_respawn_rate=1,
+                 num_agents=4,
                  ):
-        self.world = World()
+
+        self.num_agents = num_agents
+        self.world = World(num_agents=num_agents)
 
         self.pixel_per_block = 32
 
         self.apple_respawn_rate = apple_respawn_rate
 
     def step(self, actions):
-        assert len(actions) is (self.world.num_agents)
+        assert len(actions) is self.world.num_agents
 
         for agent, action in zip(self.world.agents, actions):
             agent.act(action)
@@ -32,7 +35,7 @@ class TOCEnv(object):
 
     def reset(self):
         del self.world
-        self.world = World()
+        self.world = World(num_agents=self.num_agents)
 
     def render(self) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
@@ -43,7 +46,7 @@ class TOCEnv(object):
         for field in self.world.fruits_fields:
             cv.rectangle(layer_field, pt1=(field.p1 * self.pixel_per_block).to_tuple(), \
                          pt2=((field.p2 + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
-                         color=(200, 200, 200), \
+                         color=(50, 50, 50), \
                          thickness=-1 \
                          )
         layer_field = cv.flip(layer_field, 0) # Vertical flip
@@ -77,9 +80,8 @@ class TOCEnv(object):
         resized_agent = cv.resize(Resource.Agent, dsize=(self.pixel_per_block, self.pixel_per_block))
 
         for iter_agent in self.world.agents:
-            pos_x, pos_y = (iter_agent.position * self.pixel_per_block).to_tuple()
-            put_rgba_to_image(resized_agent, layer_actors, pos_x, pos_y)
-
+            pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
+            put_rgba_to_image(resized_agent, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_actors, 1, 255, cv.THRESH_BINARY)
@@ -89,9 +91,9 @@ class TOCEnv(object):
 
         output_layer = cv.add(masked_layer_field, masked_layer_actors)
 
-        # for y in range(self.world.height):
-        #     for x in range(self.world.width):
-        #        cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+        for y in range(self.world.height):
+            for x in range(self.world.width):
+               cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
         return output_layer / 255.
 
@@ -100,6 +102,9 @@ class TOCEnv(object):
 
     def show(self) -> None:
         print('###### World ######')
+
+        self.world.spawn_item()
+
         for y in range(self.world.height):
             for x in range(self.world.width):
                 print('{:^5}'.format(str(self.world.grid[y][x])), end='')
