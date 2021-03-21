@@ -22,6 +22,7 @@ obs, reward, info = env.step(actions)
 
 
 ## TODO
+### Environment
 - [X] Reset map on there's no apple one the map
 - [X] Add environment parameter for `episode_max_length`
 - [ ] Generate patch spawn area follow some distribution
@@ -29,3 +30,5 @@ obs, reward, info = env.step(actions)
 - [ ] Return agent's individual views on `step` called
 - [ ] Implement Agent's direction and make it available when action called on `step`
 - [ ] Implement action `Punish`
+
+### Algorithms
