@@ -81,15 +81,10 @@ class Agent(object):
             self._move(DirectionType.Left)
         elif action is Action.Move_Right:
             self._move(DirectionType.Right)
-        elif action is Action.Attack_Up:
-            self._attack(DirectionType.Up)
-        elif action is Action.Attack_Down:
-            self._attack(DirectionType.Down)
-        elif action is Action.Attack_Left:
-            self._attack(DirectionType.Left)
-        elif action is Action.Attack_Right:
-            self._attack(DirectionType.Right)
+        elif action is Action.No_Op:
+            pass
         else:
+
             raise IndexError('Unknown action')
 
     def _move(self, direction: DirectionType):

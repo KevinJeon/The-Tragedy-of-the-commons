@@ -4,7 +4,6 @@ from copy import deepcopy
 import numpy as np
 import random
 import components.item as items
-import components.agent as agent
 
 class World(object):
     pass
@@ -73,7 +72,7 @@ class Field(object):
 
 class World(object):
 
-    def __init__(self, num_agents, size=(16, 16)):
+    def __init__(self, num_agents, size):
         self.size = size
         self.agents = []
         self.grid = None

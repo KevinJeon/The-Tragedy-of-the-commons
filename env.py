@@ -1,5 +1,3 @@
-from components.agent import Agent
-# from components.block import Block
 from components.world import World, Position
 from components.resource import Resource
 import components.item as items
@@ -15,10 +13,12 @@ class TOCEnv(object):
                  render=False,
                  apple_respawn_rate=1,
                  num_agents=4,
+                 map_size=(16, 16)
                  ):
 
         self.num_agents = num_agents
-        self.world = World(num_agents=num_agents)
+        self.map_size = map_size
+        self.world = World(num_agents=num_agents, size=map_size)
 
         self.pixel_per_block = 32
 
@@ -31,11 +31,16 @@ class TOCEnv(object):
             agent.act(action)
         self.world.tick()
 
+        common_reward = 0
+        for iter_agent in self.world.agents:
+            common_reward += iter_agent.reset_reward()
         self.render()
+
+        return None, common_reward
 
     def reset(self):
         del self.world
-        self.world = World(num_agents=self.num_agents)
+        self.world = World(num_agents=self.num_agents, size=self.map_size)
 
     def render(self) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
