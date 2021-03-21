@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 import random
-
+import math
 
 class World(object):
     pass
@@ -47,6 +47,20 @@ class Position(object):
         else:
             return self.y, self.x
 
+    def get_distance(self, pos: Position):
+        return math.sqrt(math.pow(self.x - pos.x, 2) + math.pow(self.y - pos.y, 2))
+
+    def get_surrounded(self, radius: int) -> [Position]:
+        surrounded = []
+        for _y in range(radius * -1, radius + 1):
+            for _x in range(radius * -1, radius + 1):
+                _position = self + Position(x=_x, y=_y)
+                distance = self.get_distance(_position)
+
+                if distance <= radius:
+                    surrounded.append(_position)
+        return surrounded
+
 
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
@@ -71,6 +85,10 @@ class Field(object):
     def generate_item(self, prob=0.01):
         for y in range(self.p1.y, self.p2.y + 1):
             for x in range(self.p1.x, self.p2.x + 1):
+                # TODO Check surrounded apples calculate respawn probabilities
+
+
+
                 if random.random() < prob:
                     self.world.spawn_item(items.Apple(), Position(x=x, y=y))
 
@@ -173,8 +191,19 @@ class World(object):
         else:
             return None
 
+    def get_surrounded_positions(self, pos: Position, radius: int) -> [Position]:
+        positions = pos.get_surrounded(radius=radius)
+        surr_positions = []
+        for position in positions:
+            if self.map_contains(position):
+                surr_positions.append(position)
+        return surr_positions
+
     def tick(self):
         [field.tick() for field in self.fruits_fields]
+
+
+
 
     @property
     def width(self) -> int:

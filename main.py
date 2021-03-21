@@ -7,7 +7,8 @@ from components.agent import Action
 
 
 def main():
-    num_agents = 4
+    num_agents = 1
+
     env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
 
     while True:
