@@ -5,9 +5,10 @@ import random
 from env import TOCEnv
 from components.agent import Action
 
+
 def main():
-    num_agents = 50
-    env = TOCEnv(num_agents=num_agents, map_size=(32, 32))
+    num_agents = 4
+    env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
 
     while True:
         _ = env.reset()

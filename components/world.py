@@ -1,9 +1,8 @@
 from typing import Union
 
-from copy import deepcopy
 import numpy as np
 import random
-import components.item as items
+
 
 class World(object):
     pass
@@ -11,6 +10,10 @@ class World(object):
 
 class Position(object):
     pass
+
+
+import components.item as items
+import components.agent as agent
 
 
 class Position(object):
@@ -32,6 +35,9 @@ class Position(object):
     def __mul__(self, scale: int):
         return Position(x=self.x * scale, y=self.y * scale)
 
+    def __eq__(self, other: Position):
+        return self.x == other.x and self.y == other.y
+
     def __str__(self):
         return 'Position(x={0}, y={1})'.format(self.x, self.y)
 
@@ -40,7 +46,6 @@ class Position(object):
             return self.x, self.y
         else:
             return self.y, self.x
-
 
 
 class Field(object):
@@ -146,6 +151,12 @@ class World(object):
     def get_item(self, pos: Position) -> Union[items.Item, None]:
         return self.grid[pos.y][pos.x]
 
+    def get_agent(self, pos: Position) -> Union[agent.Agent, None]:
+        for iter_agent in self.agents:
+            if iter_agent.position == pos:
+                return iter_agent
+        return None
+
     def remove_item(self, pos: Position) -> bool:
         if self.get_item(pos):
             self.grid[pos.y][pos.x] = None
@@ -177,3 +188,4 @@ class World(object):
 # Lazy import (Circular import issue)
 import components.agent as agent
 import components.block as block
+import components.item as items

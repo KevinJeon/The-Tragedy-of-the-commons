@@ -1,8 +1,7 @@
 import names, random
 
-import components.world as world
-import components.item as items
 
+import components.world as world
 
 class Action:
     No_Op = 0
@@ -59,7 +58,6 @@ class Direction(object):
         return 'Direction({0})'.format(self._to_string())
 
 
-
 class Agent(object):
 
     def __init__(self, world: world.World, pos: world.Position, name=None):
@@ -97,10 +95,11 @@ class Agent(object):
         elif direction is DirectionType.Right:
             new_pos = self.position + world.Position(x=1, y=0)
 
-        if self.world.map_contains(new_pos):
-            self.position = new_pos
+        if not self.world.get_agent(new_pos) is not None: # If other agent exists
+            if self.world.map_contains(new_pos):
+                self.position = new_pos
 
-        self._try_gather()
+            self._try_gather()
 
         return self
 
@@ -125,3 +124,8 @@ class Agent(object):
 
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
+
+# Lazy import (Circular import issue)
+import components.agent as agent
+import components.block as block
+import components.item as items
