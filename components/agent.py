@@ -70,7 +70,7 @@ class Agent(object):
 
         self.name = name if name is not None else names.get_full_name()
 
-        # Agent's accumulated reward during one step;
+        # Agent's accumulated reward during one step
         self.tick_reward = 0.
 
     def act(self, action: Action):

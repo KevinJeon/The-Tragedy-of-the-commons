@@ -14,11 +14,16 @@ class TOCEnv(object):
                  render=False,
                  apple_respawn_rate=1,
                  num_agents=4,
-                 map_size=(16, 16)
+                 map_size=(16, 16),
+                 episode_max_length=200,
                  ):
 
         self.num_agents = num_agents
         self.map_size = map_size
+        self.episode_max_length = episode_max_length
+        self._step_count = 0
+        self.apple_count = 0
+
         self.world = World(num_agents=num_agents, size=map_size)
 
         self.pixel_per_block = 32
@@ -46,11 +51,22 @@ class TOCEnv(object):
 
         self.render()
 
-        return None, common_reward, infos
+        self._step_count += 1
+
+        done = False
+        if self._step_count >= self.episode_max_length:
+            done = True
+        elif self._get_apple_count() == 0:
+            done = True
+        if done:
+            self.reset()
+
+        return None, common_reward, done, infos
 
     def reset(self):
         del self.world
         self.world = World(num_agents=self.num_agents, size=self.map_size)
+        self._step_count = 0
 
     def render(self) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
@@ -133,6 +149,18 @@ class TOCEnv(object):
 
     def get_full_state(self):
         return self.world.grid
+
+    def _get_apple_count(self):
+        positions = []
+        for field in self.world.fruits_fields:
+            positions.extend(field.positions)
+
+        count = 0
+        for position in positions:
+            item = self.world.get_item(pos=position)
+            if isinstance(item, items.Apple):
+                count += 1
+        return count
 
     def show(self) -> None:
         print('###### World ######')

@@ -228,7 +228,6 @@ class World(object):
                 items.append(item)
         return items
 
-
     def tick(self):
         [field.tick() for field in self.fruits_fields]
 

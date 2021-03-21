@@ -22,8 +22,8 @@ obs, reward, info = env.step(actions)
 
 
 ## TODO
-- [ ] Reset map on there's no apple one the map
-- [ ] Add environment parameter for `episode_max_length`
+- [X] Reset map on there's no apple one the map
+- [X] Add environment parameter for `episode_max_length`
 - [ ] Generate patch spawn area follow some distribution
 - [X] Re-spawn apples following quantity of surrounding apples
 - [ ] Return agent's individual views on `step` called
