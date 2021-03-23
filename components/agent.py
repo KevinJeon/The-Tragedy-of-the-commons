@@ -1,7 +1,8 @@
 import names, random
-
+import numpy as np
 
 import components.world as world
+from components.view import View
 
 class Action:
     No_Op = 0
@@ -59,6 +60,7 @@ class Direction(object):
 
     def __str__(self):
         return 'Direction({0})'.format(self._to_string())
+
 
 
 class Agent(object):
@@ -135,6 +137,17 @@ class Agent(object):
         tick_reward = self.tick_reward
         self.tick_reward = 0.
         return tick_reward
+
+    def get_view(self, output_type: str) -> np.array:
+        assert output_type in ['rgb_array', 'numeric']
+
+        positions = View.get_visible_positions(self.direction)
+
+        for position in positions:
+            pass
+
+        raise NotImplementedError
+
 
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)

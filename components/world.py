@@ -4,6 +4,7 @@ import numpy as np
 import random
 import math
 
+
 class World(object):
     pass
 
@@ -134,7 +135,24 @@ class World(object):
             self.spawn_agent(pos=pos)
 
     def _create_random_field(self):
-        # TODO Hard-coded, but should change to random sampled
+
+        # TODO 초기에 패치를 생성하는 함수를 구현하여야 함 (@H.C.)
+        '''
+        사과 패치는 아래와 같은 방식으로 생성 가능함
+        self.add_fruits_field(Field( # Field라는 구역내에서 사과가 랜덤으로 생성됨
+                world=self,
+                p1=Position(1, 1), # 왼쪽하단 (Position 객체를 이용)
+                p2=Position(4, 4), # 오른쪽 상단
+            )
+        )
+
+        Hint
+        1. 맵 사이즈에 대한 정보는 self.size를 통해 튜플로 반환받을 수 있음
+        2. 맵 사이즈를 통해 어디에 패치를 생성할 지 정하면 됨
+        3. 패치의 사이즈와 위치가 결정되면 위에 명시한 함수를 통해서 패치를 생성할 수 있음
+        - 에피소드마다 한번만 호출되기 때문에, 시간효율성은 따질필요 없을 것 같음
+        '''
+
         self.add_fruits_field(Field(
                 world=self,
                 p1=Position(1, 1),
@@ -230,9 +248,6 @@ class World(object):
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]
-
-
-
 
     @property
     def width(self) -> int:
