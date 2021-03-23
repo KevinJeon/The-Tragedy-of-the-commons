@@ -10,7 +10,9 @@ class World(object):
 
 
 class Position(object):
-    pass
+    def __init__(self, x=None, y=None):
+        self.x = x
+        self.y = y
 
 
 import components.item as items

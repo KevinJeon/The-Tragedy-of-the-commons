@@ -29,6 +29,10 @@ def main():
                 action_1 = 3
             elif key == 3: # Right
                 action_1 = 4
+            elif key == 113: # Q
+                action_1 = 5
+            elif key == 119: # W
+                action_1 = 6
             else: # No-op
                 action_1 = None
 

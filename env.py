@@ -30,6 +30,10 @@ class TOCEnv(object):
 
         self.apple_respawn_rate = apple_respawn_rate
 
+        self.redered_layer = None
+
+        self.reset()
+
     def step(self, actions):
         assert len(actions) is self.world.num_agents
 
@@ -67,6 +71,18 @@ class TOCEnv(object):
         del self.world
         self.world = World(num_agents=self.num_agents, size=self.map_size)
         self._step_count = 0
+
+    def _render_layers(self) -> None:
+        raise NotImplementedError
+
+    def _render_actor(self) -> np.array:
+        raise NotImplementedError
+
+    def _render_item(self) -> np.array:
+        raise NotImplementedError
+
+    def _render_view(self) -> np.array:
+        raise NotImplementedError
 
     def render(self) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
@@ -127,7 +143,9 @@ class TOCEnv(object):
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
             put_rgba_to_image(resized_agent, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
-            surrounds = self.world.get_surrounded_positions(iter_agent.get_position(), radius=4)
+            # surrounds = self.world.get_surrounded_positions(iter_agent.get_position(), radius=4)
+            surrounds = iter_agent.get_visible_positions()
+
 
             for position in surrounds:
                 cv.rectangle(surrounded_field, pt1=(position * self.pixel_per_block).to_tuple(reverse=True), \

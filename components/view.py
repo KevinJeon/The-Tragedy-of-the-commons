@@ -5,34 +5,36 @@ from components.agent import DirectionType
 class View(object):
 
     @staticmethod
-    def get_visible_positions(direction: DirectionType) -> None:
-        if direction is DirectionType.Up:
+    def get_visible_positions(direction: DirectionType) -> [Position]:
+        direction = direction.get_type()
+
+        if direction == DirectionType.Up:
             positions = [
-                Position(-1, 3), Position(0, 3), Position(1, 3),
-                Position(-1, 2), Position(0, 2), Position(1, 2),
-                Position(-1, 1), Position(0, 1), Position(1, 1),
-                Position(-1, 0), Position(0, 0), Position(1, 0),
-                Position(-1, -1), Position(0, -1), Position(1, -1),
+                Position(x=-1, y=3), Position(x=0, y=3), Position(x=1, y=3),
+                Position(x=-1, y=2), Position(x=0, y=2), Position(x=1, y=2),
+                Position(x=-1, y=1), Position(x=0, y=1), Position(x=1, y=1),
+                Position(x=-1, y=0), Position(x=0, y=0), Position(x=1, y=0),
+                Position(x=-1, y=-1), Position(x=0, y=-1), Position(x=1, y=-1),
             ]
-        elif direction is DirectionType.Down:
+        elif direction == DirectionType.Down:
             positions = [
-                Position(-1, 1), Position(0, 1), Position(1, 1),
-                Position(-1, 0), Position(0, 0), Position(1, 0),
-                Position(-1, -1), Position(0, -1), Position(1, -1),
-                Position(-1, -2), Position(0, -2), Position(1, -2),
-                Position(-1, -3), Position(0, -3), Position(1, -3),
+                Position(x=-1, y=1), Position(x=0, y=1), Position(x=1, y=1),
+                Position(x=-1, y=0), Position(x=0, y=0), Position(x=1, y=0),
+                Position(x=-1, y=-1), Position(x=0, y=-1), Position(x=1, y=-1),
+                Position(x=-1, y=-2), Position(x=0, y=-2), Position(x=1, y=-2),
+                Position(x=-1, y=-3), Position(x=0, y=-3), Position(x=1, y=-3),
             ]
-        elif direction is DirectionType.Left:
+        elif direction == DirectionType.Left:
             positions = [
-                Position(-3, 1), Position(-2, 1), Position(-1, 1), Position(0, 1), Position(1, 1),
-                Position(-3, 0), Position(-2, 0), Position(-1, 0), Position(0, 0), Position(1, 0),
-                Position(-3, -1), Position(-2, -1), Position(-1, -1), Position(0, -1), Position(1, -1),
+                Position(x=-3, y=1), Position(x=-2, y=1), Position(x=-1, y=1), Position(x=0, y=1), Position(x=1, y=1),
+                Position(x=-3, y=0), Position(x=-2, y=0), Position(x=-1, y=0), Position(x=0, y=0), Position(x=1, y=0),
+                Position(x=-3, y=-1), Position(x=-2, y=-1), Position(x=-1, y=-1), Position(x=0, y=-1), Position(x=1, y=-1),
             ]
-        elif direction is DirectionType.Right:
+        elif direction == DirectionType.Right:
             positions = [
-                Position(-1, 1), Position(0, 1), Position(1, 1), Position(2, 1), Position(3, 1),
-                Position(-1, 0), Position(0, 0), Position(1, 0), Position(2, 0), Position(3, 0),
-                Position(-1, -1), Position(0, -1), Position(1, -1), Position(2, -1), Position(3, -1),
+                Position(x=-1, y=1), Position(x=0, y=1), Position(x=1, y=1), Position(x=2, y=1), Position(x=3, y=1),
+                Position(x=-1, y=0), Position(x=0, y=0), Position(x=1, y=0), Position(x=2, y=0), Position(x=3, y=0),
+                Position(x=-1, y=-1), Position(x=0, y=-1), Position(x=1, y=-1), Position(x=2, y=-1), Position(x=3, y=-1),
             ]
 
         return positions

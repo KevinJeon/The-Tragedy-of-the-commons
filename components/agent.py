@@ -1,7 +1,17 @@
 import names, random
 import numpy as np
 
+
 import components.world as world
+
+class DirectionType:
+    # Clock-wise numbering
+    Up = 0
+    Down = 2
+    Left = 1
+    Right = 3
+
+
 from components.view import View
 
 class Action:
@@ -23,25 +33,17 @@ class Direction(object):
         pass
 
 
-class DirectionType:
-    # Clock-wise numbering
-    Up = 0
-    Down = 2
-    Left = 1
-    Right = 4
-
-
 class Direction(object):
 
     def __init__(self, direction_type):
         self.direction = direction_type
 
     def turn_right(self) -> Direction:
-        self.direction = self.direction + 1 % 4
+        self.direction = (self.direction + 1) % 4
         return self
 
     def turn_left(self) -> Direction:
-        self.direction = (self.direction + 4) - 1 % 4
+        self.direction = ((self.direction + 4) - 1) % 4
         return self
 
     def half_rotate(self) -> Direction:
@@ -58,6 +60,9 @@ class Direction(object):
         elif self.direction == DirectionType.Right:
             return 'Right'
 
+    def get_type(self):
+        return self.direction
+
     def __str__(self):
         return 'Direction({0})'.format(self._to_string())
 
@@ -68,7 +73,7 @@ class Agent(object):
     def __init__(self, world: world.World, pos: world.Position, name=None):
         self.world = world
         self.position = pos
-        self.direction = Direction(direction_type=random.randint(1, 4))
+        self.direction = Direction(direction_type=random.randint(0, 3))
 
         self.name = name if name is not None else names.get_full_name()
 
@@ -137,6 +142,13 @@ class Agent(object):
         tick_reward = self.tick_reward
         self.tick_reward = 0.
         return tick_reward
+
+    def get_visible_positions(self) -> [world.Position]:
+        related_positions = View.get_visible_positions(self.direction)
+
+
+        positions = [self.position + _position for _position in related_positions]
+        return positions
 
     def get_view(self, output_type: str) -> np.array:
         assert output_type in ['rgb_array', 'numeric']
