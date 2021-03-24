@@ -3,6 +3,12 @@ import numpy as np
 from copy import deepcopy
 
 
+class Agent(object):
+    def __init__(self):
+        pass
+
+
+
 import components.world as world
 from components.block import BlockType
 from components.position import Position
@@ -29,7 +35,6 @@ class Action:
 
     Rotate_Right = 5
     Rotate_Left = 6
-
 
     Attack = 7
 
@@ -87,6 +92,8 @@ class Direction(object):
         return 'Direction({0})'.format(self._to_string())
 
 
+import components.skill as skills
+
 class Agent(object):
 
     def __init__(self, world: world.World, pos: Position, name=None):
@@ -114,6 +121,8 @@ class Agent(object):
             self._rotate(DirectionType.Left)
         elif action is Action.Rotate_Right:
             self._rotate(DirectionType.Right)
+        elif action is Action.Attack:
+            self._attack()
         else:
             raise IndexError('Unknown action')
 
@@ -177,9 +186,18 @@ class Agent(object):
         else:
             raise IndexError('Unknown direction type')
 
-    def _attack(self, direction: Direction):
-        raise NotImplementedError
+    def _attack(self) -> None:
+        punish = skills.Punish()
+        punish_positions = punish.get_targets(direction=self.direction)
 
+        for position_row in punish_positions:
+
+            for position in position_row:
+                if position is None: continue
+
+                self.world.apply_effect(self.position + position, punish)
+
+        self.tick_reward += punish.reward
     def _try_gather(self):
         item = self.world.correct_item(pos=self.position)
 
@@ -246,6 +264,7 @@ class Agent(object):
 
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
+
 
 # Lazy import (Circular import issue)
 import components.item as items
