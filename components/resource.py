@@ -7,3 +7,4 @@ class Resource(object):
 
     Apple = cv.imread(os.path.join(Asset_Dir, 'apple.png'), cv.IMREAD_UNCHANGED)
     Agent = cv.imread(os.path.join(Asset_Dir, 'monster.png'), cv.IMREAD_UNCHANGED)
+    Wall = cv.imread(os.path.join(Asset_Dir, 'wall.png'), cv.IMREAD_UNCHANGED)

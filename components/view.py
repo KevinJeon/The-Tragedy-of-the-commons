@@ -11,17 +11,16 @@ class View(object):
         positions = []
         if direction == DirectionType.Up:
 
-            for x in range(-5, 6):
+            for y in range(9, -2, -1):
                 _positions = []
-                for y in range(9, -2, -1):
+                for x in range(-5, 6):
                     _positions.append(Position(x=x, y=y))
                 positions.append(_positions)
 
         elif direction == DirectionType.Down:
-
-            for x in range(-5, 6):
+            for y in range(-9, 2, 1):
                 _positions = []
-                for y in range(1, -10, -1):
+                for x in range(-5, 6):
                     _positions.append(Position(x=x, y=y))
                 positions.append(_positions)
 
@@ -35,9 +34,9 @@ class View(object):
 
         elif direction == DirectionType.Right:
 
-            for x in range(-1, 10):
+            for x in range(9, -2, -1):
                 _positions = []
-                for y in range(-5, 6, 1):
+                for y in range(5, -6, -1):
                     _positions.append(Position(x=x, y=y))
                 positions.append(_positions)
 

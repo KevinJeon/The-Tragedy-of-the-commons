@@ -9,8 +9,6 @@ class World(object):
     pass
 
 
-
-
 import components.item as items
 import components.agent as agent
 from components.position import Position
@@ -124,7 +122,6 @@ class World(object):
             )
         )
 
-
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)
         self.agents.append(spawned)
@@ -134,7 +131,6 @@ class World(object):
         spawned = block.Block(world=self)
         self.grid[pos.y][pos.x] = block
         return spawned
-
 
     def spawn_item(self, item: items.Item, pos: Position) -> bool:
         if not self.map_contains(pos): return False

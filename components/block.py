@@ -1,7 +1,7 @@
 class BlockType:
-    OutBound = -1
     Empty = 0
-    Wall = 1
+    OutBound = 1
+    # Wall = 2
     Apple = 2
 
     #  Agents

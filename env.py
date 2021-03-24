@@ -2,7 +2,9 @@
 import numpy as np
 import cv2 as cv
 
-from utils.image import put_rgba_to_image
+from components.block import BlockType
+
+from utils.image import put_rgba_to_image, put_rgb_to_image
 
 
 class TOCEnv(object):
@@ -24,6 +26,7 @@ class TOCEnv(object):
         self.world = World(num_agents=num_agents, size=map_size)
 
         self.pixel_per_block = 32
+        self._individual_render_pixel = 32
 
         self.apple_respawn_rate = apple_respawn_rate
 
@@ -153,12 +156,11 @@ class TOCEnv(object):
                                  )
 
             view = iter_agent.get_view()
-            print((view))
+            image = self._render_individual_view(view)
+            cv.imshow('indiv', image)
+
         surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
         output_layer = cv.add(output_layer, surrounded_field)
-
-
-
 
         for y in range(self.world.height):
             for x in range(self.world.width):
@@ -166,10 +168,30 @@ class TOCEnv(object):
 
         return output_layer / 255.
 
-    def _render_individual_view(self) -> np.array:
+    def _render_individual_view(self, view: np.array) -> np.array:
+        height, width = view.shape[0], view.shape[1]
+        image_size = (height * self._individual_render_pixel, width * self._individual_render_pixel, 3)
+        layer_output = np.zeros(shape=image_size)
 
+        resized_agent = cv.resize(Resource.Agent, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_apple = cv.resize(Resource.Apple, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_wall = cv.resize(Resource.Wall, dsize=(self._individual_render_pixel, self._individual_render_pixel))
 
-        pass
+        for y, row in enumerate(reversed(view)):
+            for x, item in enumerate(row):
+                if item == BlockType.Empty:
+                    continue
+                elif item == BlockType.Apple:
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgba_to_image(resized_apple, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                elif item == BlockType.OutBound:
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                elif item == BlockType.Self:
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+
+        return layer_output / 255.
 
     def get_full_state(self):
         return self.world.grid

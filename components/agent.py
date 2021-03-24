@@ -18,6 +18,7 @@ class DirectionType:
 
 from components.view import View
 
+
 class Action:
     No_Op = 0
 
@@ -26,8 +27,9 @@ class Action:
     Move_Left = 3
     Move_Right = 4
 
-    Rotate_Left = 5
-    Rotate_Right = 6
+    Rotate_Right = 5
+    Rotate_Left = 6
+
 
     Attack = 7
 
@@ -51,8 +53,22 @@ class Direction(object):
         return self
 
     def half_rotate(self) -> Direction:
-        self.direction = self.direction + 2 % 4
+        self.direction = (self.direction + 2) % 4
         return self
+
+    @property
+    def value(self):
+        return self.direction
+
+    def _to_position(self) -> Position:
+        if self.direction == DirectionType.Up:
+            return Position(x=0, y=1)
+        elif self.direction == DirectionType.Down:
+            return Position(x=0, y=-1)
+        elif self.direction == DirectionType.Left:
+            return Position(x=-1, y=0)
+        elif self.direction == DirectionType.Right:
+            return Position(x=1, y=0)
 
     def _to_string(self) -> str:
         if self.direction == DirectionType.Up:
@@ -69,7 +85,6 @@ class Direction(object):
 
     def __str__(self):
         return 'Direction({0})'.format(self._to_string())
-
 
 
 class Agent(object):
@@ -103,14 +118,48 @@ class Agent(object):
             raise IndexError('Unknown action')
 
     def _move(self, direction: DirectionType):
-        if direction is DirectionType.Up:
-            new_pos = self.position + world.Position(x=0, y=1)
-        elif direction is DirectionType.Down:
-            new_pos = self.position + world.Position(x=0, y=-1)
-        elif direction is DirectionType.Left:
-            new_pos = self.position + world.Position(x=-1, y=0)
-        elif direction is DirectionType.Right:
-            new_pos = self.position + world.Position(x=1, y=0)
+
+        new_pos = None
+        print(new_pos, direction, self.direction.value, DirectionType.Left)
+        if direction == DirectionType.Up:
+            if self.direction.value == DirectionType.Up:
+                new_pos = self.position + Position(x=0, y=1)
+            elif self.direction.value == DirectionType.Down:
+                new_pos = self.position + Position(x=0, y=-1)
+            elif self.direction.value == DirectionType.Left:
+                new_pos = self.position + Position(x=-1, y=0)
+            elif self.direction.value == DirectionType.Right:
+                new_pos = self.position + Position(x=1, y=0)
+
+        elif direction == DirectionType.Down:
+            if self.direction.value == DirectionType.Up:
+                new_pos = self.position - Position(x=0, y=1)
+            elif self.direction.value == DirectionType.Down:
+                new_pos = self.position + Position(x=0, y=1)
+            elif self.direction.value == DirectionType.Left:
+                new_pos = self.position + Position(x=1, y=0)
+            elif self.direction.value == DirectionType.Right:
+                new_pos = self.position - Position(x=1, y=0)
+
+        elif direction == DirectionType.Left:
+            if self.direction.value == DirectionType.Up:
+                new_pos = self.position + Position(x=-1, y=0)
+            elif self.direction.value == DirectionType.Down:
+                new_pos = self.position + Position(x=1, y=0)
+            elif self.direction.value == DirectionType.Left:
+                new_pos = self.position + Position(x=0, y=-1)
+            elif self.direction.value == DirectionType.Right:
+                new_pos = self.position + Position(x=0, y=1)
+
+        elif direction == DirectionType.Right:
+            if self.direction.value == DirectionType.Up:
+                new_pos = self.position + Position(x=1, y=0)
+            elif self.direction.value == DirectionType.Down:
+                new_pos = self.position - Position(x=1, y=0)
+            elif self.direction.value == DirectionType.Left:
+                new_pos = self.position + Position(x=0, y=1)
+            elif self.direction.value == DirectionType.Right:
+                new_pos = self.position - Position(x=0, y=1)
 
         if not self.world.get_agent(new_pos) is not None: # If other agent exists
             if self.world.map_contains(new_pos):
@@ -191,7 +240,7 @@ class Agent(object):
                             sketch[y][x] = BlockType.Apple
 
                 else:
-                    sketch[y][x] = -1
+                    sketch[y][x] = BlockType.OutBound
 
         return sketch
 
