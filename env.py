@@ -26,7 +26,7 @@ class TOCEnv(object):
         self.world = World(num_agents=num_agents, size=map_size)
 
         self.pixel_per_block = 32
-        self._individual_render_pixel = 32
+        self._individual_render_pixel = 8
 
         self.apple_respawn_rate = apple_respawn_rate
 
@@ -48,12 +48,17 @@ class TOCEnv(object):
             common_reward += _individual_reward
             individual_rewards.append(_individual_reward)
 
+        obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
+        obs = np.array(obs, dtype=np.float16)
+
+        directions = [iter_agent.direction.value for iter_agent in self.world.agents]
+
         infos = {
-            # 'agents': self.world.agents,
+            'agents': {
+                'directions': directions,
+            },
             'reward': individual_rewards
         }
-
-        self.render()
 
         self._step_count += 1
 
@@ -65,7 +70,7 @@ class TOCEnv(object):
         if done:
             self.reset()
 
-        return None, common_reward, done, infos
+        return obs, common_reward, done, infos
 
     def reset(self):
         del self.world
@@ -139,7 +144,7 @@ class TOCEnv(object):
         output_layer = cv.add(masked_layer_field, masked_layer_actors)
 
         surrounded_field = np.zeros(shape=image_size)
-        for iter_agent in self.world.agents:
+        for idx, iter_agent in enumerate(self.world.agents):
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
             put_rgba_to_image(resized_agent, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
@@ -157,7 +162,7 @@ class TOCEnv(object):
 
             view = iter_agent.get_view()
             image = self._render_individual_view(view)
-            cv.imshow('indiv', image)
+            cv.imshow('indiv'+str(idx), image)
 
         surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
         output_layer = cv.add(output_layer, surrounded_field)
@@ -187,7 +192,7 @@ class TOCEnv(object):
                 elif item == BlockType.OutBound:
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif item == BlockType.Self:
+                elif item == BlockType.Others:
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
 
