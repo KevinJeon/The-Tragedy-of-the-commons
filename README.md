@@ -2,7 +2,7 @@
 This repo is implementation of environment in paper 'Social diversity and social preferences in mixed-motive reinforcement learning'
 
 
-## Envrionment Specification
+## Environment Specification
 ### Settings
 Placeholder
 
@@ -10,7 +10,14 @@ Placeholder
 Placeholder
 
 ### Action
-Placeholder
+
+
+### Info
+#### Agents
+##### Directions
+Which directions the agents are looking for  
+
+WIP
 
 ## Example
 ```python
@@ -29,6 +36,6 @@ obs, reward, info = env.step(actions)
 - [X] Re-spawn apples following quantity of surrounding apples
 - [X] Return agent's individual views on `step` called
 - [X] Implement Agent's direction and make it available when action called on `step`
-- [ ] Implement action `Punish`
+- [X] Implement action `Punish`
 
 ### Algorithms

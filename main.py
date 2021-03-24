@@ -20,7 +20,6 @@ def main():
             cv.imshow('Env', image)
             ##key = cv.waitKeyEx()
             key = cv.waitKey()
-
             if key == 0: # Up
                 action_1 = 1
             elif key == 1: # Down
@@ -33,6 +32,8 @@ def main():
                 action_1 = 5
             elif key == 119: # W
                 action_1 = 6
+            elif key == 97: # A
+                action_1 = 7
             else: # No-op
                 action_1 = None
 

@@ -3,6 +3,7 @@ import numpy as np
 import cv2 as cv
 
 from components.block import BlockType
+import components.skill as skill
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
@@ -10,7 +11,6 @@ from utils.image import put_rgba_to_image, put_rgb_to_image
 class TOCEnv(object):
 
     def __init__(self,
-                 render=False,
                  apple_respawn_rate=1,
                  num_agents=4,
                  map_size=(16, 16),
@@ -37,8 +37,12 @@ class TOCEnv(object):
     def step(self, actions):
         assert len(actions) is self.world.num_agents
 
+        # Clear skill (You should bew clear effects before tick
+        self.world.clear_effect()
+
         for agent, action in zip(self.world.agents, actions):
             agent.act(action)
+
         self.world.tick()
 
         common_reward = 0
@@ -143,29 +147,59 @@ class TOCEnv(object):
 
         output_layer = cv.add(masked_layer_field, masked_layer_actors)
 
-        surrounded_field = np.zeros(shape=image_size)
-        for idx, iter_agent in enumerate(self.world.agents):
+        layer_heading = np.zeros(shape=image_size)
+        heading_tile = np.zeros((self.pixel_per_block, self.pixel_per_block, 4))
+        heading_tile[:, :, 2] = np.ones((self.pixel_per_block, self.pixel_per_block)) * 255
+        heading_tile[:, :, 2] = np.ones((self.pixel_per_block, self.pixel_per_block)) * 255
+        tile_height = int(self.pixel_per_block * 0.3)
+        heading_tile[tile_height:, :, :] = 0
+
+        heading_tile[:, :, 3] = np.ones((self.pixel_per_block, self.pixel_per_block)) * 255 * 0.7
+
+        for iter_agent in self.world.agents:
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
-            put_rgba_to_image(resized_agent, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
-            # surrounds = self.world.get_surrounded_positions(iter_agent.get_position(), radius=4)
-            surrounds = iter_agent.get_visible_positions(absolute=True)
+            put_rgba_to_image(np.rot90(heading_tile, k=iter_agent.direction.value), layer_heading, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
-            for position_y in surrounds:
+        gray_layer_heading = cv.cvtColor(layer_heading.astype(np.uint8), cv.COLOR_BGR2GRAY)
+        ret, mask = cv.threshold(gray_layer_heading, 1, 255, cv.THRESH_BINARY)
 
-                for position in position_y:
-                    cv.rectangle(surrounded_field, pt1=(position * self.pixel_per_block).to_tuple(reverse=True), \
-                                 pt2=((position + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
-                                 color=(100, 100, 100), \
-                                 thickness=-1 \
-                                 )
+        masked_dest_layer = cv.bitwise_and(output_layer, output_layer, mask=mask_inv)
 
-            view = iter_agent.get_view()
-            image = self._render_individual_view(view)
-            cv.imshow('indiv'+str(idx), image)
+        masked_src_layer = cv.bitwise_and(layer_heading, layer_heading, mask=mask)
+        output_layer = cv.add(masked_dest_layer, masked_src_layer)
 
-        surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
-        output_layer = cv.add(output_layer, surrounded_field)
+
+
+
+        # surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
+        # output_layer = cv.add(output_layer, surrounded_field)
+
+
+
+        # Draw Effects
+        layer_effects = np.zeros(shape=image_size)
+
+        resized_flame = cv.resize(Resource.Flame, dsize=(self.pixel_per_block, self.pixel_per_block))
+        resized_flame[:, :, 3] = resized_flame[:, :, 3] * 0.7
+
+        for y in range(self.world.height):
+            for x in range(self.world.width):
+
+                effects = self.world.effects[y][x]
+
+                for effect in effects:
+                    if isinstance(effect, skill.Punish):
+                        pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
+                        put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+
+        # gray_layer_items = cv.cvtColor(layer_effects.astype(np.uint8), cv.COLOR_BGR2GRAY)
+        # ret, mask = cv.threshold(gray_layer_items, 1, 255, cv.THRESH_BINARY)
+        # mask_inv = cv.bitwise_not(mask)
+        # masked_output_layer = cv.bitwise_and(output_layer, layer_field, mask=mask_inv)
+        # masked_layer_items = cv.bitwise_and(layer_effects, layer_effects, mask=mask)
+        # output_layer = cv.add(masked_output_layer, masked_layer_items)
+
 
         for y in range(self.world.height):
             for x in range(self.world.width):
