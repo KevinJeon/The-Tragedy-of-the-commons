@@ -1,11 +1,10 @@
-from components.world import World, Position
-from components.resource import Resource
-import components.item as items
 
 import numpy as np
 import cv2 as cv
 
-from utils.image import put_rgba_to_image
+from components.block import BlockType
+
+from utils.image import put_rgba_to_image, put_rgb_to_image
 
 
 class TOCEnv(object):
@@ -27,8 +26,13 @@ class TOCEnv(object):
         self.world = World(num_agents=num_agents, size=map_size)
 
         self.pixel_per_block = 32
+        self._individual_render_pixel = 8
 
         self.apple_respawn_rate = apple_respawn_rate
+
+        self.redered_layer = None
+
+        self.reset()
 
     def step(self, actions):
         assert len(actions) is self.world.num_agents
@@ -44,12 +48,17 @@ class TOCEnv(object):
             common_reward += _individual_reward
             individual_rewards.append(_individual_reward)
 
+        obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
+        obs = np.array(obs, dtype=np.float16)
+
+        directions = [iter_agent.direction.value for iter_agent in self.world.agents]
+
         infos = {
-            # 'agents': self.world.agents,
+            'agents': {
+                'directions': directions,
+            },
             'reward': individual_rewards
         }
-
-        self.render()
 
         self._step_count += 1
 
@@ -61,12 +70,24 @@ class TOCEnv(object):
         if done:
             self.reset()
 
-        return None, common_reward, done, infos
+        return obs, common_reward, done, infos
 
     def reset(self):
         del self.world
         self.world = World(num_agents=self.num_agents, size=self.map_size)
         self._step_count = 0
+
+    def _render_layers(self) -> None:
+        raise NotImplementedError
+
+    def _render_actor(self) -> np.array:
+        raise NotImplementedError
+
+    def _render_item(self) -> np.array:
+        raise NotImplementedError
+
+    def _render_view(self) -> np.array:
+        raise NotImplementedError
 
     def render(self) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
@@ -123,29 +144,59 @@ class TOCEnv(object):
         output_layer = cv.add(masked_layer_field, masked_layer_actors)
 
         surrounded_field = np.zeros(shape=image_size)
-        for iter_agent in self.world.agents:
+        for idx, iter_agent in enumerate(self.world.agents):
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
             put_rgba_to_image(resized_agent, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
-            surrounds = self.world.get_surrounded_positions(iter_agent.get_position(), radius=4)
+            # surrounds = self.world.get_surrounded_positions(iter_agent.get_position(), radius=4)
+            surrounds = iter_agent.get_visible_positions(absolute=True)
 
-            for position in surrounds:
-                cv.rectangle(surrounded_field, pt1=(position * self.pixel_per_block).to_tuple(reverse=True), \
-                             pt2=((position + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
-                             color=(100, 100, 100), \
-                             thickness=-1 \
-                             )
+            for position_y in surrounds:
+
+                for position in position_y:
+                    cv.rectangle(surrounded_field, pt1=(position * self.pixel_per_block).to_tuple(reverse=True), \
+                                 pt2=((position + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
+                                 color=(100, 100, 100), \
+                                 thickness=-1 \
+                                 )
+
+            view = iter_agent.get_view()
+            image = self._render_individual_view(view)
+            cv.imshow('indiv'+str(idx), image)
 
         surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
         output_layer = cv.add(output_layer, surrounded_field)
-
-
 
         for y in range(self.world.height):
             for x in range(self.world.width):
                cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
         return output_layer / 255.
+
+    def _render_individual_view(self, view: np.array) -> np.array:
+        height, width = view.shape[0], view.shape[1]
+        image_size = (height * self._individual_render_pixel, width * self._individual_render_pixel, 3)
+        layer_output = np.zeros(shape=image_size)
+
+        resized_agent = cv.resize(Resource.Agent, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_apple = cv.resize(Resource.Apple, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_wall = cv.resize(Resource.Wall, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+
+        for y, row in enumerate(reversed(view)):
+            for x, item in enumerate(row):
+                if item == BlockType.Empty:
+                    continue
+                elif item == BlockType.Apple:
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgba_to_image(resized_apple, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                elif item == BlockType.OutBound:
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                elif item == BlockType.Others:
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+
+        return layer_output / 255.
 
     def get_full_state(self):
         return self.world.grid
@@ -177,3 +228,8 @@ class TOCEnv(object):
 
     def respawn_apple(self):
         raise NotImplementedError
+
+
+from components.world import World, Position
+from components.resource import Resource
+import components.item as items

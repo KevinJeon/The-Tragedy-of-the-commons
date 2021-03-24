@@ -18,8 +18,25 @@ def main():
 
             image = env.render()
             cv.imshow('Env', image)
-            key = cv.waitKeyEx()
+            ##key = cv.waitKeyEx()
+            key = cv.waitKey()
 
+            if key == 0: # Up
+                action_1 = 1
+            elif key == 1: # Down
+                action_1 = 2
+            elif key == 2: # Left
+                action_1 = 3
+            elif key == 3: # Right
+                action_1 = 4
+            elif key == 113: # Q
+                action_1 = 5
+            elif key == 119: # W
+                action_1 = 6
+            else: # No-op
+                action_1 = None
+
+            '''
             if key == 0x260000: # Up
                 action_1 = 1
             elif key == 0x280000: # Down
@@ -30,16 +47,16 @@ def main():
                 action_1 = 4
             else: # No-op
                 action_1 = None
-
+            '''
             sampled_action = []
             if action_1 is not None:
                 sampled_action.append(action_1)
-                sampled_action.extend([random.randint(0, 4) for _ in range(num_agents - 1)])
+                sampled_action.extend([random.randint(0, 6) for _ in range(num_agents - 1)])
             else:
-                sampled_action = [random.randint(0, 4) for _ in range(num_agents)]
+                sampled_action = [random.randint(0, 6) for _ in range(num_agents)]
 
-            ret = env.step(actions=sampled_action)
-            print(ret)
+            next_state, reward, done, info = env.step(actions=sampled_action)
+            print(next_state.shape, reward, done, info)
 
 
 

@@ -27,8 +27,8 @@ obs, reward, info = env.step(actions)
 - [X] Add environment parameter for `episode_max_length`
 - [ ] Generate patch spawn area follow some distribution
 - [X] Re-spawn apples following quantity of surrounding apples
-- [ ] Return agent's individual views on `step` called
-- [ ] Implement Agent's direction and make it available when action called on `step`
+- [X] Return agent's individual views on `step` called
+- [X] Implement Agent's direction and make it available when action called on `step`
 - [ ] Implement action `Punish`
 
 ### Algorithms

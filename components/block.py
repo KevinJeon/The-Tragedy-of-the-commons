@@ -1,23 +1,12 @@
-import components.world as world
+class BlockType:
+    Empty = 0
+    OutBound = 1
+    # Wall = 2
+    Apple = 2
 
-
-class Block(object):
-
-    def __init__(self, _world: world.World) -> None:
-        self.world = world
-        self.position = None
-        self.can_walk = False
-
-
-class Wall(Block):
-
-    def __init__(self) -> None:
-        super(Wall, self).__init__()
-
-        self.can_walk = False
-
-        raise NotImplementedError
-
+    #  Agents
+    Self = 3
+    Others = 4
 
 
 

@@ -4,63 +4,14 @@ import numpy as np
 import random
 import math
 
+
 class World(object):
-    pass
-
-
-class Position(object):
     pass
 
 
 import components.item as items
 import components.agent as agent
-
-
-class Position(object):
-    def __init__(self, x=None, y=None):
-        assert x is not None
-        assert y is not None
-        self.x = x
-        self.y = y
-
-    def subtract_y(self, scalar: int) -> Position:
-        return Position(x=self.x, y=scalar - self.y)
-
-    def __add__(self, pos: Position):
-        return Position(x=self.x + pos.x, y=self.y + pos.y)
-
-    def __sub__(self, pos: Position):
-        return Position(x=self.x - pos.x, y=self.y - pos.y)
-
-    def __mul__(self, scale: int):
-        return Position(x=self.x * scale, y=self.y * scale)
-
-    def __eq__(self, other: Position):
-        return self.x == other.x and self.y == other.y
-
-    def __str__(self):
-        return 'Position(x={0}, y={1})'.format(self.x, self.y)
-
-    def to_tuple(self, reverse=False):
-        if reverse:
-            return self.x, self.y
-        else:
-            return self.y, self.x
-
-    def get_distance(self, pos: Position):
-        return math.sqrt(math.pow(self.x - pos.x, 2) + math.pow(self.y - pos.y, 2))
-
-    def get_surrounded(self, radius: int) -> [Position]:
-        surrounded = []
-        for _y in range(radius * -1, radius + 1):
-            for _x in range(radius * -1, radius + 1):
-                _position = self + Position(x=_x, y=_y)
-                distance = self.get_distance(_position)
-
-                if distance <= radius:
-                    surrounded.append(_position)
-        return surrounded
-
+from components.position import Position
 
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
@@ -134,7 +85,24 @@ class World(object):
             self.spawn_agent(pos=pos)
 
     def _create_random_field(self):
-        # TODO Hard-coded, but should change to random sampled
+
+        # TODO 초기에 패치를 생성하는 함수를 구현하여야 함 (@H.C.)
+        '''
+        사과 패치는 아래와 같은 방식으로 생성 가능함
+        self.add_fruits_field(Field( # Field라는 구역내에서 사과가 랜덤으로 생성됨
+                world=self,
+                p1=Position(1, 1), # 왼쪽하단 (Position 객체를 이용)
+                p2=Position(4, 4), # 오른쪽 상단
+            )
+        )
+
+        Hint
+        1. 맵 사이즈에 대한 정보는 self.size를 통해 튜플로 반환받을 수 있음
+        2. 맵 사이즈를 통해 어디에 패치를 생성할 지 정하면 됨
+        3. 패치의 사이즈와 위치가 결정되면 위에 명시한 함수를 통해서 패치를 생성할 수 있음
+        - 에피소드마다 한번만 호출되기 때문에, 시간효율성은 따질필요 없을 것 같음
+        '''
+
         self.add_fruits_field(Field(
                 world=self,
                 p1=Position(1, 1),
@@ -154,7 +122,6 @@ class World(object):
             )
         )
 
-
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)
         self.agents.append(spawned)
@@ -164,7 +131,6 @@ class World(object):
         spawned = block.Block(world=self)
         self.grid[pos.y][pos.x] = block
         return spawned
-
 
     def spawn_item(self, item: items.Item, pos: Position) -> bool:
         if not self.map_contains(pos): return False
@@ -230,9 +196,6 @@ class World(object):
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]
-
-
-
 
     @property
     def width(self) -> int:
