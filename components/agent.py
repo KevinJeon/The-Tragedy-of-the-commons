@@ -120,7 +120,7 @@ class Agent(object):
     def _move(self, direction: DirectionType):
 
         new_pos = None
-        print(new_pos, direction, self.direction.value, DirectionType.Left)
+
         if direction == DirectionType.Up:
             if self.direction.value == DirectionType.Up:
                 new_pos = self.position + Position(x=0, y=1)
