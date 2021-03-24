@@ -12,6 +12,7 @@ class World(object):
 import components.item as items
 import components.agent as agent
 from components.position import Position
+import components.skill as skills
 
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
@@ -67,6 +68,7 @@ class World(object):
         self.size = size
         self.agents = []
         self.grid = None
+        self.effects = []
         self._build_grid()
 
         self.on_changed_callbacks = []
@@ -75,6 +77,7 @@ class World(object):
 
         self._create_random_field()
         self._spawn_random_agents()
+        self.clear_effect()
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
@@ -194,8 +197,26 @@ class World(object):
                 items.append(item)
         return items
 
+    def apply_effect(self, pos: Position, effect: skills.Skill) -> bool:
+        if self.map_contains(pos=pos):
+
+            if isinstance(effect, skills.Punish):
+                for iter_agents in self.agents:
+                    if iter_agents.position == pos:
+                        iter_agents.tick_reward += effect.damage
+
+            # Add skill history
+            self.effects[pos.y][pos.x].append(effect)
+            return True
+        else:
+            return False
+
+    def clear_effect(self):
+        self.effects = [[[] for x in range(self.width)] for y in range(self.height)]
+
     def tick(self):
         [field.tick() for field in self.fruits_fields]
+
 
     @property
     def width(self) -> int:
@@ -210,3 +231,4 @@ class World(object):
 import components.agent as agent
 import components.block as block
 import components.item as items
+import components.skill as skills
