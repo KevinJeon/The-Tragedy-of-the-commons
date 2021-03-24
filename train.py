@@ -1,16 +1,23 @@
 import cv2 as cv
 import random
-
-
+import argparse
 from env import TOCEnv
 from components.agent import Action
-
-
-def main():
-    num_agents = 4
+import config as cfgs
+def parse_args():
+    parser = argparse.ArgumenParser('TOC Params')
+    parser.add_argument('--num_episode', '-e', default=10000, type=int)
+    parser.add_argument('--batch_size', '-b', default=1024, type=int)
+    parser.add_argument('--num_agent', '-a', default=5, type=int)
+    parser.add_argument('--max_step', '-ms', default=500, type=int)
+    parser.add_argument('--save_dir', '-s', default='/save', type=str)
+    parser.add_argument('--log_dir', '-l', default='/logs', type=str)
+    return parser.parse_args()
+def main(args, cfgs):
+    ecfgs, acfgs, mcfgs = cfgs.env_info, cfgs.agent_info, cfgs.model_info 
+    # In args, args are emergent params that needs to change easily, otherwise, in cfgs
 
     env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
-
     while True:
         _ = env.reset()
 
@@ -44,4 +51,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    main(args, cfgs)
