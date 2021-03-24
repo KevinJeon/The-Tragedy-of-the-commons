@@ -1,6 +1,3 @@
-from components.world import World, Position
-from components.resource import Resource
-import components.item as items
 
 import numpy as np
 import cv2 as cv
@@ -144,18 +141,22 @@ class TOCEnv(object):
             put_rgba_to_image(resized_agent, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
             # surrounds = self.world.get_surrounded_positions(iter_agent.get_position(), radius=4)
-            surrounds = iter_agent.get_visible_positions()
+            surrounds = iter_agent.get_visible_positions(absolute=True)
 
+            for position_y in surrounds:
 
-            for position in surrounds:
-                cv.rectangle(surrounded_field, pt1=(position * self.pixel_per_block).to_tuple(reverse=True), \
-                             pt2=((position + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
-                             color=(100, 100, 100), \
-                             thickness=-1 \
-                             )
+                for position in position_y:
+                    cv.rectangle(surrounded_field, pt1=(position * self.pixel_per_block).to_tuple(reverse=True), \
+                                 pt2=((position + Position(1, 1)) * self.pixel_per_block).to_tuple(reverse=True), \
+                                 color=(100, 100, 100), \
+                                 thickness=-1 \
+                                 )
 
+            view = iter_agent.get_view()
+            print((view))
         surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
         output_layer = cv.add(output_layer, surrounded_field)
+
 
 
 
@@ -164,6 +165,11 @@ class TOCEnv(object):
                cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
         return output_layer / 255.
+
+    def _render_individual_view(self) -> np.array:
+
+
+        pass
 
     def get_full_state(self):
         return self.world.grid
@@ -195,3 +201,8 @@ class TOCEnv(object):
 
     def respawn_apple(self):
         raise NotImplementedError
+
+
+from components.world import World, Position
+from components.resource import Resource
+import components.item as items

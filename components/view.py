@@ -1,4 +1,4 @@
-from components.world import Position
+from components.position import Position
 from components.agent import DirectionType
 
 
@@ -12,24 +12,37 @@ class View(object):
         if direction == DirectionType.Up:
 
             for x in range(-5, 6):
+                _positions = []
                 for y in range(9, -2, -1):
-                    positions.append(Position(x=x, y=y))
+                    _positions.append(Position(x=x, y=y))
+                positions.append(_positions)
 
         elif direction == DirectionType.Down:
 
             for x in range(-5, 6):
+                _positions = []
                 for y in range(1, -10, -1):
-                    positions.append(Position(x=x, y=y))
+                    _positions.append(Position(x=x, y=y))
+                positions.append(_positions)
 
         elif direction == DirectionType.Left:
 
             for x in range(-9, 2):
+                _positions = []
                 for y in range(-5, 6, 1):
-                    positions.append(Position(x=x, y=y))
+                    _positions.append(Position(x=x, y=y))
+                positions.append(_positions)
+
         elif direction == DirectionType.Right:
 
             for x in range(-1, 10):
+                _positions = []
                 for y in range(-5, 6, 1):
-                    positions.append(Position(x=x, y=y))
+                    _positions.append(Position(x=x, y=y))
+                positions.append(_positions)
 
         return positions
+
+
+from components.agent import DirectionType
+

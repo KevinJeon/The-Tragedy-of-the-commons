@@ -1,8 +1,12 @@
 import names, random
 import numpy as np
+from copy import deepcopy
 
 
 import components.world as world
+from components.block import BlockType
+from components.position import Position
+
 
 class DirectionType:
     # Clock-wise numbering
@@ -70,7 +74,7 @@ class Direction(object):
 
 class Agent(object):
 
-    def __init__(self, world: world.World, pos: world.Position, name=None):
+    def __init__(self, world: world.World, pos: Position, name=None):
         self.world = world
         self.position = pos
         self.direction = Direction(direction_type=random.randint(0, 3))
@@ -135,7 +139,7 @@ class Agent(object):
 
         return self
 
-    def get_position(self) -> world.Position:
+    def get_position(self) -> Position:
         return self.position
 
     def reset_reward(self) -> int:
@@ -143,23 +147,53 @@ class Agent(object):
         self.tick_reward = 0.
         return tick_reward
 
-    def get_visible_positions(self) -> [world.Position]:
+    def get_visible_positions(self, absolute=False) -> [Position]:
+        '''
+        :return: Agent's visible relative positions
+        '''
         related_positions = View.get_visible_positions(self.direction)
 
+        if absolute:
+            for y, row in enumerate(related_positions):
+                for x, item in enumerate(row):
+                    related_positions[y][x] = item + self.position
+        return related_positions
 
-        positions = [self.position + _position for _position in related_positions]
-        return positions
-
-    def get_view(self, output_type: str) -> np.array:
-        assert output_type in ['rgb_array', 'numeric']
-
+    def get_view(self) -> [BlockType]:
         positions = View.get_visible_positions(self.direction)
+        positions = np.array(positions, dtype=object)
 
-        for position in positions:
-            pass
+        # Fill agent on grid
+        grid = deepcopy(self.world.grid)
+        for iter_agent in self.world.agents:
+            position = iter_agent.position
+            grid[position.y][position.x] = iter_agent
 
-        raise NotImplementedError
+        # Empty space to draw information
+        sketch = np.empty(positions.shape, dtype=np.int8)
 
+        for y, position_row in enumerate(positions):
+            for x, position in enumerate(position_row):
+
+                abs_position = position + self.position
+                if self.world.map_contains(abs_position):  # If position is outside of map
+                    item = grid[abs_position.y][abs_position.x]
+
+                    if item is None:  # If item or agent exists on the position
+                        sketch[y][x] = BlockType.Empty
+                    else:
+                        if isinstance(item, Agent):
+                            if item == self:  # If the agent is myself
+                                sketch[y][x] = BlockType.Self
+                            else:  # Or agent is companion or opponent
+                                sketch[y][x] = BlockType.Others
+                        elif isinstance(item, items.Apple):
+                            sketch[y][x] = BlockType.Apple
+
+                else:
+                    sketch[y][x] = -1
+
+        return sketch
 
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
