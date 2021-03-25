@@ -53,7 +53,7 @@ class TOCEnv(object):
             individual_rewards.append(_individual_reward)
 
         obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
-        obs = np.array(obs, dtype=np.float16)
+        obs = np.array(obs, dtype=np.float32)
 
         directions = [iter_agent.direction.value for iter_agent in self.world.agents]
 
@@ -158,24 +158,14 @@ class TOCEnv(object):
 
         for iter_agent in self.world.agents:
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
-
             put_rgba_to_image(np.rot90(heading_tile, k=iter_agent.direction.value), layer_heading, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         gray_layer_heading = cv.cvtColor(layer_heading.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_heading, 1, 255, cv.THRESH_BINARY)
 
         masked_dest_layer = cv.bitwise_and(output_layer, output_layer, mask=mask_inv)
-
         masked_src_layer = cv.bitwise_and(layer_heading, layer_heading, mask=mask)
         output_layer = cv.add(masked_dest_layer, masked_src_layer)
-
-
-
-
-        # surrounded_field = cv.flip(surrounded_field, 0)  # Vertical flip
-        # output_layer = cv.add(output_layer, surrounded_field)
-
-
 
         # Draw Effects
         layer_effects = np.zeros(shape=image_size)
@@ -193,19 +183,11 @@ class TOCEnv(object):
                         pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
                         put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
-        # gray_layer_items = cv.cvtColor(layer_effects.astype(np.uint8), cv.COLOR_BGR2GRAY)
-        # ret, mask = cv.threshold(gray_layer_items, 1, 255, cv.THRESH_BINARY)
-        # mask_inv = cv.bitwise_not(mask)
-        # masked_output_layer = cv.bitwise_and(output_layer, layer_field, mask=mask_inv)
-        # masked_layer_items = cv.bitwise_and(layer_effects, layer_effects, mask=mask)
-        # output_layer = cv.add(masked_output_layer, masked_layer_items)
-
-
         for y in range(self.world.height):
             for x in range(self.world.width):
                cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
-        return output_layer / 255.
+        return (output_layer / 255.).astype(np.float32)
 
     def _render_individual_view(self, view: np.array) -> np.array:
         height, width = view.shape[0], view.shape[1]
@@ -216,6 +198,7 @@ class TOCEnv(object):
         resized_apple = cv.resize(Resource.Apple, dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_wall = cv.resize(Resource.Wall, dsize=(self._individual_render_pixel, self._individual_render_pixel))
 
+        # Draw blocks
         for y, row in enumerate(reversed(view)):
             for x, item in enumerate(row):
                 if item == BlockType.Empty:
@@ -229,6 +212,29 @@ class TOCEnv(object):
                 elif item == BlockType.Others:
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+
+        # Draw Effects
+        layer_effects = np.zeros(shape=image_size)
+
+        resized_flame = cv.resize(Resource.Flame, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_flame[:, :, 3] = resized_flame[:, :, 3] * 0.7
+
+        for y in range(self.world.height):
+            for x in range(self.world.width):
+
+                effects = self.world.effects[y][x]
+
+                # for effect in effects:
+                #     if isinstance(effect, skill.Punish):
+                #         pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                #         print(image_size)
+                #         print(x, y, pos_x, pos_y)
+                #         put_rgba_to_image(resized_flame, layer_effects, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                #         put_rgba_to_image(resized_flame,
+                #                           layer_effects,
+                #                           0,
+                #                           0)
+
 
         return layer_output / 255.
 

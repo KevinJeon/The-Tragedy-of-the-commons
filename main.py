@@ -18,7 +18,7 @@ def main():
 
             image = env.render()
             cv.imshow('Env', image)
-            ##key = cv.waitKeyEx()
+            # key = cv.waitKeyEx()
             key = cv.waitKey()
             if key == 0: # Up
                 action_1 = 1
@@ -52,11 +52,19 @@ def main():
             sampled_action = []
             if action_1 is not None:
                 sampled_action.append(action_1)
-                sampled_action.extend([random.randint(0, 6) for _ in range(num_agents - 1)])
+                sampled_action.extend([random.randint(0, 7) for _ in range(num_agents - 1)])
             else:
-                sampled_action = [random.randint(0, 6) for _ in range(num_agents)]
+                sampled_action = [random.randint(0, 7) for _ in range(num_agents)]
 
             next_state, reward, done, info = env.step(actions=sampled_action)
+
+            image = env.render()
+            cv.imshow('Env', image)
+
+            for i, image in enumerate(next_state):
+                print(image.shape)
+                cv.imshow(str(i), image)
+                # cv.imshow(f'Agent {i}', image)
             print(next_state.shape, reward, done, info)
 
 
