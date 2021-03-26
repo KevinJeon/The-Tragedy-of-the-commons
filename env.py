@@ -4,6 +4,7 @@ import cv2 as cv
 
 from components.block import BlockType
 import components.skill as skill
+from components.ReturnableThread import ReturnableThread
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
@@ -25,7 +26,7 @@ class TOCEnv(object):
 
         self.world = World(num_agents=num_agents, size=map_size)
 
-        self.pixel_per_block = 32
+        self.pixel_per_block = 16
         self._individual_render_pixel = 8
 
         self.apple_respawn_rate = apple_respawn_rate
@@ -53,7 +54,19 @@ class TOCEnv(object):
             individual_rewards.append(_individual_reward)
 
         obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
-        obs = np.array(obs, dtype=np.float32)
+        obs = np.array(obs, dtype=np.float64)
+
+        # threads = []
+        # obs = []
+        # for iter_agent in self.world.agents:
+        #     t = ReturnableThread(target=self._render_individual_view, args=(iter_agent.get_view()))
+        #     t.start()
+        #     threads.append(t)
+        #
+        # for t in threads:
+        #     obs.append(t.join())
+        #
+        # obs = np.array(obs, dtype=np.float32)
 
         directions = [iter_agent.direction.value for iter_agent in self.world.agents]
 
@@ -178,14 +191,9 @@ class TOCEnv(object):
 
                 effects = self.world.effects[y][x]
 
-                for effect in effects:
-                    if isinstance(effect, skill.Punish):
-                        pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
-                        put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
-
-        for y in range(self.world.height):
-            for x in range(self.world.width):
-               cv.putText(output_layer, '{0}_{1}'.format(x, y), (x * self.pixel_per_block + self.pixel_per_block // 4, image_size[0] - y * self.pixel_per_block - self.pixel_per_block // 2), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+                if np.bitwise_and(int(effects), BlockType.Punish):
+                    pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
+                    put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         return (output_layer / 255.).astype(np.float32)
 
@@ -195,46 +203,32 @@ class TOCEnv(object):
         layer_output = np.zeros(shape=image_size)
 
         resized_agent = cv.resize(Resource.Agent, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_agent2 = cv.resize(Resource.AgentBlue, dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_apple = cv.resize(Resource.Apple, dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_wall = cv.resize(Resource.Wall, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_flame = cv.resize(Resource.Flame, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_flame[:, :, 3] = resized_flame[:, :, 3] * 0.7
 
         # Draw blocks
         for y, row in enumerate(reversed(view)):
             for x, item in enumerate(row):
                 if item == BlockType.Empty:
                     continue
-                elif item == BlockType.Apple:
+                elif  np.bitwise_and(int(item), BlockType.Apple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_apple, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif item == BlockType.OutBound:
+                elif  np.bitwise_and(int(item), BlockType.OutBound):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif item == BlockType.Others:
+                elif  np.bitwise_and(int(item), BlockType.Self):
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgba_to_image(resized_agent2, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                elif  np.bitwise_and(int(item), BlockType.Others):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-
-        # Draw Effects
-        layer_effects = np.zeros(shape=image_size)
-
-        resized_flame = cv.resize(Resource.Flame, dsize=(self._individual_render_pixel, self._individual_render_pixel))
-        resized_flame[:, :, 3] = resized_flame[:, :, 3] * 0.7
-
-        for y in range(self.world.height):
-            for x in range(self.world.width):
-
-                effects = self.world.effects[y][x]
-
-                # for effect in effects:
-                #     if isinstance(effect, skill.Punish):
-                #         pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
-                #         print(image_size)
-                #         print(x, y, pos_x, pos_y)
-                #         put_rgba_to_image(resized_flame, layer_effects, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                #         put_rgba_to_image(resized_flame,
-                #                           layer_effects,
-                #                           0,
-                #                           0)
-
+                elif np.bitwise_and(int(item), BlockType.Punish):
+                    pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
+                    put_rgba_to_image(resized_flame, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
 
         return layer_output / 255.
 

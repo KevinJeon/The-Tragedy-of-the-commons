@@ -232,16 +232,17 @@ class Agent(object):
 
         # Fill agent on grid
         grid = deepcopy(self.world.grid)
+        effects = deepcopy(self.world.effects)
+
         for iter_agent in self.world.agents:
             position = iter_agent.position
             grid[position.y][position.x] = iter_agent
 
         # Empty space to draw information
-        sketch = np.empty(positions.shape, dtype=np.int8)
+        sketch = np.zeros(positions.shape, dtype=np.uint64)
 
         for y, position_row in enumerate(positions):
             for x, position in enumerate(position_row):
-
                 abs_position = position + self.position
                 if self.world.map_contains(abs_position):  # If position is outside of map
                     item = grid[abs_position.y][abs_position.x]
@@ -251,14 +252,19 @@ class Agent(object):
                     else:
                         if isinstance(item, Agent):
                             if item == self:  # If the agent is myself
-                                sketch[y][x] = BlockType.Self
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Self)
                             else:  # Or agent is companion or opponent
-                                sketch[y][x] = BlockType.Others
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Others)
                         elif isinstance(item, items.Apple):
-                            sketch[y][x] = BlockType.Apple
+                            sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Apple)
+
+                    effect = effects[abs_position.y][abs_position.x]
+
+                    if np.bitwise_and(int(effect), BlockType.Punish):
+                        sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Punish)
 
                 else:
-                    sketch[y][x] = BlockType.OutBound
+                    sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.OutBound)
 
         return sketch
 

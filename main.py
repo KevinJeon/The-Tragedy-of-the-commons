@@ -1,15 +1,13 @@
 import cv2 as cv
 import random
 
-
 from env import TOCEnv
-from components.agent import Action
 
 
 def main():
     num_agents = 4
 
-    env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
+    env = TOCEnv(num_agents=num_agents, map_size=(20, 20))
 
     while True:
         _ = env.reset()
@@ -19,7 +17,7 @@ def main():
             image = env.render()
             cv.imshow('Env', image)
             # key = cv.waitKeyEx()
-            key = cv.waitKey()
+            key = cv.waitKey(1)
             if key == 0: # Up
                 action_1 = 1
             elif key == 1: # Down
@@ -62,9 +60,9 @@ def main():
             cv.imshow('Env', image)
 
             for i, image in enumerate(next_state):
-                print(image.shape)
-                cv.imshow(str(i), image)
-                # cv.imshow(f'Agent {i}', image)
+                pass
+                # cv.imshow(str(i), image)
+                #cv.imshow(f'Agent {i}', image)
             print(next_state.shape, reward, done, info)
 
 

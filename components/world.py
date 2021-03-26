@@ -13,6 +13,7 @@ import components.item as items
 import components.agent as agent
 from components.position import Position
 import components.skill as skills
+from components.block import BlockType
 
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
@@ -68,7 +69,7 @@ class World(object):
         self.size = size
         self.agents = []
         self.grid = None
-        self.effects = []
+        self.effects = None
         self._build_grid()
 
         self.on_changed_callbacks = []
@@ -81,6 +82,7 @@ class World(object):
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
+
 
     def _spawn_random_agents(self):
         for _ in range(self.num_agents):
@@ -205,14 +207,13 @@ class World(object):
                     if iter_agents.position == pos:
                         iter_agents.tick_reward += effect.damage
 
-            # Add skill history
-            self.effects[pos.y][pos.x].append(effect)
+                self.effects[pos.y][pos.x] = np.bitwise_or(int(self.effects[pos.y][pos.x]), BlockType.Punish)
             return True
         else:
             return False
 
     def clear_effect(self):
-        self.effects = [[[] for x in range(self.width)] for y in range(self.height)]
+        self.effects = np.zeros(shape=self.size, dtype=np.uint64)
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]
