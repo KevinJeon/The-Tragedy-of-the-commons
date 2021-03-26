@@ -108,24 +108,45 @@ class World(object):
         - 에피소드마다 한번만 호출되기 때문에, 시간효율성은 따질필요 없을 것 같음
         '''
 
-        self.add_fruits_field(Field(
+        patch_size = 3
+        half_size = patch_size // 2
+        half_size_ = patch_size - half_size
+        num_patches = 3
+        distance = 4
+
+        patch_centers = []
+        for y in range(half_size + 1, self.height, patch_size + distance):
+            for x in range(half_size + 1, self.width, patch_size + distance):
+                patch_centers.append((y, x))
+        sampled = random.sample(patch_centers, num_patches)
+
+        for y, x in sampled:
+            self.add_fruits_field(Field(
                 world=self,
-                p1=Position(1, 1),
-                p2=Position(4, 4),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(5, 5),
-                p2=Position(6, 6),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(12, 12),
-                p2=Position(15, 15),
-            )
-        )
+                p1=Position(x=x - half_size, y=y - half_size),
+                p2=Position(x=x + half_size_, y=y + half_size_),
+            ))
+        #
+        #
+        #
+        # self.add_fruits_field(Field(
+        #         world=self,
+        #         p1=Position(1, 1),
+        #         p2=Position(4, 4),
+        #     )
+        # )
+        # self.add_fruits_field(Field(
+        #         world=self,
+        #         p1=Position(5, 5),
+        #         p2=Position(6, 6),
+        #     )
+        # )
+        # self.add_fruits_field(Field(
+        #         world=self,
+        #         p1=Position(12, 12),
+        #         p2=Position(15, 15),
+        #     )
+        # )
 
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)

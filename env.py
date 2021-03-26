@@ -14,7 +14,7 @@ class TOCEnv(object):
                  apple_respawn_rate=1,
                  num_agents=4,
                  map_size=(16, 16),
-                 episode_max_length=200,
+                 episode_max_length=300,
                  ):
 
         self.num_agents = num_agents

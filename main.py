@@ -7,12 +7,12 @@ from env import TOCEnv
 def main():
     num_agents = 4
 
-    env = TOCEnv(num_agents=num_agents, map_size=(20, 20))
+    env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
 
     while True:
         _ = env.reset()
 
-        for i in range(100):
+        for i in range(400):
 
             image = env.render()
             cv.imshow('Env', image)
