@@ -1,5 +1,6 @@
 import cv2 as cv
 import random
+import numpy as np
 
 from env import TOCEnv
 
@@ -59,12 +60,7 @@ def main():
             image = env.render()
             cv.imshow('Env', image)
 
-            for i, image in enumerate(next_state):
-                pass
-                # cv.imshow(str(i), image)
-                #cv.imshow(f'Agent {i}', image)
             print(next_state.shape, reward, done, info)
-
 
 
 if __name__ == '__main__':
