@@ -112,11 +112,11 @@ class World(object):
         half_size = patch_size // 2
         half_size_ = patch_size - half_size
         num_patches = 3
-        distance = 4
+        distance = 2
 
         patch_centers = []
-        for y in range(half_size + 1, self.height, patch_size + distance):
-            for x in range(half_size + 1, self.width, patch_size + distance):
+        for y in range(half_size + 1, self.height - half_size, patch_size + distance):
+            for x in range(half_size + 1, self.width - half_size, patch_size + distance):
                 patch_centers.append((y, x))
         sampled = random.sample(patch_centers, num_patches)
 
