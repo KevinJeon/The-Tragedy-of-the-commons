@@ -3,8 +3,7 @@ import numpy as np
 import cv2 as cv
 
 from components.block import BlockType
-import components.skill as skill
-from components.ReturnableThread import ReturnableThread
+
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
@@ -55,18 +54,6 @@ class TOCEnv(object):
 
         obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
         obs = np.array(obs, dtype=np.float64)
-
-        # threads = []
-        # obs = []
-        # for iter_agent in self.world.agents:
-        #     t = ReturnableThread(target=self._render_individual_view, args=(iter_agent.get_view()))
-        #     t.start()
-        #     threads.append(t)
-        #
-        # for t in threads:
-        #     obs.append(t.join())
-        #
-        # obs = np.array(obs, dtype=np.float32)
 
         directions = [iter_agent.direction.value for iter_agent in self.world.agents]
 
