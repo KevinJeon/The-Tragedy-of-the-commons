@@ -4,48 +4,40 @@ import torch.nn as nn
 
 class CPC(nn.Module):
 
-    def __init__(self, timestep, batch_size, seq_len, num_channel):
+    def __init__(self, num_channel):
         super(CPC, self).__init__()
-        self.batch_size = batch_size
-        self.seq_len = seq_len
-        self.timetep = timestep
         self.num_hidden = 128
         # Input Size (N, 88, 88, 3)
         self.encoder = nn.Sequential(
                 nn.Conv2d(num_chaanel, 512 , kernel_size=10, stride=5, padding=3, bias=False),
                 nn.BatchNorm2d(512),
                 nn.ReLU(inplace=True))
+        
         self.lstm = nn.LSTM(512, 128, num_layers=1, batch_first=True)
-        self.linear = nn.Modulelist([nn.Linear(128, 512) for i in range(timestep)])
-        self.policy = nn.Linear(128, num_action)
         self.value = nn.Linear(128, 1)
-
+        
+        
     def init_hidden(self, batch_size):
         return tr.zeros(1, batch_size, 128)
 
-    def pi(self, obs, h):
+    def forward(self, obs, h):
         '''
         x : (seq, c, h, w)
         h : (1, 1, hidden)
         '''
         z = self.encoder(obs)
-        c, hidden = self.lstm(z)
-        dist = self.policy(c)
-        return act, h
+        s_f, h = self.lstm(z)
+        return self.value(s_f), s_f, h
 
-    def v(self, obs, h):
-        z = self.encoder(obs)
-        c, hidden = self.lstm(z, h)
-        v = self.value(c)
-        return v
 class CPCAgent(object):
 
     def __init__(self):
         super(CPCAgent, self).__init__()
         self.batch_size = batch_size
         self.seq_len = seq_len
-        self.model = CPC()
-
+        self.linear = nn.Modulelist([nn.Linear(128, 512) for i in range(timestep)])
+        self.action_encoder = nn.Linear128, num_action)
+        self.state_encoder = CPC(num_channel)
     def act(self, obs, h, is_train=True):
         v, s_f, h = self.state_encoder(obs, h)
         dist = Categorical(s_f)
