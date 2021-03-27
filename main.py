@@ -52,9 +52,9 @@ def main():
             sampled_action = []
             if action_1 is not None:
                 sampled_action.append(action_1)
-                sampled_action.extend([random.randint(0, 6) for _ in range(num_agents - 1)])
+                sampled_action.extend([random.randint(0, 7) for _ in range(num_agents - 1)])
             else:
-                sampled_action = [random.randint(0, 6) for _ in range(num_agents)]
+                sampled_action = [random.randint(0, 7) for _ in range(num_agents)]
 
             next_state, reward, done, info = env.step(actions=sampled_action)
             print(next_state.shape, reward, done, info)
