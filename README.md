@@ -41,3 +41,7 @@ obs, reward, info = env.step(actions)
 - [X] Implement action `Punish`
 
 ### Algorithms
+- [X] Make CPC agent
+- [ ] Make CPC Module
+- [ ] Debug and Train CPC
+- [ ] 
