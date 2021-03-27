@@ -12,7 +12,7 @@ def main():
     env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
 
     while True:
-        _ = env.reset()
+        obs = env.reset()
 
         for i in range(100):
 

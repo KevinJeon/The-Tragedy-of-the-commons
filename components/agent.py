@@ -32,6 +32,12 @@ class Action:
     Attack = 7
 
 
+    @property
+    def count(self):
+        return 8
+
+
+
 class Agent(object):
 
     def __init__(self, world: world.World, pos: Position, name=None):
