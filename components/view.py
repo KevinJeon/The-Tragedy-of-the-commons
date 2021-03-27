@@ -1,3 +1,16 @@
+
+from components.position import Position
+from components.agent import DirectionType
+
+
+class View(object):
+    def __init__(self):
+        pass
+
+    def get_visible_positions(direction: DirectionType) -> [Position]:
+        pass
+
+
 from components.position import Position
 from components.agent import DirectionType
 
@@ -47,5 +60,4 @@ class View(object):
         return Position(x=5, y=1)
 
 
-from components.agent import DirectionType
 
