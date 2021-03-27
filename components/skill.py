@@ -4,7 +4,7 @@ class Skill(object):
 
 
 from components.position import Position
-from components.agent import DirectionType
+from components.direction import DirectionType
 
 
 class Punish(Skill):

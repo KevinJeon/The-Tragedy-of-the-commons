@@ -2,27 +2,20 @@ import names, random
 import numpy as np
 from copy import deepcopy
 
-
 class Agent(object):
     def __init__(self):
         pass
 
 
-
+import components.skill as skills
 import components.world as world
-from components.block import BlockType
+
 from components.position import Position
+from components.direction import DirectionType
+from components.direction import Direction
+from components.block import BlockType
+import components.view as view
 
-
-class DirectionType:
-    # Clock-wise numbering
-    Up = 0
-    Down = 2
-    Left = 1
-    Right = 3
-
-
-from components.view import View
 
 
 class Action:
@@ -38,61 +31,6 @@ class Action:
 
     Attack = 7
 
-
-class Direction(object):
-    def __init__(self):
-        pass
-
-
-class Direction(object):
-
-    def __init__(self, direction_type):
-        self.direction = direction_type
-
-    def turn_right(self) -> Direction:
-        self.direction = (self.direction + 1) % 4
-        return self
-
-    def turn_left(self) -> Direction:
-        self.direction = ((self.direction + 4) - 1) % 4
-        return self
-
-    def half_rotate(self) -> Direction:
-        self.direction = (self.direction + 2) % 4
-        return self
-
-    @property
-    def value(self):
-        return self.direction
-
-    def _to_position(self) -> Position:
-        if self.direction == DirectionType.Up:
-            return Position(x=0, y=1)
-        elif self.direction == DirectionType.Down:
-            return Position(x=0, y=-1)
-        elif self.direction == DirectionType.Left:
-            return Position(x=-1, y=0)
-        elif self.direction == DirectionType.Right:
-            return Position(x=1, y=0)
-
-    def _to_string(self) -> str:
-        if self.direction == DirectionType.Up:
-            return 'Up'
-        elif self.direction == DirectionType.Down:
-            return 'Down'
-        elif self.direction == DirectionType.Left:
-            return 'Left'
-        elif self.direction == DirectionType.Right:
-            return 'Right'
-
-    def get_type(self):
-        return self.direction
-
-    def __str__(self):
-        return 'Direction({0})'.format(self._to_string())
-
-
-import components.skill as skills
 
 class Agent(object):
 
@@ -218,7 +156,7 @@ class Agent(object):
         '''
         :return: Agent's visible relative positions
         '''
-        related_positions = View.get_visible_positions(self.direction)
+        related_positions = view.View.get_visible_positions(self.direction)
 
         if absolute:
             for y, row in enumerate(related_positions):
@@ -227,7 +165,7 @@ class Agent(object):
         return related_positions
 
     def get_view(self) -> [BlockType]:
-        positions = View.get_visible_positions(self.direction)
+        positions = view.View.get_visible_positions(self.direction)
         positions = np.array(positions, dtype=object)
 
         # Fill agent on grid

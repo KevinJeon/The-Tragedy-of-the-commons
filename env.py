@@ -3,7 +3,7 @@ import numpy as np
 import cv2 as cv
 
 from components.block import BlockType
-
+from components.view import View
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
@@ -53,7 +53,7 @@ class TOCEnv(object):
             individual_rewards.append(_individual_reward)
 
         obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
-        obs = np.array(obs, dtype=np.float64)
+        obs = np.array(obs, dtype=np.float32)
 
         directions = [iter_agent.direction.value for iter_agent in self.world.agents]
 
@@ -76,10 +76,15 @@ class TOCEnv(object):
 
         return obs, common_reward, done, infos
 
-    def reset(self):
+    def reset(self) -> np.array:
         del self.world
         self.world = World(num_agents=self.num_agents, size=self.map_size)
         self._step_count = 0
+
+        obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
+        obs = np.array(obs, dtype=np.float32)
+
+        return obs
 
     def _render_layers(self) -> None:
         raise NotImplementedError
@@ -249,6 +254,14 @@ class TOCEnv(object):
 
     def respawn_apple(self):
         raise NotImplementedError
+
+    @property
+    def observation_space(self):
+        return np.zeros(shape=(self.num_agents, self._individual_render_pixel * 11, self._individual_render_pixel * 11), dtype=np.float32)
+
+    @property
+    def action_space(self):
+        return np.zeros(shape=(self.num_agents), dtype=np.uint8)
 
 
 from components.world import World, Position
