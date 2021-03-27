@@ -1,4 +1,5 @@
 import numpy as np
+import cv2 as cv
 
 
 def put_rgba_to_image(src, dest, x_offset, y_offset) -> np.array:

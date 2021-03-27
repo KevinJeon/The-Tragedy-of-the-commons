@@ -42,6 +42,10 @@ class View(object):
 
         return positions
 
+    @staticmethod
+    def get_agent_position() -> Position:
+        return Position(x=5, y=1)
+
 
 from components.agent import DirectionType
 
