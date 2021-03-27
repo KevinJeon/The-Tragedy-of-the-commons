@@ -1,13 +1,39 @@
 import cv2 as cv
 import random
-
-
+import numpy as np
+import argparse
 from env import TOCEnv
-from components.agent import Action
+from models.a2c_toc import CPCAgent
 
+def parse_args():
+    parser = argparse.ArgumentParser(desc='ToC params')
+    parser.add_argument('--num_agent', default=4, type=int)
+    parser.add_argument('--num_episode', deafult=10000, type=int)
+    parser.add_argument('--max_step', default=100, type=int)
+    args = parse_args()
+    return args
+def select_actions(obss, agents):
+    actions = []
+    vs = []
+    logprobs = []
+    hs = []
+    s_fs = []
+    a_fs = []
+    for obs, agent, h0 in zip(obss, agents, hs):
+        v, act, logprob, h, s_f, a_f = agent.act(obs, h0)
+        act = act.detach().numpy()
+        action = np.argmax(act)
+        actions.append(action)
+        vs.append(v)
+        logprobs.append(logprob)
+        hs.append(h0)
+        s_fs.append(s_f)
+        a_fs.append(a_f)
+    return actions, vs, logprobs, hs, s_fs, a_fs
 
-def main():
+def main(args):
     num_agents = 4
+
 
     env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
 
@@ -44,4 +70,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    main(args)
