@@ -7,6 +7,12 @@ from components.view import View
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
+from collections import namedtuple
+from components.agent import Action
+
+ObservationSpace = namedtuple('ObservationSpace', 'shape')
+ActionSpace = namedtuple('ActionSpace', 'shape n')
+
 
 class TOCEnv(object):
 
@@ -261,7 +267,9 @@ class TOCEnv(object):
 
     @property
     def action_space(self):
-        return np.zeros(shape=(self.num_agents), dtype=np.uint8)
+        action_space = ActionSpace(shape=self.num_agents, n=Action().count)
+        return action_space
+
 
 
 from components.world import World, Position

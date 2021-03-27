@@ -9,7 +9,7 @@ def main():
     num_agents = 4
 
     env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
-
+    print(env.observation_space.shape, env.action_space.shape, env.action_space.n)
     while True:
         _ = env.reset()
 

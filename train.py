@@ -34,25 +34,39 @@ def select_actions(obss, agents):
 def main(args):
     num_agents = 4
 
-    env = TOCEnv(num_agents=args.num_agent, map_size=(16, 16))
-    for ep in range(args.num_episode): 
-        obss, _ = env.reset()
-        agents = [CPCAgent() for _ range(args.num_agent)]
-        rollout = Stoarge(args.max_step, args.batch_size, env.observaion_space.shape, env.action_space.n)
-        for step in range(args.max_step):
-            # image = env.render()
-        
-            # cv.imshow('Env', image)
-            # key = cv.waitKeyEx()
-            # key = cv.waitKey(1)
-            actions, vs, logprobs, hs, s_fs, a_fs = select_actions(obss, agents)
-            obss_next, rews, dones, infos = env.step(actions=actions)
-            rollout.add(obss, obss_next, hs, actions, logprobs, vs, rews, dones)
 
-            #image = env.render()
-            #cv.imshow('Env', image)
-            
-            print(next_state.shape, reward, done, info)
+    env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
+
+    while True:
+        obs = env.reset()
+
+        for i in range(100):
+
+            image = env.render()
+            cv.imshow('Env', image)
+            key = cv.waitKeyEx()
+
+            if key == 0x260000: # Up
+                action_1 = 1
+            elif key == 0x280000: # Down
+                action_1 = 2
+            elif key == 0x250000: # Left
+                action_1 = 3
+            elif key == 0x270000: # Right
+                action_1 = 4
+            else: # No-op
+                action_1 = None
+
+            sampled_action = []
+            if action_1 is not None:
+                sampled_action.append(action_1)
+                sampled_action.extend([random.randint(0, 4) for _ in range(num_agents - 1)])
+            else:
+                sampled_action = [random.randint(0, 4) for _ in range(num_agents)]
+
+            ret = env.step(actions=sampled_action)
+            print(ret)
+
 
 
 if __name__ == '__main__':
