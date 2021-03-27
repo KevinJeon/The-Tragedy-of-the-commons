@@ -13,6 +13,7 @@ import components.item as items
 import components.agent as agent
 from components.position import Position
 import components.skill as skills
+from components.block import BlockType
 
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
@@ -68,7 +69,7 @@ class World(object):
         self.size = size
         self.agents = []
         self.grid = None
-        self.effects = []
+        self.effects = None
         self._build_grid()
 
         self.on_changed_callbacks = []
@@ -81,6 +82,7 @@ class World(object):
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
+
 
     def _spawn_random_agents(self):
         for _ in range(self.num_agents):
@@ -106,24 +108,45 @@ class World(object):
         - 에피소드마다 한번만 호출되기 때문에, 시간효율성은 따질필요 없을 것 같음
         '''
 
-        self.add_fruits_field(Field(
+        patch_size = 3
+        half_size = patch_size // 2
+        half_size_ = patch_size - half_size
+        num_patches = 3
+        distance = 2
+
+        patch_centers = []
+        for y in range(half_size + 1, self.height - half_size, patch_size + distance):
+            for x in range(half_size + 1, self.width - half_size, patch_size + distance):
+                patch_centers.append((y, x))
+        sampled = random.sample(patch_centers, num_patches)
+
+        for y, x in sampled:
+            self.add_fruits_field(Field(
                 world=self,
-                p1=Position(1, 1),
-                p2=Position(4, 4),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(5, 5),
-                p2=Position(6, 6),
-            )
-        )
-        self.add_fruits_field(Field(
-                world=self,
-                p1=Position(12, 12),
-                p2=Position(15, 15),
-            )
-        )
+                p1=Position(x=x - half_size, y=y - half_size),
+                p2=Position(x=x + half_size_, y=y + half_size_),
+            ))
+        #
+        #
+        #
+        # self.add_fruits_field(Field(
+        #         world=self,
+        #         p1=Position(1, 1),
+        #         p2=Position(4, 4),
+        #     )
+        # )
+        # self.add_fruits_field(Field(
+        #         world=self,
+        #         p1=Position(5, 5),
+        #         p2=Position(6, 6),
+        #     )
+        # )
+        # self.add_fruits_field(Field(
+        #         world=self,
+        #         p1=Position(12, 12),
+        #         p2=Position(15, 15),
+        #     )
+        # )
 
     def spawn_agent(self, pos: Position):
         spawned = agent.Agent(world=self, pos=pos)
@@ -205,14 +228,13 @@ class World(object):
                     if iter_agents.position == pos:
                         iter_agents.tick_reward += effect.damage
 
-            # Add skill history
-            self.effects[pos.y][pos.x].append(effect)
+                self.effects[pos.y][pos.x] = np.bitwise_or(int(self.effects[pos.y][pos.x]), BlockType.Punish)
             return True
         else:
             return False
 
     def clear_effect(self):
-        self.effects = [[[] for x in range(self.width)] for y in range(self.height)]
+        self.effects = np.zeros(shape=self.size, dtype=np.uint64)
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]
