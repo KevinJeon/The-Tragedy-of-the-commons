@@ -212,19 +212,19 @@ class TOCEnv(object):
             for x, item in enumerate(row):
                 if item == BlockType.Empty:
                     continue
-                elif  np.bitwise_and(int(item), BlockType.Apple):
+                if np.bitwise_and(int(item), BlockType.Apple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_apple, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif  np.bitwise_and(int(item), BlockType.OutBound):
+                if np.bitwise_and(int(item), BlockType.OutBound):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif  np.bitwise_and(int(item), BlockType.Self):
+                if np.bitwise_and(int(item), BlockType.Self):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent2, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif  np.bitwise_and(int(item), BlockType.Others):
+                if np.bitwise_and(int(item), BlockType.Others):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif np.bitwise_and(int(item), BlockType.Punish):
+                if np.bitwise_and(int(item), BlockType.Punish):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_flame, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
 
