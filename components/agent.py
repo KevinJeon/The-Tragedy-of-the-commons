@@ -262,10 +262,29 @@ class RedAgent(Agent):
     def __init__(self, world, pos):
         super(RedAgent, self).__init__(world=world, pos=pos)
 
+    def _try_gather(self):
+        item = self.world.correct_item(pos=self.position)
+
+        if isinstance(item, items.RedApple):
+            self.tick_reward += item.reward
+        elif isinstance(item, items.BlueApple):
+            self.tick_reward += 1
+
+        return self
+
 
 class BlueAgent(Agent):
     def __init__(self, world, pos):
         super(BlueAgent, self).__init__(world=world, pos=pos)
+
+    def _try_gather(self):
+        item = self.world.correct_item(pos=self.position)
+
+        if isinstance(item, items.BlueApple):
+            self.tick_reward += item.reward
+        elif isinstance(item, items.RedApple):
+            self.tick_reward += 1
+        return self
 
 
 # Lazy import (Circular import issue)

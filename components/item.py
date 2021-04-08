@@ -19,8 +19,10 @@ class Apple(Item):
 class RedApple(Apple):
     def __init__(self):
         super(RedApple, self).__init__()
+        self.reward = 3.
 
 
 class BlueApple(Apple):
     def __init__(self):
         super(BlueApple, self).__init__()
+        self.reward = 3.
