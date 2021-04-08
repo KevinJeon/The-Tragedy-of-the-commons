@@ -4,15 +4,20 @@ import numpy as np
 
 from env import TOCEnv
 
+import cv2
 
 def main():
     num_agents = 4
 
-    env = TOCEnv(num_agents=num_agents, map_size=(16, 16), obs_type='numeric')
-    print(env.observation_space.shape, env.action_space.shape, env.action_space.n)
+    env = TOCEnv(num_agents=num_agents, map_size=(16, 16), obs_type='numeric',
+                 blue_agents=2,
+                 red_agents=2,
+                 apple_color_ratio=0.1,
+                 apple_spawn_ratio=0.2
+                 )
+
     while True:
         _ = env.reset()
-
         for i in range(400):
 
             image = env.render()

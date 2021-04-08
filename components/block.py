@@ -2,11 +2,13 @@ class BlockType:
     Empty = 1 << 0
     OutBound = 1 << 1
     # Wall = 2
-    Apple = 1 << 2
+    RedApple = 1 << 2
+    BlueApple = 1 << 3
 
     #  Agents
-    Self = 1 << 3
-    Others = 1 << 4
+    Self = 1 << 4
+    RedAgent = 1 << 5
+    BlueAgent = 1 << 6
 
     #  Effects
     Punish = 1 << 20
