@@ -267,6 +267,7 @@ class Agent(object):
 class RedAgent(Agent):
     def __init__(self, world, pos):
         super(RedAgent, self).__init__(world=world, pos=pos)
+        self.color = 'red'
 
     def _try_gather(self):
         item = self.world.correct_item(pos=self.position)
@@ -282,6 +283,7 @@ class RedAgent(Agent):
 class BlueAgent(Agent):
     def __init__(self, world, pos):
         super(BlueAgent, self).__init__(world=world, pos=pos)
+        self.color = 'blue'
 
     def _try_gather(self):
         item = self.world.correct_item(pos=self.position)

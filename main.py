@@ -18,7 +18,6 @@ def main():
 
     while True:
         _ = env.reset()
-
         for i in range(400):
 
             image = env.render()

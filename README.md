@@ -23,12 +23,30 @@ WIP
 
 ## Example
 ```python
-env = TOCEnv(num_agents=4) # n=4
+env = TOCEnv(num_agents=4, map_size=(16, 16), obs_type='numeric',
+             blue_agents=2,
+             red_agents=2,
+             apple_color_ratio=0.1,
+             apple_spawn_ratio=0.2
+             )
+
+obs, info = env.reset()
+
+print(obs.shape)
+# (4, 11, 11)
+print(info)
+# ['blue', 'blue', 'red', 'red']
 
 actions = [action_1, action_2, action_3 ... action_n]
 obs, reward, info = env.step(actions)
 ```
-
+### Environment Parameters
+`num_agents (int)` Total count of agents in the map  
+`blue_agents (int)` Count of blue agents  
+`red_agents (int)` Count of red agents
+`obs_type (numeric|rgb_array)` Returning state type  
+`apple_color_ratio (float)` Spawn ratio of blue apple (e.g., 0.3)  
+`apple_spawn_ratio (float)` Spawn speed of apples (e.g., 0.4)
 
 ## TODO
 ### Environment

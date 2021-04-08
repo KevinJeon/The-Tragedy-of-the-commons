@@ -134,7 +134,9 @@ class TOCEnv(object):
             obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
             obs = np.array(obs, dtype=np.uint8)
 
-        return obs
+        color_agents = [agent.color for agent in self.world.agents]
+
+        return obs, color_agents
 
     def _render_layers(self) -> None:
         raise NotImplementedError
