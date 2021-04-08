@@ -11,7 +11,7 @@ class RuleBasedAgent(object):
         self.a = ((obs_size[0] + 1)/2 , 1)
         self.obs_size = obs_size
         self.movable = [(self.a[0] + 1, self.a[1]), (self.a[0] - 1, self.a[1]), (self.a[0], self.a[1] + 1), self.a[0], self.a[1] -1)] 
-        self.rule_order = [self._eat_apple, self._explore] 
+        self.rule_order = [self._eat_apple, self._closest_apple, self._explore] 
     def act(self, obs):
         # Each step, agent find the most closest apple. 
         
@@ -32,7 +32,31 @@ class RuleBasedAgent(object):
     def _closest_apple(self, obs):
         # get the index of closest apple
         apples = np.where(obs == 2)
-
+        closest = None
+        lowest = 1e5
+        for apple in apples:
+            dist = np.linalg.norm(apple - self.a)
+            if dist < lowest:
+                lowest = dist
+                closest = apple
+        if len(apples) == 0:
+            return None
+        else:
+            lr, ud = self.a - closest
+            candidates = []
+            if lr < 0:
+                candidates.append(2)
+            elif lr == 0:
+                pass
+            else:
+                candidates.append(3)
+            if ud < 0:
+                candidates.append(1)
+            elif ud = 0:
+                pass
+            else:
+                candidates.append(0)
+            return np.random.choice(candidates, 1)[0]
 
     def _explore(self, direction):
         # if there is no apple in sight, explore
