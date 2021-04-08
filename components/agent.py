@@ -212,6 +212,42 @@ class Agent(object):
 
         return sketch
 
+    def get_view_as_type(self):
+        positions = view.View.get_visible_positions(self.direction)
+        positions = np.array(positions, dtype=object)
+
+        # Fill agent on grid
+        grid = deepcopy(self.world.grid)
+
+        for iter_agent in self.world.agents:
+            position = iter_agent.position
+            grid[position.y][position.x] = iter_agent
+
+        # Empty space to draw information
+        sketch = np.zeros(positions.shape, dtype=np.uint64)
+
+        for y, position_row in enumerate(positions):
+            for x, position in enumerate(position_row):
+                abs_position = position + self.position
+                if self.world.map_contains(abs_position):  # If position is outside of map
+                    item = grid[abs_position.y][abs_position.x]
+
+                    if item is None:  # If item or agent exists on the position
+                        sketch[y][x] = 0
+                    else:
+                        if isinstance(item, Agent):
+                            if item == self:  # If the agent is myself
+                                sketch[y][x] = 3
+                            else:  # Or agent is companion or opponent
+                                sketch[y][x] = 4
+                        elif isinstance(item, items.Apple):
+                            sketch[y][x] = 2
+
+                else:
+                    sketch[y][x] = 1
+
+        return sketch
+
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
 

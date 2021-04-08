@@ -21,11 +21,15 @@ class TOCEnv(object):
                  num_agents=4,
                  map_size=(16, 16),
                  episode_max_length=300,
+                 obs_type='rgb_array',
                  ):
 
         self.num_agents = num_agents
         self.map_size = map_size
         self.episode_max_length = episode_max_length
+        self.obs_type = obs_type
+        assert self.obs_type in ['rgb_array', 'numeric']  # Observation type should be in [rgb_array|numeric]
+
         self._step_count = 0
         self.apple_count = 0
 
@@ -58,8 +62,13 @@ class TOCEnv(object):
             common_reward += _individual_reward
             individual_rewards.append(_individual_reward)
 
-        obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
-        obs = np.array(obs, dtype=np.float32)
+        if self.obs_type == 'rgb_array':
+            obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
+            obs = np.array(obs, dtype=np.float32)
+        elif self.obs_type == 'numeric':
+            obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
+            obs = np.array(obs, dtype=np.uint8)
+
 
         directions = [iter_agent.direction.value for iter_agent in self.world.agents]
 
@@ -87,8 +96,12 @@ class TOCEnv(object):
         self.world = World(num_agents=self.num_agents, size=self.map_size)
         self._step_count = 0
 
-        obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
-        obs = np.array(obs, dtype=np.float32)
+        if self.obs_type == 'rgb_array':
+            obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
+            obs = np.array(obs, dtype=np.float32)
+        elif self.obs_type == 'numeric':
+            obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
+            obs = np.array(obs, dtype=np.uint8)
 
         return obs
 
@@ -212,19 +225,19 @@ class TOCEnv(object):
             for x, item in enumerate(row):
                 if item == BlockType.Empty:
                     continue
-                elif  np.bitwise_and(int(item), BlockType.Apple):
+                if np.bitwise_and(int(item), BlockType.Apple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_apple, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif  np.bitwise_and(int(item), BlockType.OutBound):
+                if np.bitwise_and(int(item), BlockType.OutBound):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif  np.bitwise_and(int(item), BlockType.Self):
+                if np.bitwise_and(int(item), BlockType.Self):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent2, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif  np.bitwise_and(int(item), BlockType.Others):
+                if np.bitwise_and(int(item), BlockType.Others):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-                elif np.bitwise_and(int(item), BlockType.Punish):
+                if np.bitwise_and(int(item), BlockType.Punish):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_flame, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
 
@@ -263,7 +276,16 @@ class TOCEnv(object):
 
     @property
     def observation_space(self):
-        return np.zeros(shape=(self.num_agents, self._individual_render_pixel * 11, self._individual_render_pixel * 11), dtype=np.float32)
+        if self.obs_type == 'rgb_array':
+            return np.zeros(
+                shape=(self.num_agents, self._individual_render_pixel * 11, self._individual_render_pixel * 11),
+                dtype=np.float32)
+
+        elif self.obs_type == 'numeric':
+            return np.zeros(
+                shape=(self.num_agents, 11, 11),
+                dtype=np.float32)
+
 
     @property
     def action_space(self):
