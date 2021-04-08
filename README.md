@@ -44,4 +44,7 @@ obs, reward, info = env.step(actions)
 - [X] Make CPC agent
 - [ ] Make CPC Module
 - [ ] Debug and Train CPC
-- [ ] 
+- [ ] Rule-Based Agent
+  - [X] Make Simple Rules
+  - [ ] Make Punishment
+  - [ ] Make Complex Rules 
