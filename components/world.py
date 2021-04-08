@@ -129,15 +129,10 @@ class World(object):
         self.grid = np.empty(shape=self.size, dtype=object)
 
     def _spawn_random_agents(self):
-        colors = [Color.Red, Color.Blue]
-        for _ in range(self.num_agents):
-            color = random.sample(colors, k=1)[0]
-            pos = Position(x=random.randint(0,  self.width - 1), y=random.randint(0, self.height - 1))
-            self.spawn_agent(pos=pos, color=color)
+        pass
 
     def _create_random_field(self):
         pass
-
 
     def spawn_agent(self, pos: Position, color):
         if color == Color.Red:

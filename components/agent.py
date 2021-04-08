@@ -202,11 +202,13 @@ class Agent(object):
                         if isinstance(item, Agent):
                             if isinstance(item, BlueAgent):  # If the agent is myself
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueAgent)
-
                             elif isinstance(item, RedAgent):  # Or agent is companion or opponent
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedAgent)
                         elif isinstance(item, items.Apple):
-                            sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Apple)
+                            if isinstance(item, items.BlueApple):  # If the agent is myself
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueApple)
+                            elif isinstance(item, items.RedApple):  # Or agent is companion or opponent
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedApple)
 
                     effect = effects[abs_position.y][abs_position.x]
 
@@ -243,12 +245,16 @@ class Agent(object):
                     else:
                         if isinstance(item, Agent):
                             if item == self:  # If the agent is myself
-                                sketch[y][x] = 3
-                            else:  # Or agent is companion or opponent
                                 sketch[y][x] = 4
+                            elif isinstance(item, BlueAgent):
+                                sketch[y][x] = 5
+                            elif isinstance(item, RedAgent):
+                                sketch[y][x] = 6
                         elif isinstance(item, items.Apple):
-                            sketch[y][x] = 2
-
+                            if isinstance(item, items.BlueApple):
+                                sketch[y][x] = 2
+                            elif isinstance(item, items.RedApple):
+                                sketch[y][x] = 3
                 else:
                     sketch[y][x] = 1
 

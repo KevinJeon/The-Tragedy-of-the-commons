@@ -4,6 +4,7 @@ import numpy as np
 
 from env import TOCEnv
 
+import cv2
 
 def main():
     num_agents = 4
