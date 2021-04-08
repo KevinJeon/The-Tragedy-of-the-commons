@@ -8,7 +8,7 @@ from env import TOCEnv
 def main():
     num_agents = 4
 
-    env = TOCEnv(num_agents=num_agents, map_size=(16, 16))
+    env = TOCEnv(num_agents=num_agents, map_size=(16, 16), obs_type='numeric')
     print(env.observation_space.shape, env.action_space.shape, env.action_space.n)
     while True:
         _ = env.reset()
@@ -18,7 +18,7 @@ def main():
             image = env.render()
             cv.imshow('Env', image)
             # key = cv.waitKeyEx()
-            key = cv.waitKey(1)
+            key = cv.waitKey(0)
             if key == 0: # Up
                 action_1 = 1
             elif key == 1: # Down
