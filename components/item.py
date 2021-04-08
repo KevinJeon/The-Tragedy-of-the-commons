@@ -15,3 +15,12 @@ class Apple(Item):
     def __init__(self):
         self.reward = 1.
 
+
+class RedApple(Apple):
+    def __init__(self):
+        super(RedApple, self).__init__()
+
+
+class BlueApple(Apple):
+    def __init__(self):
+        super(BlueApple, self).__init__()

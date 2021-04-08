@@ -2,20 +2,15 @@ import names, random
 import numpy as np
 from copy import deepcopy
 
+
 class Agent(object):
     def __init__(self):
         pass
 
 
-import components.skill as skills
-import components.world as world
-
-from components.position import Position
-from components.direction import DirectionType
-from components.direction import Direction
-from components.block import BlockType
-import components.view as view
-
+class Color:
+    Red = (255, 0, 0)
+    Blue = (0, 0, 255)
 
 
 class Action:
@@ -31,11 +26,19 @@ class Action:
 
     Attack = 7
 
-
     @property
     def count(self):
         return 8
 
+
+import components.skill as skills
+import components.world as world
+
+from components.position import Position
+from components.direction import DirectionType
+from components.direction import Direction
+from components.block import BlockType
+import components.view as view
 
 
 class Agent(object):
@@ -142,6 +145,7 @@ class Agent(object):
                 self.world.apply_effect(self.position + position, punish)
 
         self.tick_reward += punish.reward
+
     def _try_gather(self):
         item = self.world.correct_item(pos=self.position)
 
@@ -194,11 +198,13 @@ class Agent(object):
                     if item is None:  # If item or agent exists on the position
                         sketch[y][x] = BlockType.Empty
                     else:
+
                         if isinstance(item, Agent):
-                            if item == self:  # If the agent is myself
-                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Self)
-                            else:  # Or agent is companion or opponent
-                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Others)
+                            if isinstance(item, BlueAgent):  # If the agent is myself
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueAgent)
+
+                            elif isinstance(item, RedAgent):  # Or agent is companion or opponent
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedAgent)
                         elif isinstance(item, items.Apple):
                             sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.Apple)
 
@@ -250,6 +256,16 @@ class Agent(object):
 
     def __repr__(self):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
+
+
+class RedAgent(Agent):
+    def __init__(self, world, pos):
+        super(RedAgent, self).__init__(world=world, pos=pos)
+
+
+class BlueAgent(Agent):
+    def __init__(self, world, pos):
+        super(BlueAgent, self).__init__(world=world, pos=pos)
 
 
 # Lazy import (Circular import issue)

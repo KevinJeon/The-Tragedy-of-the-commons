@@ -6,10 +6,15 @@ from env import TOCEnv
 
 
 def main():
-    num_agents = 4
+    num_agents = 10
 
-    env = TOCEnv(num_agents=num_agents, map_size=(16, 16), obs_type='numeric')
-    print(env.observation_space.shape, env.action_space.shape, env.action_space.n)
+    env = TOCEnv(num_agents=num_agents, map_size=(16, 16), obs_type='numeric',
+                 blue_agents=4,
+                 red_agents=6,
+                 apple_color_ratio=0.1,
+                 apple_spawn_ratio=0.2
+                 )
+
     while True:
         _ = env.reset()
 
