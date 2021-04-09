@@ -88,10 +88,12 @@ class TOCEnv(object):
             obs = np.array(obs, dtype=np.uint8)
 
         directions = [iter_agent.direction.value for iter_agent in self.world.agents]
+        color_agents = [agent.color for agent in self.world.agents]
 
         infos = {
             'agents': {
                 'directions': directions,
+                'colors': color_agents,
             },
             'reward': individual_rewards
         }
@@ -136,7 +138,32 @@ class TOCEnv(object):
 
         color_agents = [agent.color for agent in self.world.agents]
 
-        return obs, color_agents
+
+        common_reward = 0
+        individual_rewards = []
+        for iter_agent in self.world.agents:
+            _individual_reward = iter_agent.reset_reward()
+            common_reward += _individual_reward
+            individual_rewards.append(_individual_reward)
+
+        if self.obs_type == 'rgb_array':
+            obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
+            obs = np.array(obs, dtype=np.float32)
+        elif self.obs_type == 'numeric':
+            obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
+            obs = np.array(obs, dtype=np.uint8)
+
+        directions = [iter_agent.direction.value for iter_agent in self.world.agents]
+
+        infos = {
+            'agents': {
+                'directions': directions,
+                'colors': color_agents,
+            },
+            'reward': individual_rewards
+        }
+
+        return obs, infos
 
     def _render_layers(self) -> None:
         raise NotImplementedError
