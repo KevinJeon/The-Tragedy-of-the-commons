@@ -54,6 +54,7 @@ class Agent(object):
         self.tick_reward = 0.
 
     def act(self, action: Action):
+        action = int(action)
         if action is Action.Move_Up:
             self._move(DirectionType.Up)
         elif action is Action.Move_Down:
