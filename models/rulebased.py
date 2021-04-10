@@ -10,7 +10,8 @@ class RuleBasedAgent:
         # constant
         self.a = (int((obs_size[0] + 1)/2) , 1)
         self.obs_size = obs_size
-        self.movable = [(self.a[0] + 1, self.a[1]), (self.a[0] - 1, self.a[1]), (self.a[0], self.a[1] + 1), (self.a[0], self.a[1] -1)] 
+        self.movable = [(self.a[0], self.a[1] + 1), (self.a[0], self.a[1]- 1), (self.a[0] - 1, self.a[1]), (self.a[0] + 1, self.a[1])] 
+        # Up, Down, Left, Right
         self.rule_order = [self._eat_apple, self._closest_apple, self._explore] 
         self.color = dict(red=3, blue=2)
         self.is_train = False
@@ -23,7 +24,7 @@ class RuleBasedAgent:
         while act == None:
             act = self.rule_order[o](obs)
             o += 1
-        return act, None
+        return act, self.rule_order[o]
 
     def _move_most_apple(self, obs, color='red'):
         # get the index of apples 
@@ -46,22 +47,22 @@ class RuleBasedAgent:
             if dist < lowest:
                 lowest = dist
                 closest = apple
+        
+        lr, ud = self.a - closest
+        candidates = []
+        if lr < 0:
+            candidates.append(3)
+        elif lr == 0:
+            pass
         else:
-            lr, ud = self.a - closest
-            candidates = []
-            if lr < 0:
-                candidates.append(2)
-            elif lr == 0:
-                pass
-            else:
-                candidates.append(3)
-            if ud < 0:
-                candidates.append(1)
-            elif ud == 0:
-                pass
-            else:
-                candidates.append(0)
-            return np.random.choice(candidates, 1)[0]
+            candidates.append(4)
+        if ud < 0:
+            candidates.append(2)
+        elif ud == 0:
+            pass
+        else:
+            candidates.append(1)
+        return np.random.choice(candidates, 1)[0]
 
     def _explore(self, obs, color=None):
         # if there is no apple in sight, explore
@@ -81,12 +82,12 @@ class RuleBasedAgent:
     def _eat_apple(self, obs, color='red'):
         candidates = []
         utilities = []
-        for move in self.movable:
+        for i, move in enumerate(self.movable):
             is_apple = obs[move[0], move[1]] in [2, 3] 
             if is_apple:
                 # considering red, blue
-                candidates.append(move)
-                utilites.append(self.u[obs[move[0], move[1] - 2]]) # for now, -2 but update to fit with env
+                candidates.append(i + 1)
+                utilites.append(self.u[obs[move[0], move[1] - 2]]) # for now, -2 but update to fit with env e.g. red 2 blue 3  red_u 0 blue_u 1
             if not len(candidates) == 0:
                 return np.argmax(utilites)
             else:
