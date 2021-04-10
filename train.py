@@ -24,7 +24,6 @@ def select_actions(obss, agents):
         act, info = agent.act(obs)
         actions.append(act)
         infos.append(info)
-    print(actions)
     return actions, infos
 
 def main(args):
@@ -33,11 +32,12 @@ def main(args):
     env.obs_type = 'numeric'
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
+        print(color_agents)
         for i in range(args.max_step):
             image = env.render()
             cv.imshow('Env', image)
             
-            key = cv.waitKeyEx()
+            key = cv.waitKey(1)
             '''
             if key == 0x260000: # Up
                 action_1 = 1

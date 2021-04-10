@@ -24,7 +24,7 @@ class RuleBasedAgent:
         while act == None:
             act = self.rule_order[o](obs)
             o += 1
-        return act, self.rule_order[o]
+        return act, self.rule_order[o - 1]
 
     def _move_most_apple(self, obs, color='red'):
         # get the index of apples 
@@ -34,7 +34,6 @@ class RuleBasedAgent:
 
     def _closest_apple(self, obs, color='red'):
         # get the index of closest apple
-        print(obs)
         apples = np.where(obs == self.color[color])
         xs, ys = apples[0], apples[1]
         closest = None
@@ -46,7 +45,7 @@ class RuleBasedAgent:
             dist = np.linalg.norm(arr - self.a)
             if dist < lowest:
                 lowest = dist
-                closest = apple
+                closest = arr
         
         lr, ud = self.a - closest
         candidates = []
@@ -66,15 +65,16 @@ class RuleBasedAgent:
 
     def _explore(self, obs, color=None):
         # if there is no apple in sight, explore
-        horizontal, vertical = [0, self.obs_size[0] - 1], [self.obs_size[1] - 1, 0] # Left, Right, Up, Down
+        horizontal, vertical = [0, self.obs_size[1] - 1], [0, self.obs_size[0] -1] # Left, Right, Up, Down
         ## check plz obs indices mean x and y each
         # Check whether wall or not
         possible = []
+        order1 = ['Up, Left', 'Down, Right']
         for i, (ud, lr) in enumerate(zip(vertical, horizontal)):
             if not np.mean(obs[ud, :]) == 1:
-                possible.append(i)
+                possible.append(i + 1)
             if not np.mean(obs[:, lr]) == 1:
-                possible.append(i + 2)
+                possible.append(i + 3)
         act = np.random.choice(possible, 1)[0]
         return act
         
@@ -87,9 +87,9 @@ class RuleBasedAgent:
             if is_apple:
                 # considering red, blue
                 candidates.append(i + 1)
-                utilites.append(self.u[obs[move[0], move[1] - 2]]) # for now, -2 but update to fit with env e.g. red 2 blue 3  red_u 0 blue_u 1
+                utilities.append(self.u[obs[move[0], move[1] - 2]]) # for now, -2 but update to fit with env e.g. red 2 blue 3  red_u 0 blue_u 1
             if not len(candidates) == 0:
-                return np.argmax(utilites)
+                return candidates[np.argmax(utilities)]
             else:
                 return None
 
