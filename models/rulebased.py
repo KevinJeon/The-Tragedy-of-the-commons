@@ -2,15 +2,19 @@ import numpy as np
 
 class RuleBasedAgent:
 
-    def __init__(self, red_apple, blue_apple, justice, obs_size):
+    def __init__(self, prefer, justice, obs_size):
         # agent characteristics
-        self.u = [red_apple, blue_apple]
+        self.prefer = prefer
+        if self.prefer == 'red':
+            self.u = [1, 2]
+        else:
+            self.u = [2, 1]
         self.justice = justice # bool type to test inequity aversion
         
         # constant
-        self.a = (int((obs_size[0] + 1)/2) , 1)
+        self.a = (obs_size[1] - 2, int(obs_size[0]/2))
         self.obs_size = obs_size
-        self.movable = [(self.a[0], self.a[1] + 1), (self.a[0], self.a[1]- 1), (self.a[0] - 1, self.a[1]), (self.a[0] + 1, self.a[1])] 
+        self.movable = [(self.a[0] - 1, self.a[1]), (self.a[0] + 1, self.a[1]), (self.a[0], self.a[1] - 1), (self.a[0], self.a[1] + 1)] 
         # Up, Down, Left, Right
         self.rule_order = [self._eat_apple, self._closest_apple, self._explore] 
         self.color = dict(red=3, blue=2)
@@ -46,8 +50,7 @@ class RuleBasedAgent:
             if dist < lowest:
                 lowest = dist
                 closest = arr
-        
-        lr, ud = self.a - closest
+        ud, lr = self.a - closest
         candidates = []
         if lr < 0:
             candidates.append(3)
@@ -56,11 +59,11 @@ class RuleBasedAgent:
         else:
             candidates.append(4)
         if ud < 0:
-            candidates.append(2)
+            candidates.append(1)
         elif ud == 0:
             pass
         else:
-            candidates.append(1)
+            candidates.append(2)
         return np.random.choice(candidates, 1)[0]
 
     def _explore(self, obs, color=None):
@@ -69,12 +72,19 @@ class RuleBasedAgent:
         ## check plz obs indices mean x and y each
         # Check whether wall or not
         possible = []
-        order1 = ['Up, Left', 'Down, Right']
-        for i, (ud, lr) in enumerate(zip(vertical, horizontal)):
-            if not np.mean(obs[ud, :]) == 1:
-                possible.append(i + 1)
-            if not np.mean(obs[:, lr]) == 1:
-                possible.append(i + 3)
+        order1 = ['Up', 'Down']
+        order2 = ['Left', 'Right']      
+        for i, (ud, lr, mv_ud, mv_lr) in enumerate(zip(vertical, horizontal, self.movable[:2], self.movable[2:])):
+            if not np.all(obs[ud, :] == 1):
+                if obs[mv_ud[0],mv_ud[1]] != 0:
+                    pass
+                else:
+                    possible.append(i + 1)
+            if not np.all(obs[:, lr] == 1):
+                if obs[mv_lr[0], mv_lr[1]] != 0:
+                    pass
+                else:
+                    possible.append(i + 3) 
         act = np.random.choice(possible, 1)[0]
         return act
         
@@ -87,7 +97,7 @@ class RuleBasedAgent:
             if is_apple:
                 # considering red, blue
                 candidates.append(i + 1)
-                utilities.append(self.u[obs[move[0], move[1] - 2]]) # for now, -2 but update to fit with env e.g. red 2 blue 3  red_u 0 blue_u 1
+                utilities.append(self.u[obs[move[0], move[1]]- 2])
             if not len(candidates) == 0:
                 return candidates[np.argmax(utilities)]
             else:
