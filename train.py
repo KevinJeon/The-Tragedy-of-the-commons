@@ -34,9 +34,9 @@ def main(args):
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
         for i in range(args.max_step):
-            image = env.render()
+            image = env.render(coordination=True)
             cv.imshow('Env', image)
-            key = cv.waitKey(1)
+            key = cv.waitKey(0)
             '''
             if key == 0x260000: # Up
                 action_1 = 1
