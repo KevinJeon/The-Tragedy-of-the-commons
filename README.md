@@ -1,8 +1,10 @@
 # The-Tragedy-of-the-commons
 This repo is implementation of environment in paper 'Social diversity and social preferences in mixed-motive reinforcement learning'
 
-![snapshot](./screenshot/snapshot.gif)
-![snapshot](./screenshot/individual.gif)
+<p float="left">
+<img src="./screenshot/snapshot.gif" width="300">
+<img src="./screenshot/individual.gif" width="300">
+</p>
 
 ## Environment Specification
 ### Settings
