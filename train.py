@@ -24,20 +24,19 @@ def select_actions(obss, agents):
         act, info = agent.act(obs)
         actions.append(act)
         infos.append(info)
-    print(actions)
     return actions, infos
 
 def main(args):
-    agents = [AGENT_TYPE[args.agent_type](4, 1, False, (11, 11)) for i in range(args.num_agent)]
     env = TOCEnv(num_agents=args.num_agent)
+    prefer = ['blue']*5+['red']*5
+    agents = [AGENT_TYPE[args.agent_type](prefer[i], False, (11, 11)) for i in range(args.num_agent)]
     env.obs_type = 'numeric'
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
         for i in range(args.max_step):
-            image = env.render()
+            image = env.render(coordination=True)
             cv.imshow('Env', image)
-            
-            key = cv.waitKeyEx()
+            key = cv.waitKey(0)
             '''
             if key == 0x260000: # Up
                 action_1 = 1
@@ -51,7 +50,7 @@ def main(args):
                 action_1 = None
             '''
             sampled_action = []
-            sampled_actions, infos = select_actions(obss, agents)            
+            sampled_actions, infos = select_actions(obss, agents)
             obss, rews, done, _ = env.step(actions=sampled_actions)
         '''
             memory.add(sampled_actions, infos)
