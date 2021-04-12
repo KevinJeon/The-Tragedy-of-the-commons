@@ -43,7 +43,7 @@ obs, reward, info = env.step(actions)
 ### Environment Parameters
 `num_agents (int)` Total count of agents in the map  
 `blue_agents (int)` Count of blue agents  
-`red_agents (int)` Count of red agents
+`red_agents (int)` Count of red agents  
 `obs_type (numeric|rgb_array)` Returning state type  
 `apple_color_ratio (float)` Spawn ratio of blue apple (e.g., 0.3)  
 `apple_spawn_ratio (float)` Spawn speed of apples (e.g., 0.4)

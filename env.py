@@ -177,7 +177,7 @@ class TOCEnv(object):
     def _render_view(self) -> np.array:
         raise NotImplementedError
 
-    def render(self) -> np.array:
+    def render(self, coordination=False) -> np.array:
         image_size = (self.world.height * self.pixel_per_block, self.world.width * self.pixel_per_block, 3)
 
         layer_field = np.zeros(shape=image_size)
@@ -264,8 +264,6 @@ class TOCEnv(object):
         output_layer = cv.add(masked_dest_layer, masked_src_layer)
 
         # Draw Effects
-        layer_effects = np.zeros(shape=image_size)
-
         resized_flame = cv.resize(Resource.Flame, dsize=(self.pixel_per_block, self.pixel_per_block))
         resized_flame[:, :, 3] = resized_flame[:, :, 3] * 0.7
 
@@ -277,6 +275,13 @@ class TOCEnv(object):
                 if np.bitwise_and(int(effects), BlockType.Punish):
                     pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
                     put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+
+        if coordination:
+            for y in range(self.world.height):
+                for x in range(self.world.width):
+                    cv.putText(output_layer, '{0},{1}'.format(y, x), (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+
+
 
         return (output_layer / 255.).astype(np.float32)
 
@@ -317,7 +322,6 @@ class TOCEnv(object):
                 if np.bitwise_and(int(item), BlockType.RedApple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_apple_red, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
-
                 if np.bitwise_and(int(item), BlockType.Punish):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_flame, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
