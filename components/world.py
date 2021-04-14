@@ -80,6 +80,8 @@ class VariousAppleField(Field):
     def generate_item(self, prob=0.3):
 
         empty_positions = self._get_empty_positions()
+        agent_positions = [iter_agent.position for iter_agent in self.world.agents]
+
         apple_count = min(1, len(empty_positions))
 
         sampled_positions = random.sample(empty_positions, k=apple_count)
@@ -88,6 +90,7 @@ class VariousAppleField(Field):
         spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
 
         for pos, item in zip(sampled_positions, spawned_apples):
+
             if random.random() < prob:
                 self.world.spawn_item(item(), pos)
 
@@ -110,7 +113,7 @@ class VariousAppleField(Field):
 
 class World(object):
 
-    def __init__(self, num_agents, size):
+    def __init__(self, size):
         self.size = size
         self.agents = []
         self.grid = None
@@ -119,7 +122,6 @@ class World(object):
 
         self.on_changed_callbacks = []
         self.fruits_fields = []
-        self.num_agents = num_agents
 
         self._create_random_field()
         self._spawn_random_agents()

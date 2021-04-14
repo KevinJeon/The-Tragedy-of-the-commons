@@ -21,24 +21,19 @@ ActionSpace = namedtuple('ActionSpace', 'shape n')
 class TOCEnv(object):
 
     def __init__(self,
+                 agents: list,
                  apple_respawn_rate=1,
-                 num_agents=10,
+
                  map_size=(16, 16),
                  episode_max_length=300,
                  obs_type='rgb_array',
 
-                 # Parameters for color-variant environment
-                 blue_agents=5,
-                 red_agents=5,
                  apple_color_ratio=0.5,
                  apple_spawn_ratio=0.3,
                  ):
 
-        self.num_agents = num_agents
-
-        assert self.num_agents == blue_agents + red_agents  # Sum of 'blue_agents' and 'red_agents' should be equal to num_agents
-        self._blue_agents = blue_agents
-        self._red_agents = red_agents
+        self.agents = agents
+        self.num_agents = len(self.agents)
         self._apple_color_ratio = apple_color_ratio
         self._apple_spawn_ratio = apple_spawn_ratio
 
@@ -50,20 +45,18 @@ class TOCEnv(object):
         self._step_count = 0
         self.apple_count = 0
 
-        self.world = World(num_agents=num_agents, size=map_size)
+        self.world = World(size=map_size)
 
         self.pixel_per_block = 32
         self._individual_render_pixel = 8
 
         self.apple_respawn_rate = apple_respawn_rate
 
-        self.redered_layer = None
-
         self.reset()
 
 
     def step(self, actions):
-        assert len(actions) is self.world.num_agents
+        assert len(actions) is self.num_agents
 
         # Clear skill (You should bew clear effects before tick
         self.world.clear_effect()
@@ -110,24 +103,27 @@ class TOCEnv(object):
 
     def reset(self) -> np.array:
         del self.world
-        self.world = World(num_agents=self.num_agents, size=self.map_size)
+        self.world = World(size=self.map_size)
         self._step_count = 0
 
         # This is for two-color resource allocation experiemnts
         self.world.add_fruits_field(VariousAppleField(
-                world=self.world,
-                p1=Position(1, 1),
-                p2=Position(self.world.width - 2, self.world.height - 2),
-                prob=self._apple_spawn_ratio,
-                ratio=self._apple_color_ratio
-            ))
+            world=self.world,
+            p1=Position(1, 1),
+            p2=Position(self.world.width - 2, self.world.height - 2),
+            prob=self._apple_spawn_ratio,
+            ratio=self._apple_color_ratio
+        ))
 
-        for _ in range(self._blue_agents):
+        for color in self.agents:
             pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
-            self.world.spawn_agent(pos=pos, color=Color.Blue)
-        for _ in range(self._red_agents):
-            pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
-            self.world.spawn_agent(pos=pos, color=Color.Red)
+
+            if color == 'red':
+                self.world.spawn_agent(pos=pos, color=Color.Red)
+            elif color == 'blue':
+                self.world.spawn_agent(pos=pos, color=Color.Blue)
+            else:
+                raise Exception('Unknown color type')
 
         if self.obs_type == 'rgb_array':
             obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
@@ -137,7 +133,6 @@ class TOCEnv(object):
             obs = np.array(obs, dtype=np.uint8)
 
         color_agents = [agent.color for agent in self.world.agents]
-
 
         common_reward = 0
         individual_rewards = []
@@ -189,7 +184,7 @@ class TOCEnv(object):
                          color=(50, 50, 50), \
                          thickness=-1 \
                          )
-        layer_field = cv.flip(layer_field, 0) # Vertical flip
+        layer_field = cv.flip(layer_field, 0)  # Vertical flip
 
         layer_actors = np.zeros(shape=image_size)
 
@@ -209,9 +204,11 @@ class TOCEnv(object):
                 pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
 
                 if isinstance(content, items.BlueApple):
-                    put_rgba_to_image(resized_apple_blue, layer_items, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+                    put_rgba_to_image(resized_apple_blue, layer_items, pos_x,
+                                      image_size[0] - pos_y - self.pixel_per_block)
                 elif isinstance(content, items.RedApple):
-                    put_rgba_to_image(resized_apple_red, layer_items, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+                    put_rgba_to_image(resized_apple_red, layer_items, pos_x,
+                                      image_size[0] - pos_y - self.pixel_per_block)
                 elif isinstance(content, items.Apple):
                     put_rgba_to_image(resized_apple, layer_items, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
@@ -234,7 +231,6 @@ class TOCEnv(object):
             elif isinstance(iter_agent, RedAgent):
                 put_rgba_to_image(resized_agent_red, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
-
         gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_actors, 1, 255, cv.THRESH_BINARY)
         mask_inv = cv.bitwise_not(mask)
@@ -254,7 +250,8 @@ class TOCEnv(object):
 
         for iter_agent in self.world.agents:
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
-            put_rgba_to_image(np.rot90(heading_tile, k=iter_agent.direction.value), layer_heading, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+            put_rgba_to_image(np.rot90(heading_tile, k=iter_agent.direction.value), layer_heading, pos_x,
+                              image_size[0] - pos_y - self.pixel_per_block)
 
         gray_layer_heading = cv.cvtColor(layer_heading.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_heading, 1, 255, cv.THRESH_BINARY)
@@ -279,9 +276,9 @@ class TOCEnv(object):
         if coordination:
             for y in range(self.world.height):
                 for x in range(self.world.width):
-                    cv.putText(output_layer, '{0},{1}'.format(y, x), (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10), cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
-
-
+                    cv.putText(output_layer, '{0},{1}'.format(y, x),
+                               (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10),
+                               cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
         return (output_layer / 255.).astype(np.float32)
 
@@ -291,11 +288,15 @@ class TOCEnv(object):
         layer_output = np.zeros(shape=image_size)
 
         resized_agent = cv.resize(Resource.Agent, dsize=(self._individual_render_pixel, self._individual_render_pixel))
-        resized_agent_red = cv.resize(Resource.AgentRed, dsize=(self._individual_render_pixel, self._individual_render_pixel))
-        resized_agent_blue = cv.resize(Resource.AgentBlue, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_agent_red = cv.resize(Resource.AgentRed,
+                                      dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_agent_blue = cv.resize(Resource.AgentBlue,
+                                       dsize=(self._individual_render_pixel, self._individual_render_pixel))
 
-        resized_apple_red = cv.resize(Resource.AppleRed, dsize=(self._individual_render_pixel, self._individual_render_pixel))
-        resized_apple_blue = cv.resize(Resource.AppleBlue, dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_apple_red = cv.resize(Resource.AppleRed,
+                                      dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_apple_blue = cv.resize(Resource.AppleBlue,
+                                       dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_wall = cv.resize(Resource.Wall, dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_flame = cv.resize(Resource.Flame, dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_flame[:, :, 3] = resized_flame[:, :, 3] * 0.7
@@ -309,22 +310,29 @@ class TOCEnv(object):
                 pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
 
                 if np.bitwise_and(int(item), BlockType.OutBound):
-                    put_rgb_to_image(resized_wall, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgb_to_image(resized_wall, layer_output, pos_x,
+                                     image_size[0] - pos_y - self._individual_render_pixel)
                 if np.bitwise_and(int(item), BlockType.Self):
-                    put_rgba_to_image(resized_agent, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgba_to_image(resized_agent, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
                 if np.bitwise_and(int(item), BlockType.RedAgent):
-                    put_rgba_to_image(resized_agent_red, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgba_to_image(resized_agent_red, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
                 if np.bitwise_and(int(item), BlockType.BlueAgent):
-                    put_rgba_to_image(resized_agent_blue, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgba_to_image(resized_agent_blue, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
                 if np.bitwise_and(int(item), BlockType.BlueApple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
-                    put_rgba_to_image(resized_apple_blue, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgba_to_image(resized_apple_blue, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
                 if np.bitwise_and(int(item), BlockType.RedApple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
-                    put_rgba_to_image(resized_apple_red, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgba_to_image(resized_apple_red, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
                 if np.bitwise_and(int(item), BlockType.Punish):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
-                    put_rgba_to_image(resized_flame, layer_output, pos_x, image_size[0] - pos_y - self._individual_render_pixel)
+                    put_rgba_to_image(resized_flame, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
 
         return layer_output / 255.
 
@@ -375,7 +383,6 @@ class TOCEnv(object):
     def action_space(self):
         action_space = ActionSpace(shape=self.num_agents, n=Action().count)
         return action_space
-
 
 
 from components.world import World, Position

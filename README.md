@@ -25,11 +25,12 @@ WIP
 
 ## Example
 ```python
-env = TOCEnv(num_agents=4, map_size=(16, 16), obs_type='numeric',
-             blue_agents=2,
-             red_agents=2,
-             apple_color_ratio=0.1,
-             apple_spawn_ratio=0.2
+agents_types = ['red', 'blue', 'red']
+env = TOCEnv(agents=agents_types,
+             map_size=(16, 16),
+             obs_type='rgb_array',
+             apple_color_ratio=0.5,
+             apple_spawn_ratio=0.1,
              )
 
 obs, info = env.reset()
@@ -37,7 +38,7 @@ obs, info = env.reset()
 print(obs.shape)
 # (4, 11, 11)
 print(info)
-# ['blue', 'blue', 'red', 'red']
+# ['red', 'blue', 'red']
 
 actions = [action_1, action_2, action_3 ... action_n]
 obs, reward, info = env.step(actions)

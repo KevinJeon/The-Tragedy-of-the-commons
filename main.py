@@ -7,13 +7,15 @@ from env import TOCEnv
 import cv2
 
 def main():
-    num_agents = 4
 
-    env = TOCEnv(num_agents=num_agents, map_size=(16, 16), obs_type='numeric',
-                 blue_agents=2,
-                 red_agents=2,
-                 apple_color_ratio=0.1,
-                 apple_spawn_ratio=0.2
+    agents_types = ['red', 'blue', 'red']
+    num_agents = len(agents_types)
+
+    env = TOCEnv(agents=agents_types,
+                 map_size=(16, 16),
+                 obs_type='rgb_array',
+                 apple_color_ratio=0.5,
+                 apple_spawn_ratio=0.1,
                  )
 
     while True:
@@ -21,9 +23,8 @@ def main():
 
         for i in range(400):
 
-            image = env.render()
+            image = env.render(coordination=False)
             cv.imshow('Env', image)
-            # key = cv.waitKeyEx()
             key = cv.waitKey(0)
             if key == 0: # Up
                 action_1 = 1
@@ -40,8 +41,7 @@ def main():
             elif key == 97: # A
                 action_1 = 7
             else: # No-op
-                action_1 = None
-
+                action_1 = 0
             '''
             if key == 0x260000: # Up
                 action_1 = 1
@@ -63,9 +63,9 @@ def main():
 
             next_state, reward, done, info = env.step(actions=sampled_action)
 
-            image = env.render()
+            image = env.render(coordination=False)
             cv.imshow('Env', image)
-
+            cv.waitKey(0)
             print(next_state.shape, reward, done, info)
 
 
