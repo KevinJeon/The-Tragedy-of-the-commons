@@ -26,7 +26,7 @@ class RuleBasedAgent:
         act  = None
         o = 0
         while act == None:
-            act = self.rule_order[o](obs)
+            act = self.rule_order[o](obs, self.prefer)
             o += 1
         return act, self.rule_order[o - 1]
 
@@ -46,34 +46,35 @@ class RuleBasedAgent:
             return None
         for x, y in zip(xs, ys):
             arr = np.array([x,y])
-            dist = np.linalg.norm(arr - self.a)
+            dist = abs(arr[0] - self.a[0]) + abs(arr[1] - self.a[1])
             if dist < lowest:
                 lowest = dist
                 closest = arr
         ud, lr = self.a - closest
         candidates = []
         if lr < 0:
-            candidates.append(3)
+            candidates.append(4)
         elif lr == 0:
             pass
         else:
-            candidates.append(4)
+            candidates.append(3)
         if ud < 0:
-            candidates.append(1)
+            candidates.append(2)
         elif ud == 0:
             pass
         else:
-            candidates.append(2)
+            candidates.append(1)
         return np.random.choice(candidates, 1)[0]
 
     def _explore(self, obs, color=None):
         # if there is no apple in sight, explore
-        horizontal, vertical = [0, self.obs_size[1] - 1], [0, self.obs_size[0] -1] # Left, Right, Up, Down
+        horizontal, vertical = [0, self.obs_size[1] - 1], [0, self.obs_size[0] - 1] # Left, Right, Up, Down
         ## check plz obs indices mean x and y each
         # Check whether wall or not
         possible = []
         order1 = ['Up', 'Down']
         order2 = ['Left', 'Right']      
+
         for i, (ud, lr, mv_ud, mv_lr) in enumerate(zip(vertical, horizontal, self.movable[:2], self.movable[2:])):
             if not np.all(obs[ud, :] == 1):
                 if obs[mv_ud[0],mv_ud[1]] != 0:
@@ -85,6 +86,9 @@ class RuleBasedAgent:
                     pass
                 else:
                     possible.append(i + 3) 
+        # trapped
+        if len(possible) == 0:
+            possible.append(0)
         act = np.random.choice(possible, 1)[0]
         return act
         
@@ -98,8 +102,9 @@ class RuleBasedAgent:
                 # considering red, blue
                 candidates.append(i + 1)
                 utilities.append(self.u[obs[move[0], move[1]]- 2])
-            if not len(candidates) == 0:
-                return candidates[np.argmax(utilities)]
-            else:
-                return None
+        
+        if not len(candidates) == 0:
+            return candidates[np.argmax(utilities)]
+        else:
+            return None
 
