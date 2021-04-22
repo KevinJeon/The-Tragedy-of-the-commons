@@ -1,12 +1,22 @@
+import numpy as np
 import cv2 as cv
 import os
 
+Asset_Dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'resources', 'assets'))
+
+def load_asset(filename):
+    global Asset_Dir
+
+    f = np.fromfile(os.path.join(Asset_Dir, filename), np.uint8)
+    img = cv.imdecode(f, cv.IMREAD_UNCHANGED)
+    return img
+
 
 class Resource(object):
-    Asset_Dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'resources', 'assets'))
 
-    Apple = cv.imread(os.path.join(Asset_Dir, 'apple.png'), cv.IMREAD_UNCHANGED)
-    Agent = cv.imread(os.path.join(Asset_Dir, 'monster.png'), cv.IMREAD_UNCHANGED)
-    AgentBlue = cv.imread(os.path.join(Asset_Dir, 'monster2.png'), cv.IMREAD_UNCHANGED)
-    Wall = cv.imread(os.path.join(Asset_Dir, 'wall.png'), cv.IMREAD_UNCHANGED)
-    Flame = cv.imread(os.path.join(Asset_Dir, 'flame.png'), cv.IMREAD_UNCHANGED)
+    Apple = load_asset('apple.png')
+    Agent = load_asset('monster.png')
+    AgentBlue = load_asset('monster2.png')
+    Wall = load_asset('wall.png')
+    Flame = load_asset('flame.png')
+
