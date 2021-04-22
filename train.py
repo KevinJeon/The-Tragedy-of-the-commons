@@ -10,7 +10,8 @@ AGENT_TYPE = dict(rule=RuleBasedAgent, ac=CPCAgent)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='ToC params')
-    parser.add_argument('--num_agent', default=10, type=int)
+    parser.add_argument('--blue', default=10, type=int)
+    parser.add_argument('--red', default=10, type=int)
     parser.add_argument('--num_episode', default=10000, type=int)
     parser.add_argument('--max_step', default=100, type=int)
     parser.add_argument('--agent_type', default='rule', type=str)
@@ -27,9 +28,9 @@ def select_actions(obss, agents):
     return actions, infos
 
 def main(args):
-    env = TOCEnv(num_agents=args.num_agent, blue_agents=2, red_agents=1)
-    prefer = ['blue']*50+['red']*50
-    agents = [AGENT_TYPE[args.agent_type](prefer[i], False, (11, 11)) for i in range(args.num_agent)]
+    prefer = ['blue']*args.blue+['red']*args.red
+    env = TOCEnv(agents=prefer, apple_color_ratio=0.5, apple_spawn_ratio=0.1)
+    agents = [AGENT_TYPE[args.agent_type](prefer[i], False, (11, 11)) for i in range(args.blue + args.red)]
     env.obs_type = 'numeric'
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
