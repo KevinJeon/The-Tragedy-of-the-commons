@@ -22,6 +22,8 @@ class TOCEnv(object):
                  map_size=(16, 16),
                  episode_max_length=300,
                  obs_type='rgb_array',
+                 patch_count=3,
+                 patch_distance=5,
                  ):
 
         self.num_agents = num_agents
@@ -33,15 +35,16 @@ class TOCEnv(object):
         self._step_count = 0
         self.apple_count = 0
 
-        self.world = World(num_agents=num_agents, size=map_size)
-
         self.pixel_per_block = 16
         self._individual_render_pixel = 8
 
         self.apple_respawn_rate = apple_respawn_rate
 
-        self.redered_layer = None
+        ''' Patch settings '''
+        self.patch_count = patch_count
+        self.patch_distance = patch_distance
 
+        self._create_world()
         self.reset()
 
     def step(self, actions):
@@ -93,7 +96,9 @@ class TOCEnv(object):
 
     def reset(self) -> np.array:
         del self.world
-        self.world = World(num_agents=self.num_agents, size=self.map_size)
+
+        self._create_world()
+
         self._step_count = 0
 
         if self.obs_type == 'rgb_array':
@@ -104,6 +109,11 @@ class TOCEnv(object):
             obs = np.array(obs, dtype=np.uint8)
 
         return obs
+
+    def _create_world(self):
+        print(self.patch_distance, self.patch_count)
+        self.world = World(num_agents=self.num_agents, size=self.map_size, \
+                           patch_distance=self.patch_distance, patch_count=self.patch_count)
 
     def _render_layers(self) -> None:
         raise NotImplementedError
@@ -274,6 +284,12 @@ class TOCEnv(object):
     def respawn_apple(self):
         raise NotImplementedError
 
+    def set_patch_count(self, count: int) -> None:
+        self.patch_count = count
+
+    def set_patch_distance(self, distance: int) -> None:
+        self.patch_distance = distance
+
     @property
     def observation_space(self):
         if self.obs_type == 'rgb_array':
@@ -285,7 +301,6 @@ class TOCEnv(object):
             return np.zeros(
                 shape=(self.num_agents, 11, 11),
                 dtype=np.float32)
-
 
     @property
     def action_space(self):
