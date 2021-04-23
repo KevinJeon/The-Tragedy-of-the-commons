@@ -2,18 +2,25 @@ import torch as tr
 
 class RolloutStorage(object):
 
-    def __init__(self, num_agent, num_step, batch_size, num_obs, num_action, num_rec):
+    def __init__(self, agent_type, num_agent, num_step, batch_size, num_obs, num_action, num_rec):
         self.obs = tr.zeros(num_agent, num_step + 1, *num_obs)
-        self.h = tr.zeros(num_agent, num_step + 1, num_rec)
         self.rew = tr.zeros(num_agent, num_step, 1)
-        self.val = tr.zeros(num_agent, num_step + 1, 1)
         self.ret = tr.zeros(num_agent, num_step + 1, 1)
-        self.logprob = tr.zeros(num_agent, num_step, 1)
         self.act = tr.zeros(num_agent, num_step, num_action)
         self.mask = tr.zeros(num_agent, num_step + 1, 1) # If mask == 0, Terminal
         self.num_step = num_step
         self.step = 0
-
+        self.num_agent = num_agent
+        self.agent_type = agent_type
+        
+        self.onehot = tr.eye(num_action)
+        # For CPC
+        if agent_type == 'ac':
+            self.s_feat = tr.zeros(num_agent, num_step, *num_obs)
+            self.a_feat = tr.zeros(num_agent, num_step, num_action)
+            self.h = tr.zeros(num_agent, num_step + 1, num_rec)
+            self.val = tr.zeros(num_agent, num_step + 1, 1)
+            self.logprob = tr.zeros(num_agent, num_step, 1)
     def to(self, device):
         self.obs = self.obs.to(device)
         self.h = self.h.to(device)
@@ -25,15 +32,22 @@ class RolloutStorage(object):
         self.mask = self.mask.to(device)
 
     def add(self, obss, acts, rews, masks, infos):
-        for i, (obs, act, rew, mask, info) in enumerate(zip(obss, acts, rews, masks, infos)):
-            self.obs[i, self.step + 1].copy_(obs)
-            self.h[i, self.step + 1].copy_(h)
-            self.act[i, self.step].copy_(act)
-            self.logprob[i, self.step].copy_(logprob)
-            self.val[i, self.step].copy_(v)
-            self.rew[i, self.step].copy_(rew)
-            self.mask[i, self.step + 1].copy_(mask)
-
+        obss = tr.from_numpy(obss)
+        print(rews)
+        for i in range(self.num_agent):
+            self.obs[i, self.step + 1].copy_(obss[i])
+            self.act[i, self.step].copy_(self.onehot[acts[i]].view(-1))
+            self.rew[i, self.step].copy_(rews[i])
+            self.mask[i, self.step + 1].copy_(masks[i])
+            
+            # For CPC
+            if self.agent_type == 'ac':
+                v, logprob, h, s_f, a_f = infos[i]
+                self.h[i, self.step + 1].copy_(h)
+                self.logprob[i, self.step].copy_(logprob)
+                self.val[i, self.step].copy_(v)
+                self.s_feat[i, self.step].copy_(s_f)
+                self.a_feat[i, self.step].copy_(a_f)
         self.step = (self.step + 1) % self.num_step
 
     def after_update(self):

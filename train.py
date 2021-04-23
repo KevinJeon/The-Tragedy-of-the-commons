@@ -13,23 +13,21 @@ AGENT_CONFIG = dict(rule=dict(prefer=None, obs_size=None), ac=dict(batch_size=12
 def parse_args():
     parser = argparse.ArgumentParser(description='ToC params')
     parser.add_argument('--blue', default=1, type=int)
-    parser.add_argument('--red', default=0, type=int)
+    parser.add_argument('--red', default=1, type=int)
     parser.add_argument('--num_episode', default=10000, type=int)
     parser.add_argument('--max_step', default=100, type=int)
     parser.add_argument('--agent_type', '-a', default='rule', type=str)
     args = parser.parse_args()
     return args
 
-def select_actions(obss, agents, step, mems=None):
+def select_actions(obss, agents, step, hs=None):
     actions = []
     infos = []
-    if mems == None:
+    if hs == None:
         hs = [None] * len(agents)
-    for obs, agent, mem in zip(obss, agents, mems):
-        print(step)
-        h = mem[step]
-        act, info = agent.act(obs, h)
-        actions.append(act)
+    for obs, agent, h in zip(obss, agents, hs):
+        act, info = agent.act(obs, h[step])
+        actions.append(act.view(-1).numpy())
         infos.append(info)
     return actions, infos
 
@@ -38,7 +36,8 @@ def main(args):
     env = TOCEnv(agents=prefer, apple_color_ratio=0.5, apple_spawn_ratio=0.1)
     agents = [AGENT_TYPE[args.agent_type](**AGENT_CONFIG[args.agent_type]) for i in range(args.blue + args.red)]
     env.obs_type = 'rgb_array'
-    memories = [RolloutStorage(num_agent=args.blue+args.red, num_step=100, batch_size=128, num_obs=(88, 88), num_action=8, num_rec=128)] * (args.red + args.blue)
+    memory = RolloutStorage(agent_type='ac',num_agent=args.blue+args.red, num_step=100, \
+            batch_size=128, num_obs=(88, 88, 3), num_action=8, num_rec=128)
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
         for step in range(args.max_step):
@@ -58,9 +57,11 @@ def main(args):
                 action_1 = None
             '''
             sampled_action = []
-            sampled_actions, infos = select_actions(obss, agents, step, memories)
+            sampled_actions, infos = select_actions(obss, agents, step, memory.h)
             obss_next, rews, masks, _ = env.step(actions=sampled_actions)
-            memories.add(obss, sampled_actions, rews, masks, infos)
+            print(np.shape(obss_next), rews, masks)
+            memory.add(obss, sampled_actions, rews, masks, infos)
+            obss = obss_next
         print('-'*20+'Train!'+'-'*20)
         for agent in agents:
             if agent.is_train:
