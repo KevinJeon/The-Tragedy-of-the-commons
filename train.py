@@ -5,24 +5,29 @@ import argparse
 from env import TOCEnv
 from models.a2c_toc import CPCAgent
 from models.rulebased import RuleBasedAgent
+from utils.storage import RolloutStorage
 
 AGENT_TYPE = dict(rule=RuleBasedAgent, ac=CPCAgent)
+AGENT_CONFIG = dict(rule=dict(prefer=None, obs_size=None), ac=dict(batch_size=128, seq_len=20, num_action=8, num_channel=3, timestep=100)) 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='ToC params')
-    parser.add_argument('--blue', default=10, type=int)
-    parser.add_argument('--red', default=10, type=int)
+    parser.add_argument('--blue', default=1, type=int)
+    parser.add_argument('--red', default=0, type=int)
     parser.add_argument('--num_episode', default=10000, type=int)
     parser.add_argument('--max_step', default=100, type=int)
-    parser.add_argument('--agent_type', default='rule', type=str)
+    parser.add_argument('--agent_type', '-a', default='rule', type=str)
     args = parser.parse_args()
     return args
 
-def select_actions(obss, agents):
+def select_actions(obss, agents, step, mems=None):
     actions = []
     infos = []
-    for obs, agent in zip(obss, agents):
-        act, info = agent.act(obs)
+    if mems == None:
+        hs = [None] * len(agents)
+    hs = [mem.h[step] for mem in mems]
+    for obs, agent, h in zip(obss, agents, hs):
+        act, info = agent.act(obs, h)
         actions.append(act)
         infos.append(info)
     return actions, infos
@@ -30,11 +35,12 @@ def select_actions(obss, agents):
 def main(args):
     prefer = ['blue']*args.blue+['red']*args.red
     env = TOCEnv(agents=prefer, apple_color_ratio=0.5, apple_spawn_ratio=0.1)
-    agents = [AGENT_TYPE[args.agent_type](prefer[i], False, (11, 11)) for i in range(args.blue + args.red)]
-    env.obs_type = 'numeric'
+    agents = [AGENT_TYPE[args.agent_type](**AGENT_CONFIG[args.agent_type]) for i in range(args.blue + args.red)]
+    env.obs_type = 'rgb_array'
+    memories = [RolloutStorage(num_step=100, batch_size=128, num_obs=(88, 88), num_action=8, num_rec=128)] * (args.red + args.blue)
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
-        for i in range(args.max_step):
+        for step in range(args.max_step):
             image = env.render(coordination=True)
             cv.imshow('Env', image)
             key = cv.waitKey(1)
@@ -51,7 +57,7 @@ def main(args):
                 action_1 = None
             '''
             sampled_action = []
-            sampled_actions, infos = select_actions(obss, agents)
+            sampled_actions, infos = select_actions(obss, agents, step, memories)
             obss, rews, done, _ = env.step(actions=sampled_actions)
         '''
             memory.add(sampled_actions, infos)

@@ -1,54 +1,70 @@
 import numpy as np
 import torch as tr
 import torch.nn as nn
-
+from torch.distributions import Categorical
 class CPC(nn.Module):
 
-    def __init__(self, num_channel):
+    def __init__(self, num_action, num_channel):
         super(CPC, self).__init__()
         self.num_hidden = 128
         # Input Size (N, 88, 88, 3)
         self.encoder = nn.Sequential(
-                nn.Conv2d(num_chaanel, 512 , kernel_size=10, stride=5, padding=3, bias=False),
-                nn.BatchNorm2d(512),
+                nn.Conv2d(num_channel, 128 , kernel_size=11, stride=6, bias=False),
+                nn.Conv2d(128, 64 , kernel_size=5, stride=3, bias=False),
+                nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True))
-        
-        self.lstm = nn.LSTM(512, 128, num_layers=1, batch_first=True)
+         
+        self.gru = nn.GRUCell(576, 128)
+        for n, p in self.gru.named_parameters():
+            if 'bias' in n:
+                nn.init.constant_(p, 0)
+            elif 'weight' in n:
+                nn.init.orthogonal_(p)
         self.value = nn.Linear(128, 1)
-        
+        self.softmax = nn.Softmax()
+        self.linear = nn.Linear(128, num_action) 
         
     def init_hidden(self, batch_size):
-        return tr.zeros(1, batch_size, 128)
+        return self.encoder.weight.new(1, 128).zero_()
 
     def forward(self, obs, h):
         '''
         x : (seq, c, h, w)
         h : (1, 1, hidden)
         '''
-        z = self.encoder(obs)
-        s_f, h = self.lstm(z)
-        return self.value(s_f), s_f, h
+        bs = obs.size()[0]
+        z = self.encoder(obs / 255.0).view(bs, -1)
+        h = self.gru(z, h)
+        s_f = self.linear(h)
+        s_f = self.softmax(s_f)
+        return self.value(h), s_f, h
 
 class CPCAgent(object):
 
-    def __init__(self):
+    def __init__(self, batch_size, seq_len, timestep, num_action, num_channel):
         super(CPCAgent, self).__init__()
         self.batch_size = batch_size
         self.seq_len = seq_len
-        self.linear = nn.Modulelist([nn.Linear(128, 512) for i in range(timestep)])
-        self.action_encoder = nn.Linear(128, num_action)
-        self.state_encoder = CPC(num_channel)
+        self.linear = nn.ModuleList([nn.Linear(128, 512) for i in range(timestep)])
+        self.action_encoder = nn.Embedding(num_action, 128)
+        self.state_encoder = CPC(num_action, num_channel)
     def act(self, obs, h, is_train=True):
-        v, s_f, h = self.state_encoder(obs, h)
-        dist = Categorical(s_f)
-        if is_train:
-            act = dist.sample()
-        else:
-            act = dist.mode()
-        a_f = self.action_encoder(act.view(-1))
-        logprobs = dist.log_probs(pi)
-        entropy = dist.entropy().mean()
-        return v, act, logprobs, h, s_f, a_f
+        obs = tr.from_numpy(obs).unsqueeze(0)
+        h = h.unsqueeze(0)
+        obs = obs.permute((0, 3, 1, 2))
+        with tr.no_grad():
+            v, s_f, h = self.state_encoder(obs, h)
+            print('State Features :{}, Value :{}, Hidden :{}'.format(s_f.size(), v.size(), h.size()))
+            dist = Categorical(s_f)
+            if is_train:
+                act = dist.sample().unsqueeze(-1)
+            else:
+                act = dist.mode().unsqueeze(-1)
+            a_f = self.action_encoder(act.view(-1))
+            logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
+            entropy = dist.entropy().mean()
+            infos = [v, logprobs, h, s_f, a_f]
+            return act, infos
 
     def evaluate(self, obs, h, act, mask):
         v, s_f, h = self.state_encoder(obs, h, mask)
