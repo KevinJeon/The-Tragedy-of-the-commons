@@ -207,7 +207,6 @@ class TOCEnv(object):
         layer_actors = np.zeros(shape=image_size)
 
         # Draw items
-
         layer_items = np.zeros(shape=image_size)
 
         resized_apple = cv.resize(Resource.Apple, dsize=(self.pixel_per_block, self.pixel_per_block))
@@ -294,10 +293,6 @@ class TOCEnv(object):
         if coordination:
             for y in range(self.world.height + 1):
                 for x in range(self.world.width + 1):
-                    # cv.putText(output_layer, '{0},{1}'.format(y, x),
-                    #            (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10),
-                    #            cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
-
                     cv.putText(output_layer, '{0:2},{1:2}'.format(self.world.width - x, self.world.height - y),
                                (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
                                cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
@@ -308,7 +303,7 @@ class TOCEnv(object):
             coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
 
             output_layer = cv.line(output_layer, coord1, coord2, color)
-            pass
+
         self._debug_buffer_line.clear()
             # print(pos1, pos2)
 
@@ -392,7 +387,7 @@ class TOCEnv(object):
     def set_patch_distance(self, distance: int) -> None:
         self.patch_distance = distance
 
-    def draw_line(self, pos1: Position, pos2: Position, color=Color.White):
+    def draw_line(self, pos1: Position, pos2: Position, color: Color):
         self._debug_buffer_line.append((pos1, pos2, color))
 
     @property

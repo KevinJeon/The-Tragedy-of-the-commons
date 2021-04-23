@@ -63,14 +63,10 @@ class Field(object):
 
     def is_overlap(self, field: Field):
 
-        if self.p1.x == self.p2.x or self.p2.y == field.p1.y or \
-                field.p1.x == field.p2.x or field.p2.y == field.p1.y:
+        if self.p2.y < field.p1.y or self.p1.y > field.p2.y:
             return False
 
-        if self.p1.x >= field.p2.x or field.p1.x >= self.p2.x:
-            return False
-
-        if self.p1.y <= field.p1.y or field.p2.y <= self.p1.y:
+        if self.p2.x < field.p1.x or self.p1.x > field.p2.x:
             return False
 
         return True
@@ -188,7 +184,7 @@ class World(object):
             x=max(half_size + 1, min(initial_pos.x, self.width - half_size - 1)),
             y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
         )
-        initial_pos = Position(x=28, y=10)
+        initial_pos = Position(x=1, y=10)
         print('Initial Position ############', initial_pos)
         self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
 

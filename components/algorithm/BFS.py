@@ -76,7 +76,6 @@ class BFS(object):
 
         self.current_pos = pos
 
-
         while len(searched_positions) < k:
 
             candidates = self.get_candidates(pos=self.current_pos, radius=radius, distance=distance)
@@ -90,6 +89,7 @@ class BFS(object):
                     # Check is this field collapse with others
                     if self.world.collapsed_field_exist(field): continue
 
+                    # Check is this field collapse with my buffer
                     flag_overlap = False
                     for search_pos in searched_positions:
                         iter_field = Field.create_from_parameter(self.world, search_pos, radius)
@@ -105,6 +105,7 @@ class BFS(object):
                     print(len(searched_positions), candidate)
                     self.world.env.draw_line(self.current_pos, candidate, Color.Green)
 
+            if len(searched_positions) >= k: break
             if cur_idx >= len(searched_positions): break
 
             self.world.env.draw_line(self.current_pos, searched_positions[cur_idx], Color.Blue)
