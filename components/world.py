@@ -23,7 +23,6 @@ from components.position import Position
 from components.block import BlockType
 from components.agent import Color
 
-
 from components.util.weighted_random import get_weighted_position
 
 
@@ -58,16 +57,18 @@ class Field(object):
         return (self.p1.x <= pos.x <= self.p2.x) and \
                (self.p1.y <= pos.y <= self.p2.y)
 
+    @property
+    def center(self):
+        center_x = (self.p1.x + self.p2.x) // 2
+        center_y = (self.p1.y + self.p2.y) // 2
+        return Position(x=center_x, y=center_y)
+
     def is_overlap(self, field: Field):
 
-        if self.p1.x == self.p2.x or self.p2.y == field.p1.y or \
-                field.p1.x == field.p2.x or field.p2.y == field.p1.y:
+        if self.p2.y < field.p1.y or self.p1.y > field.p2.y:
             return False
 
-        if self.p1.x >= field.p2.x or field.p1.x >= self.p2.x:
-            return False
-
-        if self.p1.y <= field.p1.y or field.p2.y <= self.p1.y:
+        if self.p2.x < field.p1.x or self.p1.x > field.p2.x:
             return False
 
         return True
@@ -131,9 +132,7 @@ class VariousAppleField(Field):
                 self.world.spawn_item(item(), pos)
 
     def force_spawn_item(self, ratio=0.4):
-
         return
-
 
     def _get_empty_positions(self) -> [Position]:
         positions = []
@@ -178,9 +177,12 @@ class World(object):
         half_size = patch_size // 2
         distance = self.patch_distance
 
-        print('Patch Distance', distance)
-
         initial_pos = get_weighted_position(mu=0, sigma=1, map_size=self.size)
+        initial_pos = Position(
+            x=max(half_size + 1, min(initial_pos.x, self.width - half_size - 1)),
+            y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
+        )
+
         self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
 
         bfs = BFS(world=self)
@@ -223,6 +225,15 @@ class World(object):
 
     def map_contains(self, pos: Position) -> bool:
         return 0 <= pos.x < self.width and 0 <= pos.y < self.height
+
+    def contains_field(self, field: Field) -> bool:
+        return self.map_contains(field.p1) and self.map_contains(field.p2)
+
+    def collapsed_field_exist(self, field: Field) -> bool:
+        for iter_field in self.fruits_fields:
+            if field.is_overlap(iter_field): return True
+
+        return False
 
     def get_item(self, pos: Position) -> Union[items.Item, None]:
         return self.grid[pos.y][pos.x]

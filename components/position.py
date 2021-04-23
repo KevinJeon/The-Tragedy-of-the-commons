@@ -1,6 +1,11 @@
 import math
 
 
+class DistanceType:
+    Euclidean = 1
+    Manhattan = 2
+
+
 class Position(object):
     def __init__(self, x=None, y=None):
         pass
@@ -31,14 +36,20 @@ class Position(object):
     def __str__(self):
         return 'Position(x={0}, y={1})'.format(self.x, self.y)
 
+    def __hash__(self):
+        return self.x * 99999 + self.y  # Cheat number
+
     def to_tuple(self, reverse=False):
         if reverse:
             return self.x, self.y
         else:
             return self.y, self.x
 
-    def get_distance(self, pos: Position):
-        return math.sqrt(math.pow(self.x - pos.x, 2) + math.pow(self.y - pos.y, 2))
+    def get_distance(self, pos: Position, distance_type=DistanceType):
+        if distance_type == DistanceType.Euclidean:
+            return math.sqrt(math.pow(self.x - pos.x, 2) + math.pow(self.y - pos.y, 2))
+        else:  # Manhattan distance
+            return abs(self.x - pos.x) + abs(self.y - pos.y)
 
     def get_surrounded(self, radius: int) -> [Position]:
         surrounded = []
