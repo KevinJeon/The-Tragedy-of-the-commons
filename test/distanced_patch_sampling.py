@@ -4,7 +4,10 @@ import env
 
 
 def main():
-    tocEnv = env.TOCEnv(map_size=(20, 30))
+
+    agents = ['blue', 'red']
+
+    tocEnv = env.TOCEnv(agents=agents, map_size=(20, 30))
 
     while True:
 
@@ -15,7 +18,7 @@ def main():
         tocEnv.set_patch_distance(patch_distance)
 
         tocEnv.reset()
-        image = tocEnv.render()
+        image = tocEnv.render(coordination=True)
 
         cv2.imshow('TOCEnv', image)
         cv2.waitKey(0)

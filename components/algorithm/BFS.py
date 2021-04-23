@@ -39,7 +39,6 @@ class BFS(object):
         for pos in selections:
 
             new_field = Field.create_from_parameter(world=self.world, pos=pos, radius=radius)
-            print(new_field)
 
             flag_collapse = False
 
@@ -73,6 +72,6 @@ class BFS(object):
             for candidate in candidates:
                 if len(searched_positions) < k:
                     searched_positions.append(candidate)
-
+                    self.world.env.draw_line(self.current_pos, candidate)
         return searched_positions
 

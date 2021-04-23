@@ -4,6 +4,8 @@ import numpy as np
 import random
 import math
 
+from env import TOCEnv
+
 
 class World(object):
     pass
@@ -147,8 +149,9 @@ class VariousAppleField(Field):
 
 class World(object):
 
-    def __init__(self, num_agents, size, patch_count: int, patch_distance: int):
+    def __init__(self, env: TOCEnv, size: tuple, patch_count: int, patch_distance: int):
 
+        self.env = env
         self.size = size
         self.agents = []
         self.grid = None
@@ -162,17 +165,12 @@ class World(object):
         self.patch_distance = patch_distance
 
         self._create_random_field()
-        self._spawn_random_agents()
+
         self.clear_effect()
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
-      
-     
-    def _spawn_random_agents(self):
-        for _ in range(self.num_agents):
-            pos = Position(x=random.randint(0, self.width - 1), y=random.randint(0, self.height - 1))
-            self.spawn_agent(pos=pos)
+
             
     def _create_random_field(self):
 
@@ -192,9 +190,14 @@ class World(object):
         for pos in searched_positions:
             self.add_fruits_field(Field.create_from_parameter(world=self, pos=pos, radius=half_size))
 
-    def spawn_agent(self, pos: Position):
-        spawned = agent.Agent(world=self, pos=pos)
+    def spawn_agent(self, pos: Position, color: Color):
+        if color == Color.Red:
+            spawned = agent.RedAgent(world=self, pos=pos)
+        elif color == Color.Blue:
+            spawned = agent.BlueAgent(world=self, pos=pos)
+
         self.agents.append(spawned)
+
         return spawned
 
     def spawn_block(self, pos: Position):
