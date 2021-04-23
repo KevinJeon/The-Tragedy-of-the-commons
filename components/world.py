@@ -19,6 +19,8 @@ import components.skill as skills
 import components.block as block
 from components.position import Position
 from components.block import BlockType
+from components.agent import Color
+
 
 from components.util.weighted_random import get_weighted_position
 
@@ -97,9 +99,56 @@ class Field(object):
                     self.world.spawn_item(items.Apple(), Position(x=x, y=y))
 
 
+class VariousAppleField(Field):
+    def __init__(self, world: World, p1: Position, p2: Position, prob: float, ratio: float):
+        super(VariousAppleField, self).__init__(world=world, p1=p1, p2=p2)
+        '''
+        ratio: Apple re-spawn ratio for 'BlueApple' and 'RedApple' (Set for BlueApple)
+        '''
+        self.prob = prob
+        self.ratio = ratio
+
+    def tick(self):
+        self.generate_item(prob=self.prob)
+
+    def generate_item(self, prob=0.3):
+
+        empty_positions = self._get_empty_positions()
+        agent_positions = [iter_agent.position for iter_agent in self.world.agents]
+
+        apple_count = min(1, len(empty_positions))
+
+        sampled_positions = random.sample(empty_positions, k=apple_count)
+
+        apples = [items.BlueApple, items.RedApple]
+        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
+
+        for pos, item in zip(sampled_positions, spawned_apples):
+
+            if random.random() < prob:
+                self.world.spawn_item(item(), pos)
+
+    def force_spawn_item(self, ratio=0.4):
+
+        return
+
+
+    def _get_empty_positions(self) -> [Position]:
+        positions = []
+        for y in range(self.p1.y, self.p2.y + 1):
+            for x in range(self.p1.x, self.p2.x + 1):
+                pos = Position(x, y)
+                if self.world.get_item(pos) is None and \
+                            self.world.get_agent(pos) is None:
+                    positions.append(pos)
+
+        return positions
+
+
 class World(object):
 
     def __init__(self, num_agents, size, patch_count: int, patch_distance: int):
+
         self.size = size
         self.agents = []
         self.grid = None
@@ -108,7 +157,6 @@ class World(object):
 
         self.on_changed_callbacks = []
         self.fruits_fields = []
-        self.num_agents = num_agents
 
         self.patch_count = patch_count
         self.patch_distance = patch_distance
@@ -119,12 +167,13 @@ class World(object):
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
-
+      
+     
     def _spawn_random_agents(self):
         for _ in range(self.num_agents):
             pos = Position(x=random.randint(0, self.width - 1), y=random.randint(0, self.height - 1))
             self.spawn_agent(pos=pos)
-
+            
     def _create_random_field(self):
 
         patch_size = 3

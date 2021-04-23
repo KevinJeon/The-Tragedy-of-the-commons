@@ -33,7 +33,7 @@ class View(object):
         elif direction == DirectionType.Down:
             for y in range(-9, 2, 1):
                 _positions = []
-                for x in range(-5, 6):
+                for x in range(5, -6, -1):
                     _positions.append(Position(x=x, y=y))
                 positions.append(_positions)
 

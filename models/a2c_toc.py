@@ -36,7 +36,7 @@ class CPCAgent(object):
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.linear = nn.Modulelist([nn.Linear(128, 512) for i in range(timestep)])
-        self.action_encoder = nn.Linear128, num_action)
+        self.action_encoder = nn.Linear(128, num_action)
         self.state_encoder = CPC(num_channel)
     def act(self, obs, h, is_train=True):
         v, s_f, h = self.state_encoder(obs, h)
@@ -47,7 +47,7 @@ class CPCAgent(object):
             act = dist.mode()
         a_f = self.action_encoder(act.view(-1))
         logprobs = dist.log_probs(pi)
-        entropy dist.entropy().mean()
+        entropy = dist.entropy().mean()
         return v, act, logprobs, h, s_f, a_f
 
     def evaluate(self, obs, h, act, mask):
@@ -104,7 +104,7 @@ class CPCAgent(object):
         a_f = a_f.view(num_step, num_sample, -1)
         logprobs = logprobs.view(num_step, num_sample, 1)
         adv = samples.ret[:-1] - vs
-        vloss =  adv**2.mean()
+        vloss = (adv**2).mean()
         # nce_loss
         acc_s, acc_a, nce_s, nce_a = self.cpc(s_f, a_f)
         cpc_res = dict(nce_state=nce_s, nce_action=nce_a, acc_state=acc_s, acc_action=acc_a)
