@@ -11,8 +11,8 @@ def main():
 
     while True:
 
-        patch_count = 3
-        patch_distance = 5
+        patch_count = 10
+        patch_distance = 6
 
         tocEnv.set_patch_count(patch_count)
         tocEnv.set_patch_distance(patch_distance)

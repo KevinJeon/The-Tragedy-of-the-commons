@@ -15,7 +15,7 @@ def load_asset(filename):
 class Resource(object):
 
     Apple = load_asset('apple.png')
-    AppleRed = load_asset('apple.png')
+    AppleRed = load_asset('apple_red.png')
     AppleBlue = load_asset('apple_blue.png')
     Agent = load_asset('monster.png')
     AgentRed = load_asset('monster2.png')
