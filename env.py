@@ -1,9 +1,13 @@
+class TOCEnv(object):
+    pass
+
 import random
 import numpy as np
 import cv2 as cv
 
 from components.block import BlockType
-from components.view import View
+from components.position import Position
+
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
@@ -48,8 +52,6 @@ class TOCEnv(object):
         self._step_count = 0
         self.apple_count = 0
 
-        self.world = World(size=map_size)
-
         self.pixel_per_block = 32
         self._individual_render_pixel = 8
 
@@ -58,6 +60,9 @@ class TOCEnv(object):
         ''' Patch settings '''
         self.patch_count = patch_count
         self.patch_distance = patch_distance
+
+        ''' Debug '''
+        self._debug_buffer_line = []
 
         self._create_world()
         self.reset()
@@ -115,13 +120,13 @@ class TOCEnv(object):
         self._step_count = 0
 
         # This is for two-color resource allocation experiemnts
-        self.world.add_fruits_field(VariousAppleField(
-            world=self.world,
-            p1=Position(1, 1),
-            p2=Position(self.world.width - 2, self.world.height - 2),
-            prob=self._apple_spawn_ratio,
-            ratio=self._apple_color_ratio
-        ))
+        # self.world.add_fruits_field(VariousAppleField(
+        #     world=self.world,
+        #     p1=Position(1, 1),
+        #     p2=Position(self.world.width - 2, self.world.height - 2),
+        #     prob=self._apple_spawn_ratio,
+        #     ratio=self._apple_color_ratio
+        # ))
 
         for color in self.agents:
             pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
@@ -170,7 +175,7 @@ class TOCEnv(object):
 
     def _create_world(self):
         print(self.patch_distance, self.patch_count)
-        self.world = World(num_agents=self.num_agents, size=self.map_size, \
+        self.world = World(env=self, size=self.map_size, \
                            patch_distance=self.patch_distance, patch_count=self.patch_count)
 
     def _render_layers(self) -> None:
@@ -287,11 +292,27 @@ class TOCEnv(object):
                     put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         if coordination:
-            for y in range(self.world.height):
-                for x in range(self.world.width):
-                    cv.putText(output_layer, '{0},{1}'.format(y, x),
-                               (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10),
+            for y in range(self.world.height + 1):
+                for x in range(self.world.width + 1):
+                    # cv.putText(output_layer, '{0},{1}'.format(y, x),
+                    #            (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10),
+                    #            cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+
+                    print(self.world.width, x)
+                    cv.putText(output_layer, '{0:2},{1:2}'.format(self.world.width - x, self.world.height - y),
+                               (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
                                cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+
+        ''' Debug '''
+        [print(agent.position) for agent in self.world.agents]
+        for pos1, pos2 in self._debug_buffer_line:
+            coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
+            coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
+
+            output_layer = cv.line(output_layer, coord1, coord2, (0, 255, 0), )
+            pass
+        self._debug_buffer_line.clear()
+            # print(pos1, pos2)
 
         return (output_layer / 255.).astype(np.float32)
 
@@ -364,19 +385,6 @@ class TOCEnv(object):
                 count += 1
         return count
 
-    def show(self) -> None:
-        print('###### World ######')
-
-        self.world.spawn_item()
-
-        for y in range(self.world.height):
-            for x in range(self.world.width):
-                print('{:^5}'.format(str(self.world.grid[y][x])), end='')
-            print()
-        print('###################')
-
-        print(self.world.get_agents())
-
     def respawn_apple(self):
         raise NotImplementedError
 
@@ -385,6 +393,9 @@ class TOCEnv(object):
 
     def set_patch_distance(self, distance: int) -> None:
         self.patch_distance = distance
+
+    def draw_line(self, pos1: Position, pos2: Position):
+        self._debug_buffer_line.append((pos1, pos2))
 
     @property
     def observation_space(self):
@@ -402,6 +413,7 @@ class TOCEnv(object):
     def action_space(self):
         action_space = ActionSpace(shape=self.num_agents, n=Action().count)
         return action_space
+
 
 
 from components.world import World, Position
