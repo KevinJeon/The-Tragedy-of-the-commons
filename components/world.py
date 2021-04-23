@@ -9,23 +9,32 @@ class World(object):
     pass
 
 
+class Field(object):
+    pass
+
+
 import components.item as items
 import components.agent as agent
-from components.position import Position
 import components.skill as skills
+import components.block as block
+from components.position import Position
 from components.block import BlockType
 from components.agent import Color
+
+
+from components.util.weighted_random import get_weighted_position
+
 
 
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
         self.world = world
 
-        p1_x = p1.x if p1.x < p2.x else p1.x
+        p1_x = p1.x if p1.x < p2.x else p2.x
         p1_y = p1.y if p1.y < p2.y else p2.y
 
         p2_x = p2.x if p1.x < p2.x else p1.x
-        p2_y = p2.y if p2.y < p2.y else p2.y
+        p2_y = p2.y if p1.y < p2.y else p1.y
 
         self.p1 = Position(x=p1_x, y=p1_y)
         self.p2 = Position(x=p2_x, y=p2_y)
@@ -42,6 +51,31 @@ class Field(object):
                 positions.append(Position(x=x, y=y))
         return positions
 
+    @property
+    def include(self, pos: Position):
+        return (self.p1.x <= pos.x <= self.p2.x) and \
+               (self.p1.y <= pos.y <= self.p2.y)
+
+    def is_overlap(self, field: Field):
+
+        if self.p1.x == self.p2.x or self.p2.y == field.p1.y or \
+                field.p1.x == field.p2.x or field.p2.y == field.p1.y:
+            return False
+
+        if self.p1.x >= field.p2.x or field.p1.x >= self.p2.x:
+            return False
+
+        if self.p1.y <= field.p1.y or field.p2.y <= self.p1.y:
+            return False
+
+        return True
+
+    @staticmethod
+    def create_from_parameter(world: World, pos: Position, radius: int):
+        p1 = Position(pos.x - radius, pos.y - radius)
+        p2 = Position(pos.x + radius, pos.y + radius)
+        return Field(world=world, p1=p1, p2=p2)
+
     def tick(self):
         self.generate_item()
 
@@ -53,7 +87,7 @@ class Field(object):
         for pos in sampled_position:
             self.world.spawn_item(items.Apple(), Position(x=pos.x, y=pos.y))
 
-    def generate_item(self, prob=0.5**4):
+    def generate_item(self, prob=0.5 ** 4):
         for y in range(self.p1.y, self.p2.y + 1):
             for x in range(self.p1.x, self.p2.x + 1):
 
@@ -113,7 +147,8 @@ class VariousAppleField(Field):
 
 class World(object):
 
-    def __init__(self, size):
+    def __init__(self, num_agents, size, patch_count: int, patch_distance: int):
+
         self.size = size
         self.agents = []
         self.grid = None
@@ -123,24 +158,42 @@ class World(object):
         self.on_changed_callbacks = []
         self.fruits_fields = []
 
+        self.patch_count = patch_count
+        self.patch_distance = patch_distance
+
         self._create_random_field()
         self._spawn_random_agents()
         self.clear_effect()
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
-
+      
+     
     def _spawn_random_agents(self):
-        pass
-
+        for _ in range(self.num_agents):
+            pos = Position(x=random.randint(0, self.width - 1), y=random.randint(0, self.height - 1))
+            self.spawn_agent(pos=pos)
+            
     def _create_random_field(self):
-        pass
 
-    def spawn_agent(self, pos: Position, color):
-        if color == Color.Red:
-            spawned = agent.RedAgent(world=self, pos=pos)
-        else:
-            spawned = agent.BlueAgent(world=self, pos=pos)
+        patch_size = 3
+        half_size = patch_size // 2
+        distance = self.patch_distance
+
+        print('Patch Distance', distance)
+
+        initial_pos = get_weighted_position(mu=0, sigma=1, map_size=self.size)
+        self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
+
+        bfs = BFS(world=self)
+        searched_positions = bfs.search(pos=initial_pos, radius=half_size, distance=distance, \
+                                        k=self.patch_count - 1)
+
+        for pos in searched_positions:
+            self.add_fruits_field(Field.create_from_parameter(world=self, pos=pos, radius=half_size))
+
+    def spawn_agent(self, pos: Position):
+        spawned = agent.Agent(world=self, pos=pos)
         self.agents.append(spawned)
         return spawned
 
@@ -239,8 +292,4 @@ class World(object):
         return self.size[0]
 
 
-# Lazy import (Circular import issue)
-import components.agent as agent
-import components.block as block
-import components.item as items
-import components.skill as skills
+from components.algorithm.BFS import BFS
