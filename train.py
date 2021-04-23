@@ -25,8 +25,8 @@ def select_actions(obss, agents, step, mems=None):
     infos = []
     if mems == None:
         hs = [None] * len(agents)
-    hs = [mem.h[step] for mem in mems]
-    for obs, agent, h in zip(obss, agents, hs):
+    for obs, agent, mem in zip(obss, agents, mems):
+        h = mem[step]
         act, info = agent.act(obs, h)
         actions.append(act)
         infos.append(info)
@@ -37,7 +37,7 @@ def main(args):
     env = TOCEnv(agents=prefer, apple_color_ratio=0.5, apple_spawn_ratio=0.1)
     agents = [AGENT_TYPE[args.agent_type](**AGENT_CONFIG[args.agent_type]) for i in range(args.blue + args.red)]
     env.obs_type = 'rgb_array'
-    memories = [RolloutStorage(num_step=100, batch_size=128, num_obs=(88, 88), num_action=8, num_rec=128)] * (args.red + args.blue)
+    memories = [RolloutStorage(num_agent=args.blue+args.red, num_step=100, batch_size=128, num_obs=(88, 88), num_action=8, num_rec=128)] * (args.red + args.blue)
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
         for step in range(args.max_step):
@@ -58,14 +58,12 @@ def main(args):
             '''
             sampled_action = []
             sampled_actions, infos = select_actions(obss, agents, step, memories)
-            obss, rews, done, _ = env.step(actions=sampled_actions)
-        '''
-            memory.add(sampled_actions, infos)
-        if memory.train:
-            for agent in agents:
-                if agent.is_train:
-                    agent.train()
-        '''
+            obss_next, rews, masks, _ = env.step(actions=sampled_actions)
+            memories.add(obss, sampled_actions, rews, masks, infos)
+        print('-'*20+'Train!'+'-'*20)
+        for agent in agents:
+            if agent.is_train:
+                agent.train()
 
 if __name__ == '__main__':
     args = parse_args()
