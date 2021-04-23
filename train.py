@@ -26,6 +26,7 @@ def select_actions(obss, agents, step, mems=None):
     if mems == None:
         hs = [None] * len(agents)
     for obs, agent, mem in zip(obss, agents, mems):
+        print(step)
         h = mem[step]
         act, info = agent.act(obs, h)
         actions.append(act)

@@ -178,7 +178,6 @@ class World(object):
         half_size = patch_size // 2
         distance = self.patch_distance
 
-        print('Patch Distance', distance)
 
         initial_pos = get_weighted_position(mu=0, sigma=1, map_size=self.size)
         self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
