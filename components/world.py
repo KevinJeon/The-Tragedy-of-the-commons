@@ -127,12 +127,22 @@ class VariousAppleField(Field):
         spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
 
         for pos, item in zip(sampled_positions, spawned_apples):
-
             if random.random() < prob:
                 self.world.spawn_item(item(), pos)
 
-    def force_spawn_item(self, ratio=0.4):
-        return
+    def force_spawn_item(self, ratio=0.5):
+
+        positions = self.positions
+        num_samples = max(math.ceil(len(positions) * ratio), 1)
+
+        sampled_position = random.sample(positions, num_samples)
+
+        apples = [items.BlueApple, items.RedApple]
+        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_position))
+
+        for pos, item in zip(sampled_position, spawned_apples):
+            if random.random() < ratio:
+                self.world.spawn_item(item(), pos)
 
     def _get_empty_positions(self) -> [Position]:
         positions = []
@@ -145,11 +155,22 @@ class VariousAppleField(Field):
 
         return positions
 
+    @staticmethod
+    def create_from_parameter(world: World, pos: Position, radius: int, prob: float, ratio: float):
+        p1 = Position(pos.x - radius, pos.y - radius)
+        p2 = Position(pos.x + radius, pos.y + radius)
+        return VariousAppleField(world=world, p1=p1, p2=p2, prob=prob, ratio=ratio)
+
 
 class World(object):
 
-    def __init__(self, env: TOCEnv, size: tuple, patch_count: int, patch_distance: int):
-
+    def __init__(self,
+                 env: TOCEnv,
+                 size: tuple,
+                 apple_color_ratio: float,
+                 apple_spawn_ratio: float,
+                 patch_count: int,
+                 patch_distance: int):
         self.env = env
         self.size = size
         self.agents = []
@@ -162,6 +183,9 @@ class World(object):
 
         self.patch_count = patch_count
         self.patch_distance = patch_distance
+
+        self.apple_color_ratio = apple_color_ratio
+        self.apple_spawn_ratio = apple_spawn_ratio
 
         self._create_random_field()
 
@@ -183,14 +207,14 @@ class World(object):
             y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
         )
 
-        self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=initial_pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
 
         bfs = BFS(world=self)
         searched_positions = bfs.search(pos=initial_pos, radius=half_size, distance=distance, \
                                         k=self.patch_count - 1)
 
         for pos in searched_positions:
-            self.add_fruits_field(Field.create_from_parameter(world=self, pos=pos, radius=half_size))
+            self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
 
     def spawn_agent(self, pos: Position, color: Color):
         if color == Color.Red:
