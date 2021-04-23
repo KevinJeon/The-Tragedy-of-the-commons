@@ -104,7 +104,6 @@ class TOCEnv(object):
                 'directions': directions,
                 'colors': color_agents,
             },
-            'reward': individual_rewards
         }
 
         self._step_count += 1
@@ -115,7 +114,9 @@ class TOCEnv(object):
         if done:
             self.reset()
 
-        return obs, common_reward, done, infos
+        done = [done for _ in self.agents]
+
+        return obs, np.array(individual_rewards), np.array(done), infos
 
     def reset(self) -> np.array:
         del self.world
@@ -171,7 +172,6 @@ class TOCEnv(object):
                 'directions': directions,
                 'colors': color_agents,
             },
-            'reward': individual_rewards
         }
 
         return obs, infos
