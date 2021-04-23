@@ -303,12 +303,15 @@ class TOCEnv(object):
                                (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
                                cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
-
-
         ''' Debug '''
         [print(agent.position) for agent in self.world.agents]
         for pos1, pos2 in self._debug_buffer_line:
+            coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
+            coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
+
+            output_layer = cv.line(output_layer, coord1, coord2, (0, 255, 0), )
             pass
+        self._debug_buffer_line.clear()
             # print(pos1, pos2)
 
         return (output_layer / 255.).astype(np.float32)
