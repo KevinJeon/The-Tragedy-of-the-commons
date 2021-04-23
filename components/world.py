@@ -59,7 +59,9 @@ class Field(object):
 
     @property
     def center(self):
-        raise NotImplementedError
+        center_x = (self.p1.x + self.p2.x) // 2
+        center_y = (self.p1.y + self.p2.y) // 2
+        return Position(x=center_x, y=center_y)
 
     def is_overlap(self, field: Field):
 
@@ -130,9 +132,7 @@ class VariousAppleField(Field):
                 self.world.spawn_item(item(), pos)
 
     def force_spawn_item(self, ratio=0.4):
-
         return
-
 
     def _get_empty_positions(self) -> [Position]:
         positions = []
@@ -177,24 +177,17 @@ class World(object):
         half_size = patch_size // 2
         distance = self.patch_distance
 
-        print('Patch Distance', distance)
-
         initial_pos = get_weighted_position(mu=0, sigma=1, map_size=self.size)
         initial_pos = Position(
             x=max(half_size + 1, min(initial_pos.x, self.width - half_size - 1)),
             y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
         )
-        initial_pos = Position(x=1, y=10)
-        print('Initial Position ############', initial_pos)
+
         self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
 
         bfs = BFS(world=self)
         searched_positions = bfs.search(pos=initial_pos, radius=half_size, distance=distance, \
                                         k=self.patch_count - 1)
-
-
-        print('Searched!', len(searched_positions) + 1, self.patch_count)
-
 
         for pos in searched_positions:
             self.add_fruits_field(Field.create_from_parameter(world=self, pos=pos, radius=half_size))
