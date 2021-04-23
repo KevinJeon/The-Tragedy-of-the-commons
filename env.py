@@ -67,6 +67,7 @@ class TOCEnv(object):
         self._create_world()
         self.reset()
 
+        self._debug_buffer_line.clear()
 
     def step(self, actions):
         assert len(actions) is self.num_agents
