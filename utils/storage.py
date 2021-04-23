@@ -3,14 +3,14 @@ import torch as tr
 class RolloutStorage(object):
 
     def __init__(self, num_step, batch_size, num_obs, num_action, num_rec):
-        self.obs = tr.zeros(num_step + 1, batch_size, *num_obs)
-        self.h = tr.zeros(num_step + 1, batch_size, num_rec)
-        self.rew = tr.zeros(num_step, batch_size, 1)
-        self.val = tr.zeros(num_step + 1, batch_size, 1)
-        self.ret = tr.zeros(num_step + 1, batch_size, 1)
-        self.logprob = tr.zeros(num_step, batch_size, 1)
-        self.act = tr.zeros(num_step, batch_size, num_action)
-        self.mask = tr.zeros(num_ste + 1, batch_size, 1) # If mask == 0, Terminal
+        self.obs = tr.zeros(num_step + 1, *num_obs)
+        self.h = tr.zeros(num_step + 1, num_rec)
+        self.rew = tr.zeros(num_step, 1)
+        self.val = tr.zeros(num_step + 1, 1)
+        self.ret = tr.zeros(num_step + 1, 1)
+        self.logprob = tr.zeros(num_step, 1)
+        self.act = tr.zeros(num_step, num_action)
+        self.mask = tr.zeros(num_step + 1, 1) # If mask == 0, Terminal
         self.num_step = num_step
         self.step = 0
 
