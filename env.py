@@ -174,7 +174,6 @@ class TOCEnv(object):
         return obs, infos
 
     def _create_world(self):
-        print(self.patch_distance, self.patch_count)
         self.world = World(env=self, size=self.map_size, \
                            patch_distance=self.patch_distance, patch_count=self.patch_count)
 

@@ -54,7 +54,6 @@ class CPCAgent(object):
         obs = obs.permute((0, 3, 1, 2))
         with tr.no_grad():
             v, s_f, h = self.state_encoder(obs, h)
-            print('State Features :{}, Value :{}, Hidden :{}'.format(s_f.size(), v.size(), h.size()))
             dist = Categorical(s_f)
             if is_train:
                 act = dist.sample().unsqueeze(-1)
