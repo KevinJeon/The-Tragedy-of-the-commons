@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument('--blue', default=1, type=int)
     parser.add_argument('--red', default=1, type=int)
     parser.add_argument('--num_episode', default=2, type=int)
-    parser.add_argument('--max_step', default=100, type=int)
+    parser.add_argument('--max_step', '-m', default=100, type=int)
     parser.add_argument('--agent_type', '-a', default='rule', type=str)
     args = parser.parse_args()
     return args
@@ -36,8 +36,8 @@ def main(args):
     env = TOCEnv(agents=prefer, apple_color_ratio=0.5, apple_spawn_ratio=0.1)
     agents = [AGENT_TYPE[args.agent_type](**AGENT_CONFIG[args.agent_type]) for i in range(args.blue + args.red)]
     env.obs_type = 'rgb_array'
-    memory = RolloutStorage(agent_type='ac',num_agent=args.blue+args.red, num_step=100, \
-            batch_size=128, num_obs=(88, 88, 3), num_action=8, num_rec=128)
+    memory = RolloutStorage(agent_type='ac',num_agent=args.blue+args.red, num_step=args.max_step, \
+            batch_size=args.max_step, num_obs=(88, 88, 3), num_action=8, num_rec=128)
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
         #key = cv.waitKey(0) to debug

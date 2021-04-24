@@ -33,6 +33,7 @@ class CPC(nn.Module):
         h : (1, 1, hidden)
         '''
         bs = obs.size()[0]
+        print(bs, obs.size())
         z = self.encoder(obs / 255.0).view(bs, -1)
         h = self.gru(z, h)
         s_f = self.linear(h)
@@ -66,10 +67,10 @@ class CPCAgent(object):
             return act, infos
 
     def evaluate(self, obs, h, act, mask):
-        v, s_f, h = self.state_encoder(obs, h, mask)
+        v, s_f, h = self.state_encoder(obs, h)
         dist = Categorical(s_f)
-        a_f = self.action_encoder(act.view(-1))
-        logprobs = dist.log_probs(act)
+        a_f = self.action_encoder(act.view(-1).long())
+        logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
         return v, logprobs, entropy, h, s_f, a_f
 
@@ -105,22 +106,21 @@ class CPCAgent(object):
         return acc_s, acc_a, nce_s, nce_a
 
     def train(self, samples, infos):
+        # Please Check for indcies of samples
         num_obs = samples[0].size()[1:]
         num_act = samples[1].size()[-1]
-        obss = samples[0][:-1].view(-1, *num_obs)
-        hs = infos[2]
+        num_step = samples[2].size()[0]
+        obss = samples[0][:-1].view(-1, *num_obs).permute((0, 3, 1, 2))
+        hs = infos[2][:-1]
         acts = samples[1].view(-1, num_act)
         rews = samples[2]
+        rets = samples[3]
         masks = samples[4][:-1]
 
         print('num_obs:{}, num_act:{}, obss: {}, acts: {}, rews: {}, masks: {}, hs: {}'.format(\
                 num_obs, num_act, obss.size(), acts.size(), rews.size(), masks.size(), hs.size()))
         vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss, hs, acts, masks)
-        vs = vs.view(num_step, num_sample, 1)
-        s_f = s_f.view(num_step, num_sample, 1)
-        a_f = a_f.view(num_step, num_sample, -1)
-        logprobs = logprobs.view(num_step, num_sample, 1)
-        adv = samples.ret[:-1] - vs
+        adv = rets[:-1] - vs
         vloss = (adv**2).mean()
         # nce_loss
         acc_s, acc_a, nce_s, nce_a = self.cpc(s_f, a_f)
