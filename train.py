@@ -40,10 +40,11 @@ def main(args):
             batch_size=128, num_obs=(88, 88, 3), num_action=8, num_rec=128)
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
+        #key = cv.waitKey(0) to debug
         for step in range(args.max_step):
             image = env.render(coordination=True)
             cv.imshow('Env', image)
-            key = cv.waitKey(1)
+            key = cv.waitKey(0)
             '''
             if key == 0x260000: # Up
                 action_1 = 1
@@ -58,8 +59,8 @@ def main(args):
             '''
             sampled_action = []
             sampled_actions, infos = select_actions(obss, agents, step, memory.h)
-            obss_next, rews, masks, _ = env.step(actions=sampled_actions)
-            print(np.shape(obss_next), rews, masks)
+            obss_next, rew, mask, infos = env.step(actions=sampled_actions)
+            print(np.shape(obss_next), rews, masks, infos)
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)

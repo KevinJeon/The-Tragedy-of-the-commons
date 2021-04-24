@@ -66,7 +66,6 @@ def main():
             image = env.render(coordination=False)
             cv.imshow('Env', image)
             cv.waitKey(0)
-            print(next_state.shape, reward, done, info)
 
 
 if __name__ == '__main__':

@@ -21,6 +21,7 @@ class RolloutStorage(object):
             self.h = tr.zeros(num_agent, num_step + 1, num_rec)
             self.val = tr.zeros(num_agent, num_step + 1, 1)
             self.logprob = tr.zeros(num_agent, num_step, 1)
+
     def to(self, device):
         self.obs = self.obs.to(device)
         self.h = self.h.to(device)

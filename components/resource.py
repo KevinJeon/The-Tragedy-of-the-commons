@@ -13,11 +13,12 @@ def load_asset(filename):
 
 
 class Resource(object):
-    Apple = cv.imread(os.path.join(Asset_Dir, 'apple.png'), cv.IMREAD_UNCHANGED)
-    AppleRed = cv.imread(os.path.join(Asset_Dir, 'apple_red.png'), cv.IMREAD_UNCHANGED)
-    AppleBlue = cv.imread(os.path.join(Asset_Dir, 'apple_blue.png'), cv.IMREAD_UNCHANGED)
-    Agent = cv.imread(os.path.join(Asset_Dir, 'monster.png'), cv.IMREAD_UNCHANGED)
-    AgentRed = cv.imread(os.path.join(Asset_Dir, 'monster_red.png'), cv.IMREAD_UNCHANGED)
-    AgentBlue = cv.imread(os.path.join(Asset_Dir, 'monster_blue.png'), cv.IMREAD_UNCHANGED)
-    Wall = cv.imread(os.path.join(Asset_Dir, 'wall.png'), cv.IMREAD_UNCHANGED)
-    Flame = cv.imread(os.path.join(Asset_Dir, 'flame.png'), cv.IMREAD_UNCHANGED)
+
+    Apple = load_asset('apple.png')
+    AppleRed = load_asset('apple_red.png')
+    AppleBlue = load_asset('apple_blue.png')
+    Agent = load_asset('monster.png')
+    AgentRed = load_asset('monster_red.png')
+    AgentBlue = load_asset('monster_blue.png')
+    Wall = load_asset('wall.png')
+    Flame = load_asset('flame.png')

@@ -23,7 +23,6 @@ from components.position import Position
 from components.block import BlockType
 from components.agent import Color
 
-
 from components.util.weighted_random import get_weighted_position
 
 
@@ -58,16 +57,18 @@ class Field(object):
         return (self.p1.x <= pos.x <= self.p2.x) and \
                (self.p1.y <= pos.y <= self.p2.y)
 
+    @property
+    def center(self):
+        center_x = (self.p1.x + self.p2.x) // 2
+        center_y = (self.p1.y + self.p2.y) // 2
+        return Position(x=center_x, y=center_y)
+
     def is_overlap(self, field: Field):
 
-        if self.p1.x == self.p2.x or self.p2.y == field.p1.y or \
-                field.p1.x == field.p2.x or field.p2.y == field.p1.y:
+        if self.p2.y < field.p1.y or self.p1.y > field.p2.y:
             return False
 
-        if self.p1.x >= field.p2.x or field.p1.x >= self.p2.x:
-            return False
-
-        if self.p1.y <= field.p1.y or field.p2.y <= self.p1.y:
+        if self.p2.x < field.p1.x or self.p1.x > field.p2.x:
             return False
 
         return True
@@ -126,14 +127,22 @@ class VariousAppleField(Field):
         spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
 
         for pos, item in zip(sampled_positions, spawned_apples):
-
             if random.random() < prob:
                 self.world.spawn_item(item(), pos)
 
-    def force_spawn_item(self, ratio=0.4):
+    def force_spawn_item(self, ratio=0.5):
 
-        return
+        positions = self.positions
+        num_samples = max(math.ceil(len(positions) * ratio), 1)
 
+        sampled_position = random.sample(positions, num_samples)
+
+        apples = [items.BlueApple, items.RedApple]
+        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_position))
+
+        for pos, item in zip(sampled_position, spawned_apples):
+            if random.random() < ratio:
+                self.world.spawn_item(item(), pos)
 
     def _get_empty_positions(self) -> [Position]:
         positions = []
@@ -146,11 +155,22 @@ class VariousAppleField(Field):
 
         return positions
 
+    @staticmethod
+    def create_from_parameter(world: World, pos: Position, radius: int, prob: float, ratio: float):
+        p1 = Position(pos.x - radius, pos.y - radius)
+        p2 = Position(pos.x + radius, pos.y + radius)
+        return VariousAppleField(world=world, p1=p1, p2=p2, prob=prob, ratio=ratio)
+
 
 class World(object):
 
-    def __init__(self, env: TOCEnv, size: tuple, patch_count: int, patch_distance: int):
-
+    def __init__(self,
+                 env: TOCEnv,
+                 size: tuple,
+                 apple_color_ratio: float,
+                 apple_spawn_ratio: float,
+                 patch_count: int,
+                 patch_distance: int):
         self.env = env
         self.size = size
         self.agents = []
@@ -163,6 +183,9 @@ class World(object):
 
         self.patch_count = patch_count
         self.patch_distance = patch_distance
+
+        self.apple_color_ratio = apple_color_ratio
+        self.apple_spawn_ratio = apple_spawn_ratio
 
         self._create_random_field()
 
@@ -178,16 +201,20 @@ class World(object):
         half_size = patch_size // 2
         distance = self.patch_distance
 
-
         initial_pos = get_weighted_position(mu=0, sigma=1, map_size=self.size)
-        self.add_fruits_field(Field.create_from_parameter(world=self, pos=initial_pos, radius=half_size))
+        initial_pos = Position(
+            x=max(half_size + 1, min(initial_pos.x, self.width - half_size - 1)),
+            y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
+        )
+
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=initial_pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
 
         bfs = BFS(world=self)
         searched_positions = bfs.search(pos=initial_pos, radius=half_size, distance=distance, \
                                         k=self.patch_count - 1)
 
         for pos in searched_positions:
-            self.add_fruits_field(Field.create_from_parameter(world=self, pos=pos, radius=half_size))
+            self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
 
     def spawn_agent(self, pos: Position, color: Color):
         if color == Color.Red:
@@ -222,6 +249,15 @@ class World(object):
 
     def map_contains(self, pos: Position) -> bool:
         return 0 <= pos.x < self.width and 0 <= pos.y < self.height
+
+    def contains_field(self, field: Field) -> bool:
+        return self.map_contains(field.p1) and self.map_contains(field.p2)
+
+    def collapsed_field_exist(self, field: Field) -> bool:
+        for iter_field in self.fruits_fields:
+            if field.is_overlap(iter_field): return True
+
+        return False
 
     def get_item(self, pos: Position) -> Union[items.Item, None]:
         return self.grid[pos.y][pos.x]

@@ -41,9 +41,7 @@ class TOCEnv(object):
 
         self.agents = agents
         self.num_agents = len(self.agents)
-        self._apple_color_ratio = apple_color_ratio
-        self._apple_spawn_ratio = apple_spawn_ratio
-
+        
         self.map_size = map_size
         self.episode_max_length = episode_max_length
         self.obs_type = obs_type
@@ -60,6 +58,10 @@ class TOCEnv(object):
         ''' Patch settings '''
         self.patch_count = patch_count
         self.patch_distance = patch_distance
+        
+        ''' Apple spawning settings '''
+        self._apple_color_ratio = apple_color_ratio
+        self._apple_spawn_ratio = apple_spawn_ratio
 
         ''' Debug '''
         self._debug_buffer_line = []
@@ -67,6 +69,7 @@ class TOCEnv(object):
         self._create_world()
         self.reset()
 
+        self._debug_buffer_line.clear()
 
     def step(self, actions):
         assert len(actions) is self.num_agents
@@ -101,7 +104,6 @@ class TOCEnv(object):
                 'directions': directions,
                 'colors': color_agents,
             },
-            'reward': individual_rewards
         }
 
         self._step_count += 1
@@ -112,7 +114,9 @@ class TOCEnv(object):
         if done:
             self.reset()
 
-        return obs, common_reward, done, infos
+        done = [done for _ in self.agents]
+
+        return obs, np.array(individual_rewards), np.array(done), infos
 
     def reset(self) -> np.array:
         del self.world
@@ -168,14 +172,15 @@ class TOCEnv(object):
                 'directions': directions,
                 'colors': color_agents,
             },
-            'reward': individual_rewards
         }
 
         return obs, infos
 
     def _create_world(self):
         self.world = World(env=self, size=self.map_size, \
-                           patch_distance=self.patch_distance, patch_count=self.patch_count)
+                           patch_distance=self.patch_distance, patch_count=self.patch_count,
+                           apple_color_ratio=self._apple_color_ratio, apple_spawn_ratio=self._apple_spawn_ratio
+                           )
 
     def _render_layers(self) -> None:
         raise NotImplementedError
@@ -206,7 +211,6 @@ class TOCEnv(object):
         layer_actors = np.zeros(shape=image_size)
 
         # Draw items
-
         layer_items = np.zeros(shape=image_size)
 
         resized_apple = cv.resize(Resource.Apple, dsize=(self.pixel_per_block, self.pixel_per_block))
@@ -293,23 +297,17 @@ class TOCEnv(object):
         if coordination:
             for y in range(self.world.height + 1):
                 for x in range(self.world.width + 1):
-                    # cv.putText(output_layer, '{0},{1}'.format(y, x),
-                    #            (y * self.pixel_per_block, image_size[1] - x * self.pixel_per_block - 10),
-                    #            cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
-
                     cv.putText(output_layer, '{0:2},{1:2}'.format(self.world.width - x, self.world.height - y),
                                (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
                                cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
-        ''' Debug '''
-        for pos1, pos2 in self._debug_buffer_line:
-            coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
-            coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
+            for pos1, pos2, color in self._debug_buffer_line:
+                coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
+                coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
 
-            output_layer = cv.line(output_layer, coord1, coord2, (0, 255, 0), )
-            pass
-        self._debug_buffer_line.clear()
-            # print(pos1, pos2)
+                output_layer = cv.line(output_layer, coord1, coord2, color)
+
+            self._debug_buffer_line.clear()
 
         return (output_layer / 255.).astype(np.float32)
 
@@ -391,8 +389,14 @@ class TOCEnv(object):
     def set_patch_distance(self, distance: int) -> None:
         self.patch_distance = distance
 
-    def draw_line(self, pos1: Position, pos2: Position):
-        self._debug_buffer_line.append((pos1, pos2))
+    def set_apple_color_ratio(self, ratio: float) -> None:
+        self._apple_color_ratio = ratio
+
+    def apple_spawn_ratio(self, ratio: float) -> None:
+        self._apple_spawn_ratio = ratio
+
+    def draw_line(self, pos1: Position, pos2: Position, color: Color):
+        self._debug_buffer_line.append((pos1, pos2, color))
 
     @property
     def observation_space(self):
