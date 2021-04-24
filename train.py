@@ -14,7 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='ToC params')
     parser.add_argument('--blue', default=1, type=int)
     parser.add_argument('--red', default=1, type=int)
-    parser.add_argument('--num_episode', default=10000, type=int)
+    parser.add_argument('--num_episode', default=2, type=int)
     parser.add_argument('--max_step', default=100, type=int)
     parser.add_argument('--agent_type', '-a', default='rule', type=str)
     args = parser.parse_args()
@@ -63,10 +63,18 @@ def main(args):
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)
-        '''
-        for agent in agents:
-            agent.train()
-        '''
+        
+        for i, agent in enumerate(agents):
+            # check for return calculate
+            obss, acts, rews, rets, masks = memory.obs[i], memory.act[i], memory.rew[i], memory.ret[i], memory.mask[i]
+            samples = (obss, acts, rews, rets, masks)
+            infos = None
+            if args.agent_type == 'ac':
+                vs, logprobs, hs, s_fs, a_fs = memory.val[i], memory.logprob[i], memory.h[i], memory.s_feat[i], memory.a_feat[i]
+                infos = (vs, logprobs, hs, s_fs, a_fs)
+
+            agent.train(samples, infos)
+        
 if __name__ == '__main__':
     args = parse_args()
     main(args)

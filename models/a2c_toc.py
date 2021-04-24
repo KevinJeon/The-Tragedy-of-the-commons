@@ -104,15 +104,17 @@ class CPCAgent(object):
         acc_a = 1. * acc_a.item() / (batch * num_step)
         return acc_s, acc_a, nce_s, nce_a
 
-    def train(self, samples):
-        num_obs = samples.obs.size()[2:]
-        num_act = samples.act.size()[-1]
-        num_step, num_sample, _ = samples.rew.size()
-        obss = samples.obs[:-1].view(-1, *num_obs)
-        hs = samples.h[0].view(-1, self.model.h.size())
-        acts = samples.act.view(-1, num_act)
-        rews = samples.rews
-        masks = samples.masks[:-1]
+    def train(self, samples, infos):
+        num_obs = samples[0].size()[1:]
+        num_act = samples[1].size()[-1]
+        obss = samples[0][:-1].view(-1, *num_obs)
+        hs = infos[2]
+        acts = samples[1].view(-1, num_act)
+        rews = samples[2]
+        masks = samples[4][:-1]
+
+        print('num_obs:{}, num_act:{}, obss: {}, acts: {}, rews: {}, masks: {}, hs: {}'.format(\
+                num_obs, num_act, obss.size(), acts.size(), rews.size(), masks.size(), hs.size()))
         vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss, hs, acts, masks)
         vs = vs.view(num_step, num_sample, 1)
         s_f = s_f.view(num_step, num_sample, 1)
