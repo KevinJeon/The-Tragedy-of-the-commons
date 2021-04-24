@@ -44,7 +44,7 @@ def main(args):
         for step in range(args.max_step):
             image = env.render(coordination=True)
             cv.imshow('Env', image)
-            key = cv.waitKey(0)
+            key = cv.waitKey(1)
             '''
             if key == 0x260000: # Up
                 action_1 = 1
@@ -59,15 +59,14 @@ def main(args):
             '''
             sampled_action = []
             sampled_actions, infos = select_actions(obss, agents, step, memory.h)
-            obss_next, rew, mask, infos = env.step(actions=sampled_actions)
-            print(np.shape(obss_next), rews, masks, infos)
+            obss_next, rews, masks, _ = env.step(actions=sampled_actions)
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)
+        '''
         for agent in agents:
-            if agent.is_train:
-                agent.train()
-
+            agent.train()
+        '''
 if __name__ == '__main__':
     args = parse_args()
     main(args)

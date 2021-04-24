@@ -16,8 +16,8 @@ class RolloutStorage(object):
         self.onehot = tr.eye(num_action)
         # For CPC
         if agent_type == 'ac':
-            self.s_feat = tr.zeros(num_agent, num_step, *num_obs)
-            self.a_feat = tr.zeros(num_agent, num_step, num_action)
+            self.s_feat = tr.zeros(num_agent, num_step, num_action)
+            self.a_feat = tr.zeros(num_agent, num_step, 128)
             self.h = tr.zeros(num_agent, num_step + 1, num_rec)
             self.val = tr.zeros(num_agent, num_step + 1, 1)
             self.logprob = tr.zeros(num_agent, num_step, 1)
@@ -34,7 +34,8 @@ class RolloutStorage(object):
 
     def add(self, obss, acts, rews, masks, infos):
         obss = tr.from_numpy(obss)
-        print(rews)
+        rews = tr.tensor(rews)
+        masks = tr.tensor(masks)
         for i in range(self.num_agent):
             self.obs[i, self.step + 1].copy_(obss[i])
             self.act[i, self.step].copy_(self.onehot[acts[i]].view(-1))
@@ -44,11 +45,11 @@ class RolloutStorage(object):
             # For CPC
             if self.agent_type == 'ac':
                 v, logprob, h, s_f, a_f = infos[i]
-                self.h[i, self.step + 1].copy_(h)
-                self.logprob[i, self.step].copy_(logprob)
-                self.val[i, self.step].copy_(v)
-                self.s_feat[i, self.step].copy_(s_f)
-                self.a_feat[i, self.step].copy_(a_f)
+                self.h[i, self.step + 1].copy_(h.view(-1))
+                self.logprob[i, self.step].copy_(logprob.view(-1))
+                self.val[i, self.step].copy_(v.view(-1))
+                self.s_feat[i, self.step].copy_(s_f.view(-1))
+                self.a_feat[i, self.step].copy_(a_f.view(-1))
         self.step = (self.step + 1) % self.num_step
 
     def after_update(self):
