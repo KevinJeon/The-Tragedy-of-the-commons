@@ -2,6 +2,8 @@ import numpy as np
 import torch as tr
 import torch.nn as nn
 from torch.distributions import Categorical
+import torch.nn.functional as F
+
 class CPC(nn.Module):
 
     def __init__(self, num_action, num_channel):
@@ -14,7 +16,7 @@ class CPC(nn.Module):
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True))
          
-        self.gru = nn.GRUCell(576, 128)
+        self.gru = nn.GRU(576, 128)
         for n, p in self.gru.named_parameters():
             if 'bias' in n:
                 nn.init.constant_(p, 0)
@@ -22,7 +24,6 @@ class CPC(nn.Module):
                 nn.init.orthogonal_(p)
         self.value = nn.Linear(128, 1)
         self.softmax = nn.Softmax()
-        self.linear = nn.Linear(128, num_action) 
         
     def init_hidden(self, batch_size):
         return self.encoder.weight.new(1, 128).zero_()
@@ -32,11 +33,9 @@ class CPC(nn.Module):
         x : (seq, c, h, w)
         h : (1, 1, hidden)
         '''
-        bs = obs.size()[0]
-        z = self.encoder(obs / 255.0).view(bs, -1)
-        h = self.gru(z, h)
-        s_f = self.linear(h)
-        s_f = self.softmax(s_f)
+        bs, step, c, he, w = obs.size()
+        z = self.encoder(obs.view(-1, c, he, w) / 255.0).view(bs, step, -1)
+        s_f, h = self.gru(z, h.unsqueeze(0))
         return self.value(h), s_f, h
 
 class CPCAgent(object):
@@ -48,13 +47,16 @@ class CPCAgent(object):
         self.linear = nn.ModuleList([nn.Linear(128, 512) for i in range(timestep)])
         self.action_encoder = nn.Embedding(num_action, 128)
         self.state_encoder = CPC(num_action, num_channel)
+        self.linear = nn.Linear(128, num_action)
     def act(self, obs, h, is_train=True):
-        obs = tr.from_numpy(obs).unsqueeze(0)
+        obs = tr.from_numpy(obs).unsqueeze(0).unsqueeze(0)
         h = h.unsqueeze(0)
-        obs = obs.permute((0, 3, 1, 2))
+        obs = obs.permute((0, 1, 4, 2, 3))
         with tr.no_grad():
             v, s_f, h = self.state_encoder(obs, h)
-            dist = Categorical(s_f)
+            lin_s_f = self.linear(s_f)
+            lin_s_f = F.softmax(lin_s_f)
+            dist = Categorical(lin_s_f)
             if is_train:
                 act = dist.sample().unsqueeze(-1)
             else:
@@ -66,15 +68,15 @@ class CPCAgent(object):
             return act, infos
 
     def evaluate(self, obs, h, act, mask):
-        v, s_f, h = self.state_encoder(obs, h, mask)
+        v, s_f, h = self.state_encoder(obs, h)
         dist = Categorical(s_f)
-        a_f = self.action_encoder(act.view(-1))
-        logprobs = dist.log_probs(act)
+        a_f = self.action_encoder(act.view(-1).long())
+        logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
         return v, logprobs, entropy, h, s_f, a_f
 
     def cpc(self, s_f, a_f):
-        num_step, batch, num_hidden = a_f.shape
+        print(s_f.size(), a_f.size())
         s_a_f = s_f + a_f
         z_s = s_f[0].view(batch, num_hidden)
         z_a = s_f[0].view(batch, num_hidden)
@@ -104,21 +106,22 @@ class CPCAgent(object):
         acc_a = 1. * acc_a.item() / (batch * num_step)
         return acc_s, acc_a, nce_s, nce_a
 
-    def train(self, samples):
-        num_obs = samples.obs.size()[2:]
-        num_act = samples.act.size()[-1]
-        num_step, num_sample, _ = samples.rew.size()
-        obss = samples.obs[:-1].view(-1, *num_obs)
-        hs = samples.h[0].view(-1, self.model.h.size())
-        acts = samples.act.view(-1, num_act)
-        rews = samples.rews
-        masks = samples.masks[:-1]
+    def train(self, samples, infos):
+        # Please Check for indcies of samples
+        num_obs = samples[0].size()[1:]
+        num_act = samples[1].size()[-1]
+        num_step = samples[2].size()[0]
+        obss = samples[0][:-1].view(-1, *num_obs).permute((0, 3, 1, 2))
+        hs = infos[2][:-1]
+        acts = samples[1].view(-1, num_act)
+        rews = samples[2]
+        rets = samples[3]
+        masks = samples[4][:-1]
+
+        print('num_obs:{}, num_act:{}, obss: {}, acts: {}, rews: {}, masks: {}, hs: {}'.format(\
+                num_obs, num_act, obss.size(), acts.size(), rews.size(), masks.size(), hs.size()))
         vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss, hs, acts, masks)
-        vs = vs.view(num_step, num_sample, 1)
-        s_f = s_f.view(num_step, num_sample, 1)
-        a_f = a_f.view(num_step, num_sample, -1)
-        logprobs = logprobs.view(num_step, num_sample, 1)
-        adv = samples.ret[:-1] - vs
+        adv = rets[:-1] - vs
         vloss = (adv**2).mean()
         # nce_loss
         acc_s, acc_a, nce_s, nce_a = self.cpc(s_f, a_f)
