@@ -403,6 +403,12 @@ class TOCEnv(object):
         info['statistics']['movement'] = movement
         info['timestamp'] = self._step_count
 
+        map_info = dict()
+        size = {'width': self.world.width, 'height': self.world.height}
+        map_info['size'] = size
+
+        info['map'] = map_info
+
         return info
 
     def increase_movement_count(self) -> int:

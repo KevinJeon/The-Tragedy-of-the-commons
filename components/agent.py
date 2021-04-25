@@ -208,6 +208,7 @@ class Agent(object):
         info = dict()
 
         info['color'] = self.color
+        info['position'] = {'x': self.position.x, 'y': self.position.y}
         info['prev_action'] = self.get_prev_action()
         info['direction'] = self.direction._to_string()
         info['punished'] = self.get_punished()
