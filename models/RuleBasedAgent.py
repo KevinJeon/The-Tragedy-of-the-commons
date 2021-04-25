@@ -2,6 +2,8 @@ import random
 import cv2
 from models.Agent import Agent
 
+from components.observation import NumericObservation
+
 
 class RuleBasedAgent(Agent):
 
@@ -15,7 +17,14 @@ class RuleBasedAgent(Agent):
         cv2.imshow('Observation', obs)
         cv2.waitKey(0)
 
+        # weight[]
 
+        for y, row in enumerate(obs):
+            for x, data in enumerate(row):
+                print(x, y, data)
+                # TODO Calculate distance from agent
+
+        # NumericObservation.BlueApple
 
 
 
