@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class RuleBasedAgent:
 
     def __init__(self, prefer, justice, obs_size):
@@ -19,6 +20,7 @@ class RuleBasedAgent:
         self.rule_order = [self._eat_apple, self._closest_apple, self._explore] 
         self.color = dict(red=3, blue=2)
         self.is_train = False
+
     def act(self, obs):
         # Each step, agent find the most closest apple. 
         
@@ -91,8 +93,7 @@ class RuleBasedAgent:
             possible.append(0)
         act = np.random.choice(possible, 1)[0]
         return act
-        
-        
+
     def _eat_apple(self, obs, color='red'):
         candidates = []
         utilities = []

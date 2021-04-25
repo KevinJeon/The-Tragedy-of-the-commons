@@ -9,11 +9,11 @@ def main():
 
     tocEnv = env.TOCEnv(agents=agents, map_size=(20, 20))
 
-    patch_count = 10
-    patch_distance = 7
+    patch_count = 11
+    patch_distance = 11
 
-    for count in range(5, patch_count):
-        for distance in range(4, patch_distance):
+    for count in range(14, 15):
+        for distance in range(4, 8):
             for _ in range(100):
                 tocEnv.set_patch_count(count)
                 tocEnv.set_patch_distance(distance)
@@ -23,7 +23,7 @@ def main():
                 # print(ret)
                 image = tocEnv.render(coordination=True)
                 cv2.imshow('TOCEnv', image)
-                cv2.waitKey(1)
+                cv2.waitKey(0)
 
 
 if __name__ == '__main__':
