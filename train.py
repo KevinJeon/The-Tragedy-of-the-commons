@@ -45,35 +45,25 @@ def main(args):
             image = env.render(coordination=True)
             cv.imshow('Env', image)
             key = cv.waitKey(1)
-            '''
-            if key == 0x260000: # Up
-                action_1 = 1
-            elif key == 0x280000: # Down
-                action_1 = 2
-            elif key == 0x250000: # Left
-                action_1 = 3
-            elif key == 0x270000: # Right
-                action_1 = 4
-            else: # No-op
-                action_1 = None
-            '''
             sampled_action = []
             sampled_actions, infos = select_actions(obss, agents, step, memory.h)
             obss_next, rews, masks, _ = env.step(actions=sampled_actions)
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)
-        
-        for i, agent in enumerate(agents):
-            # check for return calculate
-            obss, acts, rews, rets, masks = memory.obs[i], memory.act[i], memory.rew[i], memory.ret[i], memory.mask[i]
-            samples = (obss, acts, rews, rets, masks)
-            infos = None
-            if args.agent_type == 'ac':
-                vs, logprobs, hs, s_fs, a_fs = memory.val[i], memory.logprob[i], memory.h[i], memory.s_feat[i], memory.a_feat[i]
-                infos = (vs, logprobs, hs, s_fs, a_fs)
+        self.memory.n += 1
+        if (self.memory.n != 0) and (self.memory.n * args.batch_size == 0):
+            for i, agent in enumerate(agents):
+                # check for return calculate
+                obss, acts, rews, rets, masks = memory.obs[i], memory.act[i], memory.rew[i], memory.ret[i], memory.mask[i]
+                samples = (obss, acts, rews, rets, masks)
+                infos = None
+                if args.agent_type == 'ac':
+                    vs, logprobs, hs, s_fs, a_fs = memory.val[i], memory.logprob[i], memory.h[i], memory.s_feat[i], memory.a_feat[i]
+                    infos = (vs, logprobs, hs, s_fs, a_fs)
 
-            agent.train(samples, infos)
+                agent.train(samples, infos)
+                memory.after_update()
         
 if __name__ == '__main__':
     args = parse_args()

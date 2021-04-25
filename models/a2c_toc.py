@@ -14,7 +14,7 @@ class CPC(nn.Module):
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True))
          
-        self.gru = nn.GRUCell(576, 128)
+        self.gru = nn.GRU(576, 128)
         for n, p in self.gru.named_parameters():
             if 'bias' in n:
                 nn.init.constant_(p, 0)
@@ -22,7 +22,6 @@ class CPC(nn.Module):
                 nn.init.orthogonal_(p)
         self.value = nn.Linear(128, 1)
         self.softmax = nn.Softmax()
-        self.linear = nn.Linear(128, num_action) 
         
     def init_hidden(self, batch_size):
         return self.encoder.weight.new(1, 128).zero_()
@@ -33,11 +32,9 @@ class CPC(nn.Module):
         h : (1, 1, hidden)
         '''
         bs = obs.size()[0]
-        print(bs, obs.size())
         z = self.encoder(obs / 255.0).view(bs, -1)
-        h = self.gru(z, h)
-        s_f = self.linear(h)
-        s_f = self.softmax(s_f)
+        print(z.size())
+        s_f, h = self.gru(z, h)
         return self.value(h), s_f, h
 
 class CPCAgent(object):
@@ -49,18 +46,23 @@ class CPCAgent(object):
         self.linear = nn.ModuleList([nn.Linear(128, 512) for i in range(timestep)])
         self.action_encoder = nn.Embedding(num_action, 128)
         self.state_encoder = CPC(num_action, num_channel)
+        self.linear = nn.Linear(128, num_action)
     def act(self, obs, h, is_train=True):
         obs = tr.from_numpy(obs).unsqueeze(0)
         h = h.unsqueeze(0)
         obs = obs.permute((0, 3, 1, 2))
         with tr.no_grad():
             v, s_f, h = self.state_encoder(obs, h)
-            dist = Categorical(s_f)
+            print(s_f.size())
+            lin_s_f = self.linear(s_f)
+            lin_s_f = F.softmax(lin_s_f)
+            dist = Categorical(lin_s_f)
             if is_train:
                 act = dist.sample().unsqueeze(-1)
             else:
                 act = dist.mode().unsqueeze(-1)
             a_f = self.action_encoder(act.view(-1))
+            print(a_f.size())
             logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
             entropy = dist.entropy().mean()
             infos = [v, logprobs, h, s_f, a_f]
@@ -75,7 +77,7 @@ class CPCAgent(object):
         return v, logprobs, entropy, h, s_f, a_f
 
     def cpc(self, s_f, a_f):
-        num_step, batch, num_hidden = a_f.shape
+        print(s_f.size(), a_f.size())
         s_a_f = s_f + a_f
         z_s = s_f[0].view(batch, num_hidden)
         z_a = s_f[0].view(batch, num_hidden)
