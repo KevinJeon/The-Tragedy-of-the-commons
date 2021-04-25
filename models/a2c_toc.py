@@ -2,6 +2,8 @@ import numpy as np
 import torch as tr
 import torch.nn as nn
 from torch.distributions import Categorical
+import torch.nn.functional as F
+
 class CPC(nn.Module):
 
     def __init__(self, num_action, num_channel):
@@ -31,10 +33,9 @@ class CPC(nn.Module):
         x : (seq, c, h, w)
         h : (1, 1, hidden)
         '''
-        bs = obs.size()[0]
-        z = self.encoder(obs / 255.0).view(bs, -1)
-        print(z.size())
-        s_f, h = self.gru(z, h)
+        bs, step, c, he, w = obs.size()
+        z = self.encoder(obs.view(-1, c, he, w) / 255.0).view(bs, step, -1)
+        s_f, h = self.gru(z, h.unsqueeze(0))
         return self.value(h), s_f, h
 
 class CPCAgent(object):
@@ -48,12 +49,11 @@ class CPCAgent(object):
         self.state_encoder = CPC(num_action, num_channel)
         self.linear = nn.Linear(128, num_action)
     def act(self, obs, h, is_train=True):
-        obs = tr.from_numpy(obs).unsqueeze(0)
+        obs = tr.from_numpy(obs).unsqueeze(0).unsqueeze(0)
         h = h.unsqueeze(0)
-        obs = obs.permute((0, 3, 1, 2))
+        obs = obs.permute((0, 1, 4, 2, 3))
         with tr.no_grad():
             v, s_f, h = self.state_encoder(obs, h)
-            print(s_f.size())
             lin_s_f = self.linear(s_f)
             lin_s_f = F.softmax(lin_s_f)
             dist = Categorical(lin_s_f)
@@ -62,7 +62,6 @@ class CPCAgent(object):
             else:
                 act = dist.mode().unsqueeze(-1)
             a_f = self.action_encoder(act.view(-1))
-            print(a_f.size())
             logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
             entropy = dist.entropy().mean()
             infos = [v, logprobs, h, s_f, a_f]

@@ -16,7 +16,7 @@ class RolloutStorage(object):
         self.onehot = tr.eye(num_action)
         # For CPC
         if agent_type == 'ac':
-            self.s_feat = tr.zeros(num_agent, batch_size, num_step, num_action)
+            self.s_feat = tr.zeros(num_agent, batch_size, num_step, 128)
             self.a_feat = tr.zeros(num_agent, batch_size, num_step, 128)
             self.h = tr.zeros(num_agent, batch_size, num_step + 1, num_rec)
             self.val = tr.zeros(num_agent, batch_size, num_step + 1, 1)

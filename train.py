@@ -15,18 +15,19 @@ def parse_args():
     parser.add_argument('--blue', default=1, type=int)
     parser.add_argument('--red', default=1, type=int)
     parser.add_argument('--num_episode', default=2, type=int)
-    parser.add_argument('--max_step', '-m', default=100, type=int)
+    parser.add_argument('--max_step', '-m', default=10, type=int)
     parser.add_argument('--agent_type', '-a', default='rule', type=str)
+    parser.add_argument('--batch_size', '-bs', default=1, type=int)
     args = parser.parse_args()
     return args
 
-def select_actions(obss, agents, step, hs=None):
+def select_actions(obss, agents, step, hs=None, n=None):
     actions = []
     infos = []
     if hs == None:
         hs = [None] * len(agents)
     for obs, agent, h in zip(obss, agents, hs):
-        act, info = agent.act(obs, h[step])
+        act, info = agent.act(obs, h[n, step])
         actions.append(act.view(-1).numpy())
         infos.append(info)
     return actions, infos
@@ -37,7 +38,7 @@ def main(args):
     agents = [AGENT_TYPE[args.agent_type](**AGENT_CONFIG[args.agent_type]) for i in range(args.blue + args.red)]
     env.obs_type = 'rgb_array'
     memory = RolloutStorage(agent_type='ac',num_agent=args.blue+args.red, num_step=args.max_step, \
-            batch_size=args.max_step, num_obs=(88, 88, 3), num_action=8, num_rec=128)
+            batch_size=args.batch_size, num_obs=(88, 88, 3), num_action=8, num_rec=128)
     for ep in range(args.num_episode):
         obss, color_agents = env.reset()
         #key = cv.waitKey(0) to debug
@@ -46,13 +47,13 @@ def main(args):
             cv.imshow('Env', image)
             key = cv.waitKey(1)
             sampled_action = []
-            sampled_actions, infos = select_actions(obss, agents, step, memory.h)
+            sampled_actions, infos = select_actions(obss, agents, step, memory.h, memory.n)
             obss_next, rews, masks, _ = env.step(actions=sampled_actions)
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)
-        self.memory.n += 1
-        if (self.memory.n != 0) and (self.memory.n * args.batch_size == 0):
+        memory.n += 1
+        if memory.n % args.batch_size == 0:#if (memory.n != 0) and (memory.n % args.batch_size == 0):
             for i, agent in enumerate(agents):
                 # check for return calculate
                 obss, acts, rews, rets, masks = memory.obs[i], memory.act[i], memory.rew[i], memory.ret[i], memory.mask[i]
