@@ -38,7 +38,7 @@ class BFS(object):
                 if not self.world.map_contains(candidate): continue
                 if not dist == gap: continue
 
-                self.world.env.draw_line(self.current_pos, candidate, Color.Orange)
+                 # self.world.env.draw_line(self.current_pos, candidate, Color.Orange)
                 selections.append(candidate)
 
         random.shuffle(selections)
@@ -116,12 +116,12 @@ class BFS(object):
                         continue
 
                     searched_positions.append(candidate)
-                    self.world.env.draw_line(self.current_pos, candidate, Color.Green)
+                    # self.world.env.draw_line(self.current_pos, candidate, Color.Green)
 
             if len(searched_positions) >= k: break
             if cur_idx >= len(searched_positions): break
 
-            self.world.env.draw_line(self.current_pos, searched_positions[cur_idx], Color.Blue)
+            # self.world.env.draw_line(self.current_pos, searched_positions[cur_idx], Color.Blue)
             self.current_pos = searched_positions[cur_idx]
             cur_idx += 1
 

@@ -26,7 +26,6 @@ from components.agent import Color
 from components.util.weighted_random import get_weighted_position
 
 
-
 class Field(object):
     def __init__(self, world: World, p1: Position, p2: Position):
         self.world = world
@@ -308,7 +307,7 @@ class World(object):
             if isinstance(effect, skills.Punish):
                 for iter_agents in self.agents:
                     if iter_agents.position == pos:
-                        iter_agents.tick_reward += effect.damage
+                        iter_agents.on_punished(effect.damage)
 
                 self.effects[pos.y][pos.x] = np.bitwise_or(int(self.effects[pos.y][pos.x]), BlockType.Punish)
             return True
