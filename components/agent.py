@@ -2,6 +2,8 @@ import names, random
 import numpy as np
 from copy import deepcopy
 
+from components.observation import NumericObservation
+
 
 class Agent(object):
     def __init__(self):
@@ -296,22 +298,22 @@ class Agent(object):
                     item = grid[abs_position.y][abs_position.x]
 
                     if item is None:  # If item or agent exists on the position
-                        sketch[y][x] = 0
+                        sketch[y][x] = NumericObservation.Empty
                     else:
                         if isinstance(item, Agent):
                             if item == self:  # If the agent is myself
-                                sketch[y][x] = 4
+                                sketch[y][x] = NumericObservation.Self
                             elif isinstance(item, BlueAgent):
-                                sketch[y][x] = 5
+                                sketch[y][x] = NumericObservation.BlueAgent
                             elif isinstance(item, RedAgent):
-                                sketch[y][x] = 6
+                                sketch[y][x] = NumericObservation.RedAgent
                         elif isinstance(item, items.Apple):
                             if isinstance(item, items.BlueApple):
-                                sketch[y][x] = 2
+                                sketch[y][x] = NumericObservation.BlueApple
                             elif isinstance(item, items.RedApple):
-                                sketch[y][x] = 3
+                                sketch[y][x] = NumericObservation.RedApple
                 else:
-                    sketch[y][x] = 1
+                    sketch[y][x] = NumericObservation.Wall
 
         return sketch
 
