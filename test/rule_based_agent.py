@@ -38,6 +38,7 @@ def main():
             image = env.render(coordination=True)
             cv.imshow('Env', image)
             cv.waitKey(1)
+            state = next_state
 
 if __name__ == '__main__':
     main()

@@ -15,10 +15,10 @@ RUN wget \
 ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
 
-COPY requirements.txt requirements.txt
 RUN conda update -n base -c defaults conda
 RUN echo "source activate" > ~/.bashrc
 RUN /bin/bash ~/.bashrc
-
 RUN pip install --upgrade pip setuptools wheel
+
+COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
