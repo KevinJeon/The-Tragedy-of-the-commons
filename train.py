@@ -14,10 +14,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description='ToC params')
     parser.add_argument('--blue', default=1, type=int)
     parser.add_argument('--red', default=1, type=int)
-    parser.add_argument('--num_episode', default=2, type=int)
+    parser.add_argument('--num_episode', default=3, type=int)
     parser.add_argument('--max_step', '-m', default=10, type=int)
     parser.add_argument('--agent_type', '-a', default='rule', type=str)
-    parser.add_argument('--batch_size', '-bs', default=1, type=int)
+    parser.add_argument('--batch_size', '-bs', default=2, type=int)
     args = parser.parse_args()
     return args
 

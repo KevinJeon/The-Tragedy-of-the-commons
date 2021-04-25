@@ -28,14 +28,16 @@ class CPC(nn.Module):
     def init_hidden(self, batch_size):
         return self.encoder.weight.new(1, 128).zero_()
 
-    def forward(self, obs, h):
+    def forward(self, obs, h, bs=1):
         '''
         x : (seq, c, h, w)
         h : (1, 1, hidden)
         '''
-        bs, step, c, he, w = obs.size()
+        step, c, he, w = obs.size()
         z = self.encoder(obs.view(-1, c, he, w) / 255.0).view(bs, step, -1)
-        s_f, h = self.gru(z, h.unsqueeze(0))
+        s_f, h = self.gru(z, h)
+        s_f = s_f.view(bs*step, -1)
+        h = h.squeeze(0)
         return self.value(h), s_f, h
 
 class CPCAgent(object):
@@ -49,11 +51,11 @@ class CPCAgent(object):
         self.state_encoder = CPC(num_action, num_channel)
         self.linear = nn.Linear(128, num_action)
     def act(self, obs, h, is_train=True):
-        obs = tr.from_numpy(obs).unsqueeze(0).unsqueeze(0)
+        obs = tr.from_numpy(obs).unsqueeze(0)
         h = h.unsqueeze(0)
-        obs = obs.permute((0, 1, 4, 2, 3))
+        obs = obs.permute((0, 3, 1, 2))
         with tr.no_grad():
-            v, s_f, h = self.state_encoder(obs, h)
+            v, s_f, h = self.state_encoder(obs, h.unsqueeze(0))
             lin_s_f = self.linear(s_f)
             lin_s_f = F.softmax(lin_s_f)
             dist = Categorical(lin_s_f)
@@ -62,16 +64,21 @@ class CPCAgent(object):
             else:
                 act = dist.mode().unsqueeze(-1)
             a_f = self.action_encoder(act.view(-1))
-            logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
+            logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
             entropy = dist.entropy().mean()
             infos = [v, logprobs, h, s_f, a_f]
             return act, infos
 
     def evaluate(self, obs, h, act, mask):
+        print(obs.size(), h.size(), act.size(), mask.size())
         v, s_f, h = self.state_encoder(obs, h)
-        dist = Categorical(s_f)
+        lin_s_f = self.linear(s_f)
+        lin_s_f = F.softmax(lin_s_f)
+        dist = Categorical(lin_s_f)
         a_f = self.action_encoder(act.view(-1).long())
-        logprobs = dist.log_prob(act.unsqueeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
+        print(act.size(), lin_s_f.size())
+        logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
+        print(logprobs.size())
         entropy = dist.entropy().mean()
         return v, logprobs, entropy, h, s_f, a_f
 
@@ -107,21 +114,26 @@ class CPCAgent(object):
         return acc_s, acc_a, nce_s, nce_a
 
     def train(self, samples, infos):
-        # Please Check for indcies of samples
-        num_obs = samples[0].size()[1:]
+        # Please Check for indices of samples
+        # (batch, step, *shapes)
         num_act = samples[1].size()[-1]
-        num_step = samples[2].size()[0]
-        obss = samples[0][:-1].view(-1, *num_obs).permute((0, 3, 1, 2))
-        hs = infos[2][:-1]
-        acts = samples[1].view(-1, num_act)
+        bs, step = samples[2].size()[:2]
+        obss = samples[0][:, :-1].permute((0, 1, 4, 2, 3))
+        num_obs = obss.size()[2:]
+        hs = infos[2][:, :-1]
+        acts = samples[1]
         rews = samples[2]
         rets = samples[3]
-        masks = samples[4][:-1]
+        masks = samples[4][:, :-1]
 
-        print('num_obs:{}, num_act:{}, obss: {}, acts: {}, rews: {}, masks: {}, hs: {}'.format(\
+        print('num_obs:{}\n, num_act:{}\n, obss: {}\n, acts: {}\n, rews: {}\n, masks: {}\n, hs: {}\n'.format(\
                 num_obs, num_act, obss.size(), acts.size(), rews.size(), masks.size(), hs.size()))
-        vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss, hs, acts, masks)
-        adv = rets[:-1] - vs
+        vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].view(-1, 128), acts.view(-1, num_act), masks.reshape(-1, 1))
+        vs = vs.view(step, bs, 1)
+        s_f = s_f.view(step, bs, -1)
+        a_f = a_f.view(step, bs, -1)
+        logprobs = logprobs.view(step, bs, 1)
+        adv = rets[:, :-1] - vs
         vloss = (adv**2).mean()
         # nce_loss
         acc_s, acc_a, nce_s, nce_a = self.cpc(s_f, a_f)
