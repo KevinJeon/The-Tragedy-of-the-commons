@@ -14,8 +14,7 @@ from utils.image import put_rgba_to_image, put_rgb_to_image
 from collections import namedtuple
 from components.agent import Action
 
-from components.agent import BlueAgent, RedAgent
-from components.world import VariousAppleField
+from components.agent import BlueAgent, RedAgent, Agent
 from components.agent import Color
 
 ObservationSpace = namedtuple('ObservationSpace', 'shape')
@@ -55,6 +54,16 @@ class TOCEnv(object):
 
         self.apple_respawn_rate = apple_respawn_rate
 
+        ''' Info variables '''
+        self._red_eaten_count = 0
+        self._blue_eaten_count = 0
+
+        self._punishing_count = 0
+        self._punished_count = 0
+
+        self._movement_count = 0
+        self._rotate_count = 0
+
         ''' Patch settings '''
         self.patch_count = patch_count
         self.patch_distance = patch_distance
@@ -85,7 +94,7 @@ class TOCEnv(object):
         common_reward = 0
         individual_rewards = []
         for iter_agent in self.world.agents:
-            _individual_reward = iter_agent.reset_reward()
+            _individual_reward = iter_agent.get_reward()
             common_reward += _individual_reward
             individual_rewards.append(_individual_reward)
 
@@ -95,16 +104,6 @@ class TOCEnv(object):
         elif self.obs_type == 'numeric':
             obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
             obs = np.array(obs, dtype=np.uint8)
-
-        directions = [iter_agent.direction.value for iter_agent in self.world.agents]
-        color_agents = [agent.color for agent in self.world.agents]
-
-        infos = {
-            'agents': {
-                'directions': directions,
-                'colors': color_agents,
-            },
-        }
 
         self._step_count += 1
 
@@ -116,21 +115,15 @@ class TOCEnv(object):
 
         done = [done for _ in self.agents]
 
-        return obs, np.array(individual_rewards), np.array(done), infos
+        info = self._gather_info()
+        [iter_agent.tick() for iter_agent in self.world.agents]
+
+        return obs, np.array(individual_rewards), np.array(done), info
 
     def reset(self) -> np.array:
         del self.world
         self._create_world()
         self._step_count = 0
-
-        # This is for two-color resource allocation experiemnts
-        # self.world.add_fruits_field(VariousAppleField(
-        #     world=self.world,
-        #     p1=Position(1, 1),
-        #     p2=Position(self.world.width - 2, self.world.height - 2),
-        #     prob=self._apple_spawn_ratio,
-        #     ratio=self._apple_color_ratio
-        # ))
 
         for color in self.agents:
             pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
@@ -149,12 +142,10 @@ class TOCEnv(object):
             obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
             obs = np.array(obs, dtype=np.uint8)
 
-        color_agents = [agent.color for agent in self.world.agents]
-
         common_reward = 0
         individual_rewards = []
         for iter_agent in self.world.agents:
-            _individual_reward = iter_agent.reset_reward()
+            _individual_reward = iter_agent.get_reward()
             common_reward += _individual_reward
             individual_rewards.append(_individual_reward)
 
@@ -165,16 +156,20 @@ class TOCEnv(object):
             obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
             obs = np.array(obs, dtype=np.uint8)
 
-        directions = [iter_agent.direction.value for iter_agent in self.world.agents]
+        info = self._gather_info()
+        [iter_agent.tick() for iter_agent in self.world.agents]
 
-        infos = {
-            'agents': {
-                'directions': directions,
-                'colors': color_agents,
-            },
-        }
+        return obs, info
 
-        return obs, infos
+    def _reset_statistics(self) -> None:
+        self._red_eaten_count = 0
+        self._blue_eaten_count = 0
+
+        self._punishing_count = 0
+        self._punished_count = 0
+
+        self._movement_count = 0
+        self._rotate_count = 0
 
     def _create_world(self):
         self.world = World(env=self, size=self.map_size, \
@@ -383,6 +378,58 @@ class TOCEnv(object):
     def respawn_apple(self):
         raise NotImplementedError
 
+    def _gather_info(self) -> dict:
+        info = dict()
+        # Individuals infos
+        info['agents'] = [agent.gather_info() for agent in self.world.agents]
+
+        # Environment infos
+        #   Eaten Apples
+        eaten_apples = dict()
+        eaten_apples['red'] = self._red_eaten_count
+        eaten_apples['blue'] = self._blue_eaten_count
+
+        punishment = dict()
+        punishment['punishing'] = self._punishing_count
+        punishment['punished'] = self._punished_count
+
+        movement = dict()
+        movement['move'] = self._movement_count
+        movement['rotate'] = self._rotate_count
+
+        info['statistics'] = dict()
+        info['statistics']['eaten_apples'] = eaten_apples
+        info['statistics']['punishment'] = punishment
+        info['statistics']['movement'] = movement
+        info['timestamp'] = self._step_count
+
+        return info
+
+    def increase_movement_count(self) -> int:
+        self._movement_count += 1
+        return self._movement_count
+
+    def increase_rotate_count(self) -> int:
+        self._rotate_count += 1
+        return self._rotate_count
+
+    def increase_punishing_count(self) -> int:
+        self._punishing_count += 1
+        return self._punishing_count
+
+    def increase_punished_count(self) -> int:
+        self._punished_count += 1
+        return self._punished_count
+
+    def increase_red_apple_count(self) -> int:
+        self._red_eaten_count += 1
+        return self._red_eaten_count
+
+    def increase_blue_apple_count(self) -> int:
+        self._blue_eaten_count += 1
+        return self._blue_eaten_count
+
+    ''' Environment Variables Settings '''
     def set_patch_count(self, count: int) -> None:
         self.patch_count = count
 
@@ -395,6 +442,7 @@ class TOCEnv(object):
     def apple_spawn_ratio(self, ratio: float) -> None:
         self._apple_spawn_ratio = ratio
 
+    ''' Debug settings '''
     def draw_line(self, pos1: Position, pos2: Position, color: Color):
         self._debug_buffer_line.append((pos1, pos2, color))
 
