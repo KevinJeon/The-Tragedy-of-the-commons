@@ -32,11 +32,10 @@ class RolloutStorage(object):
         self.logprob = self.logprob.to(device)
         self.act = self.act.to(device)
         self.mask = self.mask.to(device)
-
     def add(self, obss, acts, rews, masks, infos):
         obss = tr.from_numpy(obss)
         rews = tr.tensor(rews)
-        masks = tr.tensor(masks)
+        masks = tr.tensor(masks).int()
         for i in range(self.num_agent):
             self.obs[i, self.step + 1, self.n].copy_(obss[i])
             self.act[i, self.step, self.n].copy_(self.onehot[acts[i]].view(-1))
@@ -55,15 +54,17 @@ class RolloutStorage(object):
         self.step = (self.step + 1) % self.num_step
 
     def after_update(self):
+
         for i in range(self.num_agent):
             self.obs[i, 0].copy_(self.obs[i, -1])
             self.h[i, 0].copy_(self.h[i, -1])
             self.mask[i, 0].copy_(self.mask[i, 0])
         self.n = 0 
+
     def compute_return(self, v_nexts, gamma):
         for i, v_next in enumerate(v_nexts):
-            self.ret[i, -1] = v_next 
-            for step in reversed(range(self.rew.size(2))):
-                self.ret[i, step] = self.ret[i, step + 1] * gamma * self.mask[i, step + 1] + self.rew[i, step]
-            
+            self.ret[i, -1, self.n] = v_next 
+            for step in reversed(range(self.rew.size(1))):
+                self.ret[i, step, self.n] = self.ret[i, step + 1, self.n] * gamma * \
+                        (1 - self.mask[i, step + 1, self.n]) + self.rew[i, step, self.n]
 

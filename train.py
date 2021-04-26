@@ -6,6 +6,7 @@ from env import TOCEnv
 from models.a2c_toc import CPCAgent, CPCTrainer
 from models.rulebased import RuleBasedAgent
 from utils.storage import RolloutStorage
+import torch as tr
 
 AGENT_TYPE = dict(rule=[RuleBasedAgent, None], ac=[CPCAgent, CPCTrainer])
 AGENT_CONFIG = dict(rule=[dict(prefer=None, obs_size=None), None],
@@ -57,6 +58,14 @@ def main(args):
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)
+        with tr.no_grad():
+            next_vals = []
+            for i, agent in enumerate(agents):
+                next_val = agent.get_value(memory.obs[i][-1, memory.n], memory.h[i][-1, memory.n]).detach()
+                next_vals.append(next_val)
+
+            print(next_vals)
+        memory.compute_return(next_vals, gamma=0.99)
         memory.n += 1
         if memory.n % args.batch_size == 0: # if (memory.n != 0) and (memory.n % args.batch_size == 0):
             for i, trainer in enumerate(trainers):

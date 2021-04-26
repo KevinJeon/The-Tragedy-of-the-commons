@@ -91,7 +91,13 @@ class CPCAgent(nn.Module):
         logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
         return v, logprobs, entropy, h, s_f, a_f
-    
+
+    def get_value(self, obs, h):
+        obs = obs.unsqueeze(0)
+        obs = obs.permute(0, 3, 1, 2)
+        v, _, _ = self.state_encoder(obs, h.view(1, 1, -1))
+        return v
+
     def cpc(self, s_f, a_f):
         num_step, batch_size, num_hidden = a_f.shape
         s_a_f = s_f + a_f
