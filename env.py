@@ -55,8 +55,16 @@ class TOCEnv(object):
         self.apple_respawn_rate = apple_respawn_rate
 
         ''' Info variables '''
-        self._red_eaten_count = 0
-        self._blue_eaten_count = 0
+        self._total_red_eaten_count = 0
+        self._total_blue_eaten_count = 0
+
+        self._red_team_red_apple_count = 0
+        self._red_team_blue_apple_count = 0
+
+        self._blue_team_red_apple_count = 0
+        self._blue_team_blue_apple_count = 0
+
+
 
         self._punishing_count = 0
         self._punished_count = 0
@@ -164,6 +172,12 @@ class TOCEnv(object):
     def _reset_statistics(self) -> None:
         self._red_eaten_count = 0
         self._blue_eaten_count = 0
+
+        self._red_team_red_apple_count = 0
+        self._red_team_blue_apple_count = 0
+
+        self._blue_team_red_apple_count = 0
+        self._blue_team_blue_apple_count = 0
 
         self._punishing_count = 0
         self._punished_count = 0
@@ -386,12 +400,20 @@ class TOCEnv(object):
         # Environment infos
         #   Eaten Apples
         eaten_apples = dict()
-        eaten_apples['red'] = self._red_eaten_count
-        eaten_apples['blue'] = self._blue_eaten_count
+        total_eaten_apples = dict()
+        total_eaten_apples['red'] = self._total_red_eaten_count
+        total_eaten_apples['blue'] = self._total_blue_eaten_count
+        eaten_apples['total'] = total_eaten_apples
+
+        team_eaten_apples = dict()
+        team_eaten_apples['red'] = {'red': self._red_team_red_apple_count, 'blue': self._red_team_blue_apple_count}
+        team_eaten_apples['blue'] = {'red': self._blue_team_red_apple_count, 'blue': self._blue_team_blue_apple_count}
+        eaten_apples['team'] = team_eaten_apples
 
         punishment = dict()
         punishment['punishing'] = self._punishing_count
         punishment['punished'] = self._punished_count
+        punishment['valid_rate'] = self._punished_count / self._punishing_count if self._punishing_count else 0.
 
         movement = dict()
         movement['move'] = self._movement_count
@@ -427,13 +449,25 @@ class TOCEnv(object):
         self._punished_count += 1
         return self._punished_count
 
-    def increase_red_apple_count(self) -> int:
-        self._red_eaten_count += 1
-        return self._red_eaten_count
+    def increase_red_apple_count(self, eaten_by: Agent) -> int:
+        self._total_red_eaten_count += 1
 
-    def increase_blue_apple_count(self) -> int:
-        self._blue_eaten_count += 1
-        return self._blue_eaten_count
+        if type(eaten_by) == RedAgent:
+            self._red_team_red_apple_count += 1
+        elif type(eaten_by) == BlueAgent:
+            self._blue_team_red_apple_count += 1
+
+        return self._total_red_eaten_count
+
+    def increase_blue_apple_count(self, eaten_by: Agent) -> int:
+        self._total_blue_eaten_count += 1
+
+        if type(eaten_by) == RedAgent:
+            self._red_team_blue_apple_count += 1
+        elif type(eaten_by) == BlueAgent:
+            self._blue_team_blue_apple_count += 1
+
+        return self._total_blue_eaten_count
 
     ''' Environment Variables Settings '''
     def set_patch_count(self, count: int) -> None:
