@@ -8,7 +8,7 @@ from models.rulebased import RuleBasedAgent
 from utils.storage import RolloutStorage
 
 AGENT_TYPE = dict(rule=RuleBasedAgent, ac=CPCAgent)
-AGENT_CONFIG = dict(rule=dict(prefer=None, obs_size=None), ac=dict(batch_size=128, seq_len=20, num_action=8, num_channel=3, timestep=100)) 
+AGENT_CONFIG = dict(rule=dict(prefer=None, obs_size=None), ac=dict(batch_size=None, seq_len=20, num_action=8, num_channel=3, timestep=100)) 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='ToC params')
@@ -35,6 +35,8 @@ def select_actions(obss, agents, step, hs=None, n=None):
 def main(args):
     prefer = ['blue']*args.blue+['red']*args.red
     env = TOCEnv(agents=prefer, apple_color_ratio=0.5, apple_spawn_ratio=0.1)
+    if args.agent_type == 'ac':
+        AGENT_CONFIG[args.agent_type]['batch_size'] = args.batch_size
     agents = [AGENT_TYPE[args.agent_type](**AGENT_CONFIG[args.agent_type]) for i in range(args.blue + args.red)]
     env.obs_type = 'rgb_array'
     memory = RolloutStorage(agent_type='ac',num_agent=args.blue+args.red, num_step=args.max_step, \
@@ -56,8 +58,8 @@ def main(args):
         if memory.n % args.batch_size == 0: # if (memory.n != 0) and (memory.n % args.batch_size == 0):
             for i, agent in enumerate(agents):
                 # check for return calculate
-                obss, acts, rews, rets, masks = memory.obs[i], memory.act[i], memory.rew[i], memory.ret[i], memory.mask[i]
-                samples = (obss, acts, rews, rets, masks)
+                obss, acts, act_inds, rews, rets, masks = memory.obs[i], memory.act[i], memory.act_ind[i], memory.rew[i], memory.ret[i], memory.mask[i]
+                samples = (obss, acts, act_inds, rews, rets, masks)
                 infos = None
                 if args.agent_type == 'ac':
                     vs, logprobs, hs, s_fs, a_fs = memory.val[i], memory.logprob[i], memory.h[i], memory.s_feat[i], memory.a_feat[i]

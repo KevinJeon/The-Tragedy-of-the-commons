@@ -7,6 +7,7 @@ class RolloutStorage(object):
         self.rew = tr.zeros(num_agent, num_step, batch_size, 1)
         self.ret = tr.zeros(num_agent, num_step + 1, batch_size, 1)
         self.act = tr.zeros(num_agent, num_step, batch_size, num_action)
+        self.act_ind = tr.zeros(num_agent, num_step, batch_size, 1)
         self.mask = tr.zeros(num_agent, num_step + 1, batch_size, 1) # If mask == 0, Terminal
         self.num_step = num_step
         self.step = 0
@@ -39,6 +40,7 @@ class RolloutStorage(object):
         for i in range(self.num_agent):
             self.obs[i, self.step + 1, self.n].copy_(obss[i])
             self.act[i, self.step, self.n].copy_(self.onehot[acts[i]].view(-1))
+            self.act_ind[i, self.step, self.n].copy_(tr.tensor(acts[i]).view(-1))
             self.rew[i, self.step, self.n].copy_(rews[i])
             self.mask[i, self.step + 1, self.n].copy_(masks[i])
             
