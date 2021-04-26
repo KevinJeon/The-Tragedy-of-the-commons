@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 from env import TOCEnv
-
+from pprint import pprint
 import cv2
 
 def main():
@@ -19,8 +19,8 @@ def main():
                  )
 
     while True:
-        _ = env.reset()
-
+        state, info = env.reset()
+        pprint(info)
         for i in range(400):
 
             image = env.render(coordination=False)
@@ -62,10 +62,10 @@ def main():
                 sampled_action = [random.randint(0, 7) for _ in range(num_agents)]
 
             next_state, reward, done, info = env.step(actions=sampled_action)
+            pprint(info)
 
             image = env.render(coordination=False)
             cv.imshow('Env', image)
-            cv.waitKey(0)
 
 
 if __name__ == '__main__':
