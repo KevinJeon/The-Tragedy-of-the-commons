@@ -57,17 +57,16 @@ def main(args):
             obss_next, rews, masks, _ = env.step(actions=sampled_actions)
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
-        print('-'*20+'Train!'+'-'*20)
         with tr.no_grad():
             next_vals = []
             for i, agent in enumerate(agents):
                 next_val = agent.get_value(memory.obs[i][-1, memory.n], memory.h[i][-1, memory.n]).detach()
                 next_vals.append(next_val)
 
-            print(next_vals)
         memory.compute_return(next_vals, gamma=0.99)
         memory.n += 1
         if memory.n % args.batch_size == 0: # if (memory.n != 0) and (memory.n % args.batch_size == 0):
+            vlosses, alosses, entropies = [], [], []
             for i, trainer in enumerate(trainers):
                 # check for return calculate
                 obss, acts, act_inds, rews, rets, masks = memory.obs[i], memory.act[i], memory.act_ind[i], memory.rew[i], memory.ret[i], memory.mask[i]
@@ -78,8 +77,12 @@ def main(args):
                     infos = (vs, logprobs, hs, s_fs, a_fs)
 
                 vloss, aloss, entropy, cpc_res = trainer.train(samples, infos)
-                memory.after_update()
-        
+                vlosses.append(vloss)
+                alosses.append(aloss)
+                entropies.append(entropy)
+                memory.after_update() # Need to Check!
+            anum = args.red + args.blue
+            print('Value loss : {:.2f} Action loss : {:.2f} Entropy : {:.2f}'.format(sum(vlosses)/anum, sum(alosses)/anum, sum(entropies)/anum))
 if __name__ == '__main__':
     args = parse_args()
     main(args)
