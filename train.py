@@ -27,7 +27,7 @@ def select_actions(obss, agents, step, hs=None, n=None):
     if hs == None:
         hs = [None] * len(agents)
     for obs, agent, h in zip(obss, agents, hs):
-        act, info = agent.act(obs, h[n, step])
+        act, info = agent.act(obs, h[step, n])
         actions.append(act.view(-1).numpy())
         infos.append(info)
     return actions, infos
@@ -53,7 +53,7 @@ def main(args):
             obss = obss_next
         print('-'*20+'Train!'+'-'*20)
         memory.n += 1
-        if memory.n % args.batch_size == 0:#if (memory.n != 0) and (memory.n % args.batch_size == 0):
+        if memory.n % args.batch_size == 0: # if (memory.n != 0) and (memory.n % args.batch_size == 0):
             for i, agent in enumerate(agents):
                 # check for return calculate
                 obss, acts, rews, rets, masks = memory.obs[i], memory.act[i], memory.rew[i], memory.ret[i], memory.mask[i]

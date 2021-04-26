@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class CPC(nn.Module):
 
-    def __init__(self, num_action, num_channel):
+    def __init__(self, num_action, num_channel, batch_size):
         super(CPC, self).__init__()
         self.num_hidden = 128
         # Input Size (N, 88, 88, 3)
@@ -24,7 +24,7 @@ class CPC(nn.Module):
                 nn.init.orthogonal_(p)
         self.value = nn.Linear(128, 1)
         self.softmax = nn.Softmax()
-        
+        self.batch_size = batch_size 
     def init_hidden(self, batch_size):
         return self.encoder.weight.new(1, 128).zero_()
 
@@ -33,7 +33,13 @@ class CPC(nn.Module):
         x : (seq, c, h, w)
         h : (1, 1, hidden)
         '''
-        step, c, he, w = obs.size()
+        n, c, he, w = obs.size()
+        if n == 1:
+            bs = 1
+            step = 1
+        else:
+            bs = self.batch_size
+            step = int(n // self.batch_size)
         z = self.encoder(obs.view(-1, c, he, w) / 255.0).view(bs, step, -1)
         s_f, h = self.gru(z, h)
         s_f = s_f.view(bs*step, -1)
@@ -48,7 +54,7 @@ class CPCAgent(object):
         self.seq_len = seq_len
         self.linear = nn.ModuleList([nn.Linear(128, 512) for i in range(timestep)])
         self.action_encoder = nn.Embedding(num_action, 128)
-        self.state_encoder = CPC(num_action, num_channel)
+        self.state_encoder = CPC(num_action, num_channel, batch_size)
         self.linear = nn.Linear(128, num_action)
     def act(self, obs, h, is_train=True):
         obs = tr.from_numpy(obs).unsqueeze(0)
