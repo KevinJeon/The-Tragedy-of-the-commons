@@ -10,6 +10,15 @@ class Agent(object):
         pass
 
 
+class BlueAgent(object):
+    def __init__(self):
+        pass
+
+
+class RedAgent(object):
+    def __init__(self):
+        pass
+
 class Color:
     Red = (255, 0, 0)
     Orange = (200, 0, 0)

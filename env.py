@@ -1,3 +1,5 @@
+import ray
+
 class TOCEnv(object):
     pass
 
@@ -8,20 +10,25 @@ import cv2 as cv
 from components.block import BlockType
 from components.position import Position
 
+from components.agent import Action
+
+from components.agent import Color
+from components.world import World
+from components.block import BlockType
+from components.position import Position
 
 from utils.image import put_rgba_to_image, put_rgb_to_image
 
 from collections import namedtuple
-from components.agent import Action
-
-from components.agent import BlueAgent, RedAgent, Agent
-from components.agent import Color
 
 ObservationSpace = namedtuple('ObservationSpace', 'shape')
 ActionSpace = namedtuple('ActionSpace', 'shape n')
 
 
+@ray.remote
 class TOCEnv(object):
+
+
 
     def __init__(self,
                  agents: list,
@@ -33,14 +40,22 @@ class TOCEnv(object):
 
                  apple_color_ratio=0.5,
                  apple_spawn_ratio=0.3,
-                 
+
                  patch_count=3,
                  patch_distance=5,
                  ):
+        from components.block import BlockType
+        from components.position import Position
 
+        from components.agent import Action
+
+        from components.agent import Color
+        from components.world import World
+        from components.block import BlockType
+        from components.position import Position
         self.agents = agents
         self.num_agents = len(self.agents)
-        
+
         self.map_size = map_size
         self.episode_max_length = episode_max_length
         self.obs_type = obs_type
@@ -67,7 +82,7 @@ class TOCEnv(object):
         ''' Patch settings '''
         self.patch_count = patch_count
         self.patch_distance = patch_distance
-        
+
         ''' Apple spawning settings '''
         self._apple_color_ratio = apple_color_ratio
         self._apple_spawn_ratio = apple_spawn_ratio
@@ -470,7 +485,26 @@ class TOCEnv(object):
         return action_space
 
 
+class ParallelTOCEnv(object):
+    def __init__(self,
+                 num_envs: int,
+                 **kwargs):
+        self.envs = [TOCEnv.remote(**kwargs) for i in range(num_envs)]
+        print(self.envs)
 
-from components.world import World, Position
+    def step(self, actions):
+
+        jobs = [env.step.remote(actions) for env in self.envs]
+        result = ray.get(jobs)
+        return None
+        print(result)
+
+    def reset(self):
+        jobs = [env.reset.remote() for env in self.envs]
+        result = ray.get(jobs)
+        return np.array(result)
+
+
 from components.resource import Resource
 import components.item as items
+from components.agent import BlueAgent, RedAgent, Agent

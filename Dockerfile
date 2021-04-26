@@ -5,7 +5,6 @@ RUN apt-get install -y wget git
 RUN apt-get install -y --no-install-recommends default-jre default-jdk
 RUN apt-get install -y libopenmpi-dev freeglut3-dev
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y keyboard-configuration
-RUN apt-get install -y xorg openbox x11-apps
 
 RUN wget \
     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
@@ -22,3 +21,4 @@ RUN pip install --upgrade pip setuptools wheel
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+RUN pip install ray==1.3.0

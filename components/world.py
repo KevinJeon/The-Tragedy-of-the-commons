@@ -1,11 +1,7 @@
 from typing import Union
-
 import numpy as np
 import random
 import math
-
-from env import TOCEnv
-
 
 class World(object):
     pass
@@ -14,6 +10,7 @@ class World(object):
 class Field(object):
     pass
 
+from env import TOCEnv
 
 import components.item as items
 import components.agent as agent

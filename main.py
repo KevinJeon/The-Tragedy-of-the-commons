@@ -1,17 +1,25 @@
 import cv2 as cv
 import random
 import numpy as np
+import ray
 
-from env import TOCEnv
+import env
+from env import TOCEnv, ParallelTOCEnv
 from pprint import pprint
 import cv2
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 def main():
 
     agents_types = ['red', 'blue', 'red']
     num_agents = len(agents_types)
 
-    env = TOCEnv(agents=agents_types,
+    env = ParallelTOCEnv(
+                num_envs=10,
+                agents=agents_types,
                  map_size=(16, 16),
                  obs_type='rgb_array',
                  apple_color_ratio=0.5,
@@ -19,12 +27,12 @@ def main():
                  )
 
     while True:
-        state, info = env.reset()
-        pprint(info)
+        _ = env.reset()
+        # pprint(info)
         for i in range(400):
 
-            image = env.render(coordination=False)
-            cv.imshow('Env', image)
+            # image = env.render(coordination=False)
+            # cv.imshow('Env', image)
             key = cv.waitKey(0)
             if key == 0: # Up
                 action_1 = 1
@@ -61,12 +69,25 @@ def main():
             else:
                 sampled_action = [random.randint(0, 7) for _ in range(num_agents)]
 
-            next_state, reward, done, info = env.step(actions=sampled_action)
-            pprint(info)
+            _ = env.step(actions=sampled_action)
 
-            image = env.render(coordination=False)
-            cv.imshow('Env', image)
+
+            # pprint(info)
+
+            # image = env.render(coordination=False)
+            # cv.imshow('Env', image)
 
 
 if __name__ == '__main__':
+    # result = ray.init(local_mode=True)
+    import logging
+    #result = ray.init(address='127.0.0.1:6379')
+
+    # ray.util.connect('172.27.186.221:6379')
+
+
+    result = ray.init(address='localhost:6379')
+
+    print(result)
     main()
+    ray.shutdown()
