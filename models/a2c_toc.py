@@ -82,7 +82,6 @@ class CPCAgent(nn.Module):
             return act, infos
 
     def evaluate(self, obs, h, act, mask):
-        print(obs.size(), h.size(), act.size(), mask.size())
         h = h.unsqueeze(0)
         v, s_f, h = self.state_encoder(obs, h)
         lin_s_f = self.act_linear(s_f)
@@ -91,7 +90,6 @@ class CPCAgent(nn.Module):
         a_f = self.action_encoder(act.view(-1).long())
         logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
-        print(v.size(), lin_s_f.size(), a_f.size(), logprobs.size(), entropy.size())
         return v, logprobs, entropy, h, s_f, a_f
     
     def cpc(self, s_f, a_f):
@@ -156,15 +154,12 @@ class CPCTrainer:
         rets = samples[4]
         masks = samples[5][:-1]
 
-        print('num_obs:{}\n, num_act:{}\n, obss: {}\n, acts: {}\n, rews: {}\n, masks: {}\n, hs: {}\n'.format(\
-                num_obs, num_act, obss.size(), acts.size(), rews.size(), masks.size(), hs.size()))
         
         vs, logprobs, entropy, _, s_f, a_f = self.agent.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].view(-1, 128), act_inds.view(-1, 1), masks.reshape(-1, 1))
         vs = vs.view(step, bs, 1)
         s_f = s_f.view(step, bs, -1)
         a_f = a_f.view(step, bs, -1)
         logprobs = logprobs.view(step, bs, 1)
-        print(vs.size(), s_f.size(), a_f.size(), logprobs.size(), rets.size())
         adv = rets[:-1] - vs
         vloss = (adv**2).mean()
         # nce_loss
