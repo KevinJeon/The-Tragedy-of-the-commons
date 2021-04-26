@@ -3,6 +3,7 @@ import torch as tr
 import torch.nn as nn
 from torch.distributions import Categorical
 import torch.nn.functional as F
+import torch.optim as optim
 
 class CPC(nn.Module):
 
@@ -47,7 +48,7 @@ class CPC(nn.Module):
         h = h.squeeze(0)
         return self.value(s_f), s_f, h
 
-class CPCAgent(object):
+class CPCAgent(nn.Module):
 
     def __init__(self, batch_size, seq_len, timestep, num_action, num_channel):
         super(CPCAgent, self).__init__()
@@ -57,12 +58,10 @@ class CPCAgent(object):
         self.s_linear = nn.ModuleList([nn.Linear(128, 128) for i in range(timestep)])
         self.a_linear = nn.ModuleList([nn.Linear(128, 128) for i in range(timestep)])
         self.action_encoder = nn.Embedding(num_action, 128)
-        self.log_softmax = nn.LogSoftmax(dim=0)
-        self.softmax = nn.Softmax(dim=0)
         self.state_encoder = CPC(num_action, num_channel, batch_size)
         self.act_linear = nn.Linear(128, num_action)
         self.device = 'cpu'
-        self.optimzier = optim.RMSprop()
+
     def act(self, obs, h, is_train=True):
         obs = tr.from_numpy(obs).unsqueeze(0)
         h = h.unsqueeze(0)
@@ -94,12 +93,12 @@ class CPCAgent(object):
         entropy = dist.entropy().mean()
         print(v.size(), lin_s_f.size(), a_f.size(), logprobs.size(), entropy.size())
         return v, logprobs, entropy, h, s_f, a_f
-
+    
     def cpc(self, s_f, a_f):
         num_step, batch_size, num_hidden = a_f.shape
         s_a_f = s_f + a_f
         z_s = s_f[0].view(batch_size, num_hidden)
-        z_a = s_f[0].view(batch_size, num_hidden)
+        z_a = s_a_f[0].view(batch_size, num_hidden)
         p_s = tr.empty(num_step, batch_size, num_hidden).float().to(self.device)
         p_a = tr.empty(num_step, batch_size, num_hidden).float().to(self.device)
         for i in range(num_step):
@@ -107,14 +106,31 @@ class CPCAgent(object):
             p_s[i] = s_linear(z_s)
             a_linear = self.a_linear[i]
             p_a[i] = a_linear(z_a)
+        
+        return p_s, p_a
 
+class CPCTrainer:
+    
+    def __init__(self, agent, eps, alpha, max_grad_norm, lr, entropy_coef, vloss_coef):
+        self.agent = agent
+        self.optimizer = optim.RMSprop(self.agent.parameters(), lr, eps=eps, alpha=alpha)
+        self.max_grad_norm = max_grad_norm
+        self.device = 'cpu'
+        self.log_softmax = nn.LogSoftmax(dim=0)
+        self.softmax = nn.Softmax(dim=0)
+        self.entropy_coef = entropy_coef
+        self.vloss_coef = vloss_coef
+    def cpc_loss(self, s_f, a_f):
+        num_step, batch_size, num_hidden = a_f.shape
         nce_s = 0
         nce_a = 0
         acc_s = 0
         acc_a = 0
+        s_a_f = s_f + a_f
+        p_s, p_a = self.agent.cpc(s_f, a_f)
         for i in range(num_step):
             s_total = tr.mm(s_f[i], p_s[i].transpose(1, 0))
-            a_total = tr.mm(a_f[i], p_a[i].transpose(1, 0))
+            a_total = tr.mm(s_a_f[i], p_a[i].transpose(1, 0))
             nce_s += tr.sum(tr.diag(self.log_softmax(s_total)))
             nce_a += tr.sum(tr.diag(self.log_softmax(a_total)))
             acc_s += tr.sum(tr.eq(tr.argmax(self.softmax(s_total), dim=0), tr.arange(0, batch_size).to(self.device)))
@@ -143,7 +159,7 @@ class CPCAgent(object):
         print('num_obs:{}\n, num_act:{}\n, obss: {}\n, acts: {}\n, rews: {}\n, masks: {}\n, hs: {}\n'.format(\
                 num_obs, num_act, obss.size(), acts.size(), rews.size(), masks.size(), hs.size()))
         
-        vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].view(-1, 128), act_inds.view(-1, 1), masks.reshape(-1, 1))
+        vs, logprobs, entropy, _, s_f, a_f = self.agent.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].view(-1, 128), act_inds.view(-1, 1), masks.reshape(-1, 1))
         vs = vs.view(step, bs, 1)
         s_f = s_f.view(step, bs, -1)
         a_f = a_f.view(step, bs, -1)
@@ -152,12 +168,12 @@ class CPCAgent(object):
         adv = rets[:-1] - vs
         vloss = (adv**2).mean()
         # nce_loss
-        acc_s, acc_a, nce_s, nce_a = self.cpc(s_f, a_f)
+        acc_s, acc_a, nce_s, nce_a = self.cpc_loss(s_f, a_f)
         cpc_res = dict(nce_state=nce_s, nce_action=nce_a, acc_state=acc_s, acc_action=acc_a)
         aloss = -(adv.detach() * logprobs).mean()
         self.optimizer.zero_grad()
         (vloss * self.vloss_coef + aloss - entropy * self.entropy_coef + nce_s).backward()
-        nn.utils.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+        nn.utils.clip_grad_norm_(self.agent.parameters(), self.max_grad_norm)
         self.optimizer.step()
 
         return vloss.item(), aloss.item(), entropy.item(), cpc_res
