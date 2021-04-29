@@ -67,3 +67,4 @@ obs, reward, info = env.step(actions)
 - [ ] Debug and Train CPC
 - [X] Rule-Based Agent 
 - [ ] Add GPU option
+- [ ] Save Model
