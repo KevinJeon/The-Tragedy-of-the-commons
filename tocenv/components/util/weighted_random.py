@@ -1,7 +1,7 @@
 import numpy as np
 import random
 
-from components.position import Position
+from tocenv.components.position import Position
 
 
 def get_weighted_position(mu: float, sigma: float, map_size: tuple) -> Position:

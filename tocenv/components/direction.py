@@ -1,7 +1,7 @@
 
 
 
-from components.position import Position
+from tocenv.components.position import Position
 
 
 class DirectionType:

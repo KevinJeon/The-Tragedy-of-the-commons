@@ -1,10 +1,9 @@
 import cv2 as cv
 import random
-import numpy as np
 
-from env import TOCEnv
+from tocenv.env import TOCEnv
 from pprint import pprint
-import cv2
+
 
 def main():
 
@@ -64,7 +63,7 @@ def main():
             next_state, reward, done, info = env.step(actions=sampled_action)
             pprint(info)
 
-            image = env.render(coordination=False)
+            image = env.render(coordination=True)
             cv.imshow('Env', image)
 
 

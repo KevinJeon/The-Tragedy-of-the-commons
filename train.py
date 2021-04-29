@@ -1,11 +1,9 @@
 import cv2 as cv
-import random
-import numpy as np
 import argparse
-from env import TOCEnv
+from tocenv.env import TOCEnv
 from models.a2c_toc import CPCAgent, CPCTrainer
 from models.rulebased import RuleBasedAgent
-from utils.storage import RolloutStorage
+from tocenv.utils.storage import RolloutStorage
 
 import torch as tr
 from torch.utils.tensorboard import SummaryWriter

@@ -3,8 +3,8 @@ class Skill(object):
         pass
 
 
-from components.position import Position
-from components.direction import DirectionType
+from tocenv.components.position import Position
+from tocenv.components.direction import DirectionType
 
 
 class Punish(Skill):
