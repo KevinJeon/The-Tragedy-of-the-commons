@@ -167,6 +167,8 @@ class TOCEnv(object):
         info = self._gather_info()
         [iter_agent.tick() for iter_agent in self.world.agents]
 
+        self._reset_statistics()
+
         return obs, info
 
     def _reset_statistics(self) -> None:
@@ -308,7 +310,9 @@ class TOCEnv(object):
                 for x in range(self.world.width + 1):
                     cv.putText(output_layer, '{0:2},{1:2}'.format(self.world.width - x, self.world.height - y),
                                (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
-                               cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+                              cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+
+
 
             for pos1, pos2, color in self._debug_buffer_line:
                 coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))

@@ -62,7 +62,7 @@ def main(args):
         obss, color_agents = env.reset()
         #key = cv.waitKey(0) to debug
         for step in range(args.max_step):
-            image = env.render(coordination=True)
+            image = env.render()
             cv.imshow('Env', image)
             key = cv.waitKey(1)
             sampled_action = []
@@ -71,28 +71,25 @@ def main(args):
             memory.add(obss, sampled_actions, rews, masks, infos)
             obss = obss_next
 
-            from pprint import pprint
-
-            pprint(env_info)
-
-            ''' Log Environment Statistics '''
-            if writer:
-                writer.add_scalar('train/episode', ep, total_step)
-                statistics = env_info['statistics']
-
-                writer.add_scalar('statistics/movement/move', statistics['movement']['move'], total_step)
-                writer.add_scalar('statistics/movement/rotate', statistics['movement']['rotate'], total_step)
-                writer.add_scalar('statistics/punishment/punishing', statistics['punishment']['punishing'], total_step)
-                writer.add_scalar('statistics/punishment/punished', statistics['punishment']['punished'], total_step)
-                writer.add_scalar('statistics/punishment/valid_rate', statistics['punishment']['valid_rate'], total_step)
-                writer.add_scalar('statistics/eaten_apples/total/blue', statistics['eaten_apples']['total']['blue'], total_step)
-                writer.add_scalar('statistics/eaten_apples/total/red', statistics['eaten_apples']['total']['red'], total_step)
-                writer.add_scalar('statistics/eaten_apples/team_blue/blue', statistics['eaten_apples']['team']['blue']['blue'], total_step)
-                writer.add_scalar('statistics/eaten_apples/team_blue/red', statistics['eaten_apples']['team']['blue']['red'], total_step)
-                writer.add_scalar('statistics/eaten_apples/team_red/red', statistics['eaten_apples']['team']['red']['red'], total_step)
-                writer.add_scalar('statistics/eaten_apples/team_red/blue', statistics['eaten_apples']['team']['red']['blue'], total_step)
-
             total_step += 1
+
+        ''' Log Environment Statistics '''
+        if writer:
+            writer.add_scalar('train/episode', ep, total_step)
+            statistics = env_info['statistics']
+
+            writer.add_scalar('statistics/movement/move', statistics['movement']['move'], total_step)
+            writer.add_scalar('statistics/movement/rotate', statistics['movement']['rotate'], total_step)
+            writer.add_scalar('statistics/punishment/punishing', statistics['punishment']['punishing'], total_step)
+            writer.add_scalar('statistics/punishment/punished', statistics['punishment']['punished'], total_step)
+            writer.add_scalar('statistics/punishment/valid_rate', statistics['punishment']['valid_rate'], total_step)
+            writer.add_scalar('statistics/eaten_apples/total/blue', statistics['eaten_apples']['total']['blue'], total_step)
+            writer.add_scalar('statistics/eaten_apples/total/red', statistics['eaten_apples']['total']['red'], total_step)
+            writer.add_scalar('statistics/eaten_apples/team_blue/blue', statistics['eaten_apples']['team']['blue']['blue'], total_step)
+            writer.add_scalar('statistics/eaten_apples/team_blue/red', statistics['eaten_apples']['team']['blue']['red'], total_step)
+            writer.add_scalar('statistics/eaten_apples/team_red/red', statistics['eaten_apples']['team']['red']['red'], total_step)
+            writer.add_scalar('statistics/eaten_apples/team_red/blue', statistics['eaten_apples']['team']['red']['blue'], total_step)
+
 
         with tr.no_grad():
             next_vals = []
