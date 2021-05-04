@@ -1,20 +1,17 @@
-import cv2 as cv
-import numpy as np
-
-import hydra, time, os
+import cv2
+import hydra
+import os
+import time
+import torch
 from omegaconf import DictConfig
 
-from tocenv.env import TOCEnv
-
-import torch
-from torch.utils.tensorboard import SummaryWriter
-
-from models.utils.RolloutStorage import RolloutStorage
 from logger import Logger
+from models.RuleBasedAgent import *
+from models.CPCAgent import *
+from models.utils.RolloutStorage import RolloutStorage
 from recorder import VideoRecorder
+from tocenv.env import *
 from utils.logging import log_statistics_to_writer
-
-from models.RuleBasedAgent import RuleBasedAgent
 
 
 class Workspace(object):
@@ -31,25 +28,35 @@ class Workspace(object):
                              log_frequency=cfg.log_frequency,
                              agent=cfg.agent.name)
 
-        prefer = ['blue'] * cfg.blue_agent_count + ['red'] * cfg.red_agent_count
+        prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
         self.env = TOCEnv(agents=prefer,
-                          episode_max_length=cfg.episode_length,
+                          episode_max_length=cfg.env.episode_length,
                           apple_color_ratio=0.5,
                           apple_spawn_ratio=0.1)
 
+        # self.env = ParallelTOCEnv(num_envs=2,
+        #                           agents=prefer,
+        #                           episode_max_length=cfg.episode_length,
+        #                           apple_color_ratio=0.5,
+        #                           apple_spawn_ratio=0.1
+        #                           )
+
+
+
         self.device = torch.device(cfg.device)
-        self.save_replay_buffer = cfg.save_replay_buffer
         self.env.reset()
 
         cfg.agent.obs_dim = self.env.observation_space.shape
         cfg.agent.action_dim = self.env.action_space.shape
+        cfg.agent.agent_types = prefer
 
         self.agent = hydra.utils.instantiate(cfg.agent)
 
-        self.replay_buffer = RolloutStorage(agent_type='ac', num_agent=cfg.blue_agent_count + cfg.red_agent_count,
-                                            num_step=cfg.env.episode_length,
-                                            batch_size=cfg.agent.batch_size, num_obs=(88, 88, 3), num_action=8,
-                                            num_rec=128)
+        if type(self.agent) in [CPCAgentGroup]:
+            self.replay_buffer = RolloutStorage(agent_type='ac', num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
+                                                num_step=cfg.env.episode_length,
+                                                batch_size=cfg.agent.batch_size, num_obs=(88, 88, 3), num_action=8,
+                                                num_rec=128)
 
         # self.writer = SummaryWriter(log_dir="tb")
         self.writer = None
@@ -62,17 +69,21 @@ class Workspace(object):
 
         self.video_recorder.init(enabled=True)
         for episode in range(self.cfg.num_eval_episodes):
-            obs = self.env.reset()
+            obs, _ = self.env.reset()
             episode_step = 0
 
             done = False
             episode_reward = 0
             while not done:
 
-                if type(self.agent) == RuleBasedAgent:
+                if type(self.agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                     obs = self.env.get_numeric_observation()
 
-                action = self.agent.act(obs, sample=False)
+                if type(self.agent) is CPCAgentGroup:
+                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=True)
+                else:
+                    action = self.agent.act(obs, sample=True)
+
                 obs, rewards, dones, _ = self.env.step(action)
 
                 done = True in dones
@@ -88,10 +99,12 @@ class Workspace(object):
         self.video_recorder.save(f'{self.step}.mp4')
 
         average_episode_reward /= self.cfg.num_eval_episodes
+        self.logger.log('eval/episode_reward', average_episode_reward, self.step)
+        self.logger.dump(self.step)
 
     def run(self):
 
-        episode, episode_reward, done = 0, 0, True
+        episode, episode_step, episode_reward, done = 1, 0, 0, True
         start_time = time.time()
         env_info = None
 
@@ -103,7 +116,7 @@ class Workspace(object):
                     self.logger.dump(self.step, save=(self.step > self.cfg.num_seed_steps))
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
-                    self.logger.log('eval/episode', episode, self.step)
+                    self.logger.log('eval/episode', episode - 1, self.step)
                     self.evaluate()
                     start_time = time.time()
 
@@ -111,9 +124,11 @@ class Workspace(object):
 
                 ''' Log Environment Statistics '''
 
-                self.logger.log('train/episode', episode, self.step)
                 if env_info:
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
+
+                self.agent.train(self.replay_buffer, self.logger, self.step)
+                self.logger.log('train/episode', episode, self.step)
 
                 obs, env_info = self.env.reset()
 
@@ -121,29 +136,31 @@ class Workspace(object):
                 episode_step = 0
                 episode += 1
 
-                self.logger.log('train/episode', episode, self.step)
-
-            if type(self.agent) == RuleBasedAgent:
+            if type(self.agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                 obs = self.env.get_numeric_observation()
 
             if self.step < self.cfg.num_seed_steps:
                 # Define random actions
-                action = self.agent.act(obs, sample=True)
+                if type(self.agent) is CPCAgentGroup:
+                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=True)
+                else:
+                    action = self.agent.act(obs, sample=True)
             else:
-                action = self.agent.act(obs, sample=True)
+                if type(self.agent) is CPCAgentGroup:
+                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=False)
+                else:
+                    action = self.agent.act(obs, sample=False)
 
             next_obs, rewards, dones, env_info = self.env.step(action)
 
             done = True in dones
-            if episode_step + 1 == self.env.episode_length:
+            if episode_step >= self.env.episode_length:
                 done = True
 
             episode_reward += sum(rewards)
 
-            # self.replay_buffer.add(obs, action, rewards, next_obs, dones)
-
-            if self.step >= self.cfg.num_seed_steps and self.step >= self.agent.batch_size:
-                self.agent.train(self.replay_buffer, self.logger, self.step)
+            if type(self.agent) in [CPCAgentGroup]:
+                self.replay_buffer.add(obs, action, rewards, dones, cpc_info)
 
             obs = next_obs
             episode_step += 1

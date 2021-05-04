@@ -1,0 +1,27 @@
+# @package _group_
+name: a2ccpc
+_target_: models.CPCAgent.CPCAgentGroup
+
+# Default Parameters
+obs_dim: ???
+action_dim: ???
+device: ${device}
+
+agent_types: ???
+
+lr: 5e-4
+eps: 1e-5
+alpha: 0.99
+max_grad_norm: 0.5
+entropy_coef: 0.01
+v_loss_coef: 0.5
+
+# Specific Parameters
+batch_size: 2
+seq_len: 100
+num_channel: 3
+use_cpc: true
+
+
+
+

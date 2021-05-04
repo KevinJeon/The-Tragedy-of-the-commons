@@ -3,4 +3,9 @@ name: default
 
 episode_length: 100
 
+blue_agent_count: 2
+red_agent_count: 2
+
+apple_color_ratio: 0.5
+apple_spawn_ratio: 0.1
 

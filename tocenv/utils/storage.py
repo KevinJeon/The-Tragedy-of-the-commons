@@ -32,6 +32,7 @@ class RolloutStorage(object):
         self.logprob = self.logprob.to(device)
         self.act = self.act.to(device)
         self.mask = self.mask.to(device)
+
     def add(self, obss, acts, rews, masks, infos):
         obss = tr.from_numpy(obss)
         rews = tr.tensor(rews)

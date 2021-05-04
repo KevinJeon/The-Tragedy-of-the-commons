@@ -14,34 +14,17 @@ def softmax(x):
 
 class RuleBasedAgent(Agent):
 
-    def __init__(self,
-                 name,
-                 obs_dim,
-                 action_dim,
-                 device,
-                 batch_size):
+    def __init__(self, agent_type):
         super(RuleBasedAgent, self).__init__()
 
-        self.color = 'blue'
+        self.color = agent_type
         self.agent_pos = (9, 5)
 
         ''' Settings '''
         self.main_favorable = 3
         self.sub_favorable = 1
 
-        self.batch_size = batch_size
-
-
-    def act(self, obs, sample=True) -> np.array:
-        joint_action = []
-
-        for iter_obs in obs:
-            joint_action.append(self._act(iter_obs))
-
-        return np.array(joint_action)
-
-    def _act(self, obs) -> np.array:
-
+    def act(self, obs) -> np.array:
         weight = self.get_weight_matrix(obs=obs)
 
         score = self.get_direction_score(weight=weight)
@@ -95,3 +78,38 @@ class RuleBasedAgent(Agent):
                 return self.main_favorable
             else:
                 return self.sub_favorable
+
+
+class RuleBasedAgentGroup(object):
+
+    def __init__(self,
+                 name,
+                 agent_types,
+                 obs_dim,
+                 action_dim,
+                 device,
+                 batch_size):
+        super(RuleBasedAgentGroup, self).__init__()
+
+        self.name = name
+        self.batch_size = batch_size
+        self.device = device
+
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+
+        self.agent_types = agent_types
+        self.agents = [RuleBasedAgent(
+                 agent_type,
+                ) for agent_type in self.agent_types]
+
+    def act(self, obses, sample=False):
+        joint_action = []
+
+        for iter_obs, agent in zip(obses, self.agents):
+            joint_action.append(agent.act(iter_obs))
+
+        return np.array(joint_action)
+
+    def train(self, memory, total_step, logger=None):
+        pass

@@ -1,20 +1,21 @@
 class TOCEnv(object):
     pass
 
+
 import random
 import numpy as np
 import cv2 as cv
+import ray
 
 from tocenv.components.block import BlockType
 from tocenv.components.position import Position
-
 
 from tocenv.utils.image import put_rgba_to_image, put_rgb_to_image
 
 from collections import namedtuple
 from tocenv.components.agent import Action
 
-from tocenv.components.agent import BlueAgent, RedAgent, Agent
+from tocenv.components.agent import Agent
 from tocenv.components.agent import Color
 
 ObservationSpace = namedtuple('ObservationSpace', 'shape')
@@ -33,14 +34,14 @@ class TOCEnv(object):
 
                  apple_color_ratio=0.5,
                  apple_spawn_ratio=0.3,
-                 
+
                  patch_count=3,
                  patch_distance=5,
                  ):
 
         self.agents = agents
         self.num_agents = len(self.agents)
-        
+
         self.map_size = map_size
         self.episode_max_length = episode_max_length
         self.obs_type = obs_type
@@ -64,8 +65,6 @@ class TOCEnv(object):
         self._blue_team_red_apple_count = 0
         self._blue_team_blue_apple_count = 0
 
-
-
         self._punishing_count = 0
         self._punished_count = 0
 
@@ -75,7 +74,7 @@ class TOCEnv(object):
         ''' Patch settings '''
         self.patch_count = patch_count
         self.patch_distance = patch_distance
-        
+
         ''' Apple spawning settings '''
         self._apple_color_ratio = apple_color_ratio
         self._apple_spawn_ratio = apple_spawn_ratio
@@ -193,6 +192,7 @@ class TOCEnv(object):
         self._rotate_count = 0
 
     def _create_world(self):
+        from tocenv.components.world import World
         self.world = World(env=self, size=self.map_size, \
                            patch_distance=self.patch_distance, patch_count=self.patch_count,
                            apple_color_ratio=self._apple_color_ratio, apple_spawn_ratio=self._apple_spawn_ratio
@@ -263,9 +263,12 @@ class TOCEnv(object):
 
         for iter_agent in self.world.agents:
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
-            if isinstance(iter_agent, BlueAgent):
+
+            from tocenv.components.agent import BlueAgent, RedAgent
+
+            if type(iter_agent) == BlueAgent:
                 put_rgba_to_image(resized_agent_blue, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
-            elif isinstance(iter_agent, RedAgent):
+            elif type(iter_agent) == RedAgent:
                 put_rgba_to_image(resized_agent_red, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
@@ -315,11 +318,13 @@ class TOCEnv(object):
                 for x in range(self.world.width + 1):
                     cv.putText(output_layer, '{0:2},{1:2}'.format(self.world.width - x, self.world.height - y),
                                (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
-                              cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
+                               cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
 
             for pos1, pos2, color in self._debug_buffer_line:
-                coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
-                coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
+                coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2),
+                          image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
+                coord2 = ((pos2.x) * self.pixel_per_block + (self.pixel_per_block // 2),
+                          image_size[0] - pos2.y * self.pixel_per_block - (self.pixel_per_block // 2))
 
                 output_layer = cv.line(output_layer, coord1, coord2, color)
 
@@ -477,6 +482,7 @@ class TOCEnv(object):
         return self._total_blue_eaten_count
 
     ''' Environment Variables Settings '''
+
     def set_patch_count(self, count: int) -> None:
         self.patch_count = count
 
@@ -490,6 +496,7 @@ class TOCEnv(object):
         self._apple_spawn_ratio = ratio
 
     ''' Debug settings '''
+
     def draw_line(self, pos1: Position, pos2: Position, color: Color):
         self._debug_buffer_line.append((pos1, pos2, color))
 
@@ -510,11 +517,70 @@ class TOCEnv(object):
         action_space = ActionSpace(shape=self.num_agents, n=Action().count)
         return action_space
 
+    def get_observation_space(self):
+        if self.obs_type == 'rgb_array':
+            return np.zeros(
+                shape=(self.num_agents, self._individual_render_pixel * 11, self._individual_render_pixel * 11),
+                dtype=np.float32)
+
+        elif self.obs_type == 'numeric':
+            return np.zeros(
+                shape=(self.num_agents, 11, 11),
+                dtype=np.float32)
+
+    def get_action_space(self):
+        action_space = ActionSpace(shape=self.num_agents, n=Action().count)
+        return action_space
+
     @property
     def episode_length(self) -> int:
         return self.episode_max_length
 
 
-from tocenv.components.world import World, Position
+@ray.remote
+class WorkerTOCEnv(TOCEnv):
+    def __init__(self):
+        super(WorkerTOCEnv, self).__init__()
+
+
+class ParallelTOCEnv(object):
+    def __init__(self,
+                 num_envs: int,
+                 **kwargs):
+
+        ray.init()
+        assert ray.is_initialized()
+
+        self.envs = [WorkerTOCEnv.remote(**kwargs) for i in range(num_envs)]
+
+    def step(self, actions):
+        jobs = [env.step.remote(actions) for env in self.envs]
+        result = ray.get(jobs)
+        return result
+
+    def reset(self):
+        jobs = [env.reset.remote() for env in self.envs]
+        result = ray.get(jobs)
+        return np.array(result)
+
+    def get_numeric_observation(self) -> np.array:
+        jobs = [env.get_numeric_observation.remote() for env in self.envs]
+        result = ray.get(jobs)
+        return np.array(result)
+
+    @property
+    def observation_space(self):
+        job = self.envs[0].observation_space.remote()
+        ret = ray.get(job)
+        return ret
+
+    @property
+    def action_space(self):
+        job = self.envs[0].action_space.remote()
+        ret = ray.get(job)
+        return ret
+
+
 from tocenv.components.resource import Resource
 import tocenv.components.item as items
+from tocenv.components.agent import BlueAgent, RedAgent

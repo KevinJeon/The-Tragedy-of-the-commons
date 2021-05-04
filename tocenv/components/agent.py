@@ -1,14 +1,20 @@
+class Agent(object):
+    pass
+
+
+class BlueAgent(object):
+    pass
+
+
+class RedAgent(object):
+    pass
+
+
 import names, random
 import numpy as np
 from copy import deepcopy
 
 from tocenv.components.observation import NumericObservation
-
-
-class Agent(object):
-    def __init__(self):
-        pass
-
 
 class Color:
     Red = (255, 0, 0)

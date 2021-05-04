@@ -29,6 +29,8 @@ COMMON_STATISTICS_FORMAT = [
 AGENT_TRAIN_FORMAT = {
     'rule': [],
     'a2c': [],
+    'cpc': [],
+    'a2ccpc': [],
     'sac': [
         ('batch_reward', 'BR', 'float'),
         ('actor_loss', 'ALOSS', 'float'),
@@ -176,8 +178,9 @@ class Logger(object):
 
         self._try_sw_log(key, value / n, step)
 
-        mg = self._train_mg if key.startswith('train') else self._eval_mg
-        mg.log(key, value, n)
+        if key.startswith('train') or key.startswith('eval'):
+            mg = self._train_mg if key.startswith('train') else self._eval_mg
+            mg.log(key, value, n)
 
     def log_param(self, key, param, step, log_frequency=None):
         if not self._should_log(step, log_frequency):

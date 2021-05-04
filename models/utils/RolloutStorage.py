@@ -38,6 +38,7 @@ class RolloutStorage(object):
         obss = tr.from_numpy(obss)
         rews = tr.tensor(rews)
         masks = tr.tensor(masks).int()
+
         for i in range(self.num_agent):
             self.obs[i, self.step + 1, self.n].copy_(obss[i])
             self.act[i, self.step, self.n].copy_(self.onehot[acts[i]].view(-1))
@@ -56,7 +57,6 @@ class RolloutStorage(object):
         self.step = (self.step + 1) % self.num_step
 
     def after_update(self):
-
         for i in range(self.num_agent):
             self.obs[i, 0].copy_(self.obs[i, -1])
             self.h[i, 0].copy_(self.h[i, -1])

@@ -1,38 +1,27 @@
 defaults:
-    - agent: a2c
+    - agent: rule
     - env: default
-
-# Environment Settings
-episode_length: 200
-
-blue_agent_count: 1
-red_agent_count: 1
-
-apple_color_ratio: 0.5
-apple_spawn_ratio: 0.1
-
 
 # Experiment Settings
 experiment: vanilla
 seed: 0
 
 num_train_steps: 1e6
-replay_buffer_capacity: 1e6
-num_seed_steps: 500
+# replay_buffer_capacity: 1e6 Not use on CPC
+num_seed_steps: 0
 
-eval_frequency: 1000
+eval_frequency: 5000
 num_eval_episodes: 5
 
 device: cpu
 
 # Logging Settings
-log_frequency: 600
+log_frequency: 5000
 log_save_tb: true
 save_video: true
 
 # Save Buffer
-save_model: false
-save_replay_buffer: false
+# save_model: false
 
 # hydra configuration
 hydra:
