@@ -362,7 +362,6 @@ class CPCAgentGroup(object):
                 v_loss, a_loss, entropy, cpc_res = agent.train(samples, infos)
 
                 agent_count = len(self.agents)
-                print('train', logger, total_step)
                 if logger:
                     logger.log('agent_{0}/train/v_loss'.format(i), v_loss / agent_count, total_step)
                     logger.log('agent_{0}/train/a_loss'.format(i), a_loss / agent_count, total_step)
