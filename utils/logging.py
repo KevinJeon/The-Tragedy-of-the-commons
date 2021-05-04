@@ -11,3 +11,8 @@ def log_statistics_to_writer(logger, step, statistics: dict) -> None:
     logger.log('statistics/eaten_apples/team_blue/red', statistics['eaten_apples']['team']['blue']['red'], step)
     logger.log('statistics/eaten_apples/team_red/red', statistics['eaten_apples']['team']['red']['red'], step)
     logger.log('statistics/eaten_apples/team_red/blue', statistics['eaten_apples']['team']['red']['blue'], step)
+
+
+def log_agent_to_writer(logger, step, agent_info: dict) -> None:
+    for i, info in enumerate(agent_info):
+        logger.log('agent_{0}/episode_reward'.format(i), info['accum_reward'], step)

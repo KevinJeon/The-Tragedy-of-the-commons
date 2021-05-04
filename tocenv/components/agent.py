@@ -2,11 +2,11 @@ class Agent(object):
     pass
 
 
-class BlueAgent(object):
+class BlueAgent(Agent):
     pass
 
 
-class RedAgent(object):
+class RedAgent(Agent):
     pass
 
 
@@ -70,6 +70,7 @@ class Agent(object):
         self._tick_punished = False
         self._tick_prev_action = None
 
+        self.accum_reward = 0.
 
     def act(self, action: Action):
         action = int(action)
@@ -191,6 +192,8 @@ class Agent(object):
         self.world.env.increase_punished_count()
 
     def tick(self) -> None:
+        self.accum_reward += self._tick_reward
+
         self._tick_reward = 0.
         self._tick_apple_eaten = None
         self._tick_used_punishment = False
@@ -212,6 +215,9 @@ class Agent(object):
     def get_prev_action(self) -> int:
         return self._tick_prev_action
 
+    def reset_accumulated_reward(self):
+        self.accum_reward = 0.
+
     def gather_info(self) -> dict():
         info = dict()
 
@@ -222,6 +228,7 @@ class Agent(object):
         info['punished'] = self.get_punished()
         info['punishing'] = self.get_used_punishment()
         info['eaten'] = self.get_apple_eaten()
+        info['accum_reward'] = self.accum_reward
 
         return info
 

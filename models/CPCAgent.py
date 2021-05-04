@@ -345,6 +345,7 @@ class CPCAgentGroup(object):
         memory.compute_return(next_vals, gamma=0.99)
         memory.n += 1
         if memory.n % self.batch_size == 0:  # if (memory.n != 0) and (memory.n % args.batch_size == 0):
+            v_losses, a_losses, entropies = [], [], []
             for i, agent in enumerate(self.agents):
                 # check for return calculate
                 obss, acts, act_inds, rews, rets, masks = \
@@ -363,17 +364,21 @@ class CPCAgentGroup(object):
 
                 agent_count = len(self.agents)
                 if logger:
-                    logger.log('agent_{0}/train/v_loss'.format(i), v_loss / agent_count, total_step)
-                    logger.log('agent_{0}/train/a_loss'.format(i), a_loss / agent_count, total_step)
-                    logger.log('agent_{0}/train/entropy'.format(i), entropy / agent_count, total_step)
+                    logger.log('agent_{0}/train/v_loss'.format(i), v_loss, total_step)
+                    logger.log('agent_{0}/train/a_loss'.format(i), a_loss, total_step)
+                    logger.log('agent_{0}/train/entropy'.format(i), entropy, total_step)
                     # writer.add_scalar('agent_{0}/train/cpc_res'.format(i), cpc_res / agent_count, total_step)
 
-                # vlosses.append(vloss)
-                # alosses.append(aloss)
-                # entropies.append(entropy)
+                v_losses.append(v_loss)
+                a_losses.append(a_loss)
+                entropies.append(entropy)
                 memory.after_update()  # Need to Check!
 
             # anum = args.red + args.blue
+
+            logger.log('train/v_loss', sum(v_losses) / len(self.agents), total_step)
+            logger.log('train/a_loss', sum(a_losses) / len(self.agents), total_step)
+            logger.log('train/entropy', sum(entropies) / len(self.agents), total_step)
 
             # print('Value loss : {:.2f} Action loss : {:.2f} Entropy : {:.2f}'.format(sum(vlosses) / anum,
                                                                                      # sum(alosses) / anum,

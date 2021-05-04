@@ -50,7 +50,7 @@ class TOCEnv(object):
         self._step_count = 0
         self.apple_count = 0
 
-        self.pixel_per_block = 32
+        self.pixel_per_block = 16
         self._individual_render_pixel = 8
 
         self.apple_respawn_rate = apple_respawn_rate
@@ -118,7 +118,8 @@ class TOCEnv(object):
         if self._step_count >= self.episode_max_length:
             done = True
         if done:
-            self.reset()
+            pass
+            # self.reset()
 
         done = [done for _ in self.agents]
 
@@ -176,8 +177,8 @@ class TOCEnv(object):
         return obs
 
     def _reset_statistics(self) -> None:
-        self._red_eaten_count = 0
-        self._blue_eaten_count = 0
+        self._total_red_eaten_count = 0
+        self._total_blue_eaten_count = 0
 
         self._red_team_red_apple_count = 0
         self._red_team_blue_apple_count = 0
@@ -190,6 +191,8 @@ class TOCEnv(object):
 
         self._movement_count = 0
         self._rotate_count = 0
+
+        [agent.reset_accumulated_reward() for agent in self.world.agents]
 
     def _create_world(self):
         from tocenv.components.world import World
@@ -464,6 +467,8 @@ class TOCEnv(object):
     def increase_red_apple_count(self, eaten_by: Agent) -> int:
         self._total_red_eaten_count += 1
 
+        from tocenv.components.agent import RedAgent, BlueAgent
+
         if type(eaten_by) == RedAgent:
             self._red_team_red_apple_count += 1
         elif type(eaten_by) == BlueAgent:
@@ -474,9 +479,11 @@ class TOCEnv(object):
     def increase_blue_apple_count(self, eaten_by: Agent) -> int:
         self._total_blue_eaten_count += 1
 
-        if type(eaten_by) == RedAgent:
+        from tocenv.components.agent import RedAgent, BlueAgent
+
+        if type(eaten_by) is RedAgent:
             self._red_team_blue_apple_count += 1
-        elif type(eaten_by) == BlueAgent:
+        elif type(eaten_by) is BlueAgent:
             self._blue_team_blue_apple_count += 1
 
         return self._total_blue_eaten_count
@@ -547,7 +554,6 @@ class ParallelTOCEnv(object):
     def __init__(self,
                  num_envs: int,
                  **kwargs):
-
         ray.init()
         assert ray.is_initialized()
 
@@ -583,4 +589,4 @@ class ParallelTOCEnv(object):
 
 from tocenv.components.resource import Resource
 import tocenv.components.item as items
-from tocenv.components.agent import BlueAgent, RedAgent
+from tocenv.components.agent import RedAgent, BlueAgent

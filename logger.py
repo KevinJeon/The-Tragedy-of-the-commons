@@ -30,7 +30,11 @@ AGENT_TRAIN_FORMAT = {
     'rule': [],
     'a2c': [],
     'cpc': [],
-    'a2ccpc': [],
+    'a2ccpc': [
+        ('a_loss', 'ALOSS', 'float'),
+        ('v_loss', 'VLOSS', 'float'),
+        ('entropy', 'ENT', 'float')
+    ],
     'sac': [
         ('batch_reward', 'BR', 'float'),
         ('actor_loss', 'ALOSS', 'float'),
@@ -61,6 +65,8 @@ class MetersGroup(object):
         self._csv_file_name = self._prepare_file(file_name, 'csv')
         self._formating = formating
         self._meters = defaultdict(AverageMeter)
+        self._prev_meters = dict()
+
         self._csv_file = open(self._csv_file_name, 'w')
         self._csv_writer = None
 
@@ -118,8 +124,16 @@ class MetersGroup(object):
         if save:
             data = self._prime_meters()
             data['step'] = step
+            for _format in self._formating:
+                if _format[0] not in data.keys():
+                    if _format[0] in self._prev_meters.keys():
+                        data[_format[0]] = self._prev_meters[_format[0]]
+                    else:
+                        data[_format[0]] = 0
             self._dump_to_csv(data)
             self._dump_to_console(data, prefix)
+
+        self._prev_meters = data
         self._meters.clear()
 
 

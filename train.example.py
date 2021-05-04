@@ -11,7 +11,7 @@ from models.CPCAgent import *
 from models.utils.RolloutStorage import RolloutStorage
 from recorder import VideoRecorder
 from tocenv.env import *
-from utils.logging import log_statistics_to_writer
+from utils.logging import *
 
 
 class Workspace(object):
@@ -126,6 +126,7 @@ class Workspace(object):
 
                 if env_info:
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
+                    log_agent_to_writer(self.logger, self.step, env_info['agents'])
 
                 self.agent.train(self.replay_buffer, self.logger, self.step)
                 self.logger.log('train/episode', episode, self.step)
@@ -153,8 +154,12 @@ class Workspace(object):
 
             next_obs, rewards, dones, env_info = self.env.step(action)
 
+            image = self.env.render()
+            cv2.imshow('image', image)
+            cv2.waitKey(1)
             done = True in dones
             if episode_step >= self.env.episode_length:
+                print(episode_step, self.env.episode_length, 'oot')
                 done = True
 
             episode_reward += sum(rewards)
