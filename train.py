@@ -145,12 +145,12 @@ def main(args):
             print('Value loss : {:.2f} Action loss : {:.2f} Entropy : {:.2f} Utility : {:2f}'.format(\
                     sum(vlosses)/anum, sum(alosses)/anum, sum(entropies)/anum, sum(epi_rews)/len(epi_rews)))
             epi_rews = []
-            if ep % args.save_freq == 0:
-                hparams = AGENT_CONFIG[args.agent_type][1]
-                base_fn = 'ep_{}_lr_{}_bs_{}_seq_{}.pt'.format(ep, hparams['lr'], args.batch_size, hparams['seq_len'])
-                for i, agent in enumerate(agents):
-                    agent_fn = 'agent{}_prefer_{}_'.format(i, prefer[i]) + base_fn
-                    tr.save(agent.state_dict(), osp.join(args.save_dir,agent_fn))
+        if ep % args.save_freq == 0:
+            hparams = AGENT_CONFIG[args.agent_type][1]
+            base_fn = 'ep_{}_lr_{}_bs_{}_seq_{}.pt'.format(ep, hparams['lr'], args.batch_size, hparams['seq_len'])
+            for i, agent in enumerate(agents):
+                agent_fn = 'agent{}_prefer_{}_'.format(i, prefer[i]) + base_fn
+                tr.save(agent.state_dict(), osp.join(args.save_dir,agent_fn))
 
 if __name__ == '__main__':
     args = parse_args()
