@@ -124,6 +124,8 @@ def main(args):
 
             anum = args.red + args.blue
             print('Value loss : {:.2f} Action loss : {:.2f} Entropy : {:.2f}'.format(sum(vlosses)/anum, sum(alosses)/anum, sum(entropies)/anum))
+
+
 if __name__ == '__main__':
     args = parse_args()
     main(args)

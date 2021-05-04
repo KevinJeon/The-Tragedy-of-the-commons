@@ -1,11 +1,9 @@
 import random
-import cv2
-import math
 import numpy as np
 
-from components.agent import Action
+from tocenv.components.agent import Action
 from models.Agent import Agent
-from components.observation import NumericObservation
+from tocenv.components.observation import NumericObservation
 
 
 def softmax(x):
@@ -16,20 +14,36 @@ def softmax(x):
 
 class RuleBasedAgent(Agent):
 
-    def __init__(self, color):
+    def __init__(self,
+                 name,
+                 obs_dim,
+                 action_dim,
+                 device,
+                 batch_size):
         super(RuleBasedAgent, self).__init__()
 
-        self.color = color
+        self.color = 'blue'
         self.agent_pos = (9, 5)
 
         ''' Settings '''
         self.main_favorable = 3
         self.sub_favorable = 1
 
-    def act(self, obs):
+        self.batch_size = batch_size
 
+
+    def act(self, obs, sample=True) -> np.array:
+        joint_action = []
+
+        for iter_obs in obs:
+            joint_action.append(self._act(iter_obs))
+
+        return np.array(joint_action)
+
+    def _act(self, obs) -> np.array:
 
         weight = self.get_weight_matrix(obs=obs)
+
         score = self.get_direction_score(weight=weight)
 
         score_softmax = softmax(score)
@@ -47,7 +61,6 @@ class RuleBasedAgent(Agent):
         for y, row in enumerate(obs):
             for x, data in enumerate(row):
                 dist = abs(self.agent_pos[0] - y) + abs(self.agent_pos[1] - x)
-
                 if data in [NumericObservation.BlueApple, NumericObservation.RedApple]:
                     weight[y][x] += self.get_favorable(data) * (0.5 ** dist)
 

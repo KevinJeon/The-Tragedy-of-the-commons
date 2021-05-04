@@ -171,6 +171,11 @@ class TOCEnv(object):
 
         return obs, info
 
+    def get_numeric_observation(self) -> np.array:
+        obs = [iter_agent.get_view_as_type() for iter_agent in self.world.agents]
+        obs = np.array(obs, dtype=np.uint8)
+        return obs
+
     def _reset_statistics(self) -> None:
         self._red_eaten_count = 0
         self._blue_eaten_count = 0
@@ -311,8 +316,6 @@ class TOCEnv(object):
                     cv.putText(output_layer, '{0:2},{1:2}'.format(self.world.width - x, self.world.height - y),
                                (image_size[1] - x * self.pixel_per_block, y * self.pixel_per_block - 10),
                               cv.FONT_HERSHEY_SCRIPT_SIMPLEX, 0.3, (255, 255, 255), 1, cv.LINE_AA)
-
-
 
             for pos1, pos2, color in self._debug_buffer_line:
                 coord1 = ((pos1.x) * self.pixel_per_block + (self.pixel_per_block // 2), image_size[0] - pos1.y * self.pixel_per_block - (self.pixel_per_block // 2))
@@ -507,6 +510,9 @@ class TOCEnv(object):
         action_space = ActionSpace(shape=self.num_agents, n=Action().count)
         return action_space
 
+    @property
+    def episode_length(self) -> int:
+        return self.episode_max_length
 
 
 from tocenv.components.world import World, Position

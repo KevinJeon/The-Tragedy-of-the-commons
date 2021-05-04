@@ -68,3 +68,6 @@ tensorflow==2.4.1
 tensorflow-estimator==2.4.0
 tensorflow-gpu==2.4.1
 termcolor==1.1.0
+
+imageio
+imageio-ffmpeg

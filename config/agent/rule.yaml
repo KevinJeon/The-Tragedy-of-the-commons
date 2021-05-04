@@ -1,0 +1,14 @@
+# @package _group_
+name: rule
+_target_: models.RuleBasedAgent.RuleBasedAgent
+
+
+# Default Parameters
+
+obs_dim: ???
+action_dim: ???
+device: ${device}
+
+# Specific Parameters
+batch_size: 1024
+

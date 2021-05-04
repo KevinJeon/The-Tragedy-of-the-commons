@@ -1,10 +1,7 @@
 import cv2 as cv
-import random
-import numpy as np
 
-from env import TOCEnv
+from tocenv.env import TOCEnv
 from pprint import pprint
-import cv2
 
 from models.RuleBasedAgent import RuleBasedAgent
 
@@ -40,6 +37,7 @@ def main():
             image = env.render(coordination=True)
 
             state = next_state
+
 
 if __name__ == '__main__':
     main()

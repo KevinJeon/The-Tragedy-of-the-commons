@@ -5,5 +5,7 @@ class Agent(object):
         pass
 
     def act(self):
-        raise NotImplementedError
+        pass
 
+    def train(self, replay_buffer, logger, step):
+        pass
