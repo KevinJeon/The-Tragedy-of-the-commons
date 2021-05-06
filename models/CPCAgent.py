@@ -110,10 +110,12 @@ class A2CCPCAgent(nn.Module):
             dist = Categorical(lin_s_f)
             if sample:
                 act = dist.sample().unsqueeze(-1)
+
+            # TODO torch==1.8.0 doesn't support Categorial.mode()
             else:
-                # TODO change sample() to mode()
-                # act = dist.mode().unsqueeze(-1)
                 act = dist.sample().unsqueeze(-1)
+            #     act = dist.mode().unsqueeze(-1)
+
             a_f = self.action_encoder(act.view(-1))
 
         logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
