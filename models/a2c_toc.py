@@ -43,7 +43,7 @@ class CPC(nn.Module):
         else:
             bs = self.batch_size
             step = int(n // self.batch_size)
-        z = self.encoder(obs.view(-1, c, he, w) / 255.0).view(bs, step, -1)
+        z = self.encoder(obs.view(-1, c, he, w)).view(bs, step, -1)
         s_f, h = self.gru(z, h)
         s_f = s_f.view(bs*step, -1)
         h = h.squeeze(0)
@@ -52,13 +52,13 @@ class CPC(nn.Module):
 
 class CPCAgent(nn.Module):
 
-    def __init__(self, batch_size, seq_len, timestep, num_action, num_channel):
+    def __init__(self, batch_size, seq_len, num_action, num_channel):
         super(CPCAgent, self).__init__()
         self.batch_size = batch_size
         self.seq_len = seq_len
         self.num_hidden = 128
-        self.s_linear = nn.ModuleList([nn.Linear(128, 128) for i in range(timestep)])
-        self.a_linear = nn.ModuleList([nn.Linear(128, 128) for i in range(timestep)])
+        self.s_linear = nn.ModuleList([nn.Linear(128, 128) for i in range(seq_len)])
+        self.a_linear = nn.ModuleList([nn.Linear(128, 128) for i in range(seq_len)])
         self.action_encoder = nn.Embedding(num_action, 128)
         self.state_encoder = CPC(num_action, num_channel, batch_size)
         self.act_linear = nn.Linear(128, num_action)

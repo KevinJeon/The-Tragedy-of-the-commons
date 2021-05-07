@@ -1,4 +1,3 @@
-
 class Agent(object):
 
     def __init__(self):
@@ -9,3 +8,4 @@ class Agent(object):
 
     def train(self, replay_buffer, logger, step):
         pass
+      
