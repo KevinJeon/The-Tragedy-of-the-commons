@@ -13,10 +13,10 @@ num_seed_steps: 0
 eval_frequency: 5000
 num_eval_episodes: 5
 
-device: cpu
+device: cuda
 
 # Logging Settings
-log_frequency: 5000
+log_frequency: 1000
 log_save_tb: true
 save_video: true
 
