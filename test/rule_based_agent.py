@@ -37,7 +37,3 @@ def main():
             image = env.render(coordination=True)
 
             state = next_state
-
-
-if __name__ == '__main__':
-    main()
