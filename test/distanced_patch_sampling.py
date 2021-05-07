@@ -1,6 +1,6 @@
 import cv2
 
-import env
+from tocenv import env
 
 
 def main():
@@ -12,8 +12,8 @@ def main():
     patch_count = 11
     patch_distance = 11
 
-    for count in range(14, 15):
-        for distance in range(4, 8):
+    for count in range(9, 15):
+        for distance in range(4, 5):
             for _ in range(100):
                 tocEnv.set_patch_count(count)
                 tocEnv.set_patch_distance(distance)

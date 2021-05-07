@@ -1,12 +1,3 @@
-from typing import Union
-
-import numpy as np
-import random
-import math
-
-from tocenv.env import TOCEnv
-
-
 class World(object):
     pass
 
@@ -14,6 +5,14 @@ class World(object):
 class Field(object):
     pass
 
+
+from typing import Union
+
+import numpy as np
+import random
+import math
+
+from tocenv.env import TOCEnv
 
 import tocenv.components.item as items
 import tocenv.components.agent as agent

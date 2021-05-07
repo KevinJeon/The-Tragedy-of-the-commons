@@ -142,6 +142,7 @@ def main(args):
                 memory.after_update() # Need to Check!
 
             anum = args.red + args.blue
+
             print('Value loss : {:.2f} Action loss : {:.2f} Entropy : {:.2f} Utility : {:2f}'.format(\
                     sum(vlosses)/anum, sum(alosses)/anum, sum(entropies)/anum, sum(epi_rews)/len(epi_rews)))
             epi_rews = []
@@ -151,6 +152,7 @@ def main(args):
             for i, agent in enumerate(agents):
                 agent_fn = 'agent{}_prefer_{}_'.format(i, prefer[i]) + base_fn
                 tr.save(agent.state_dict(), osp.join(args.save_dir,agent_fn))
+
 
 if __name__ == '__main__':
     args = parse_args()

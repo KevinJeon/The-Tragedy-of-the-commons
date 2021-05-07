@@ -1,5 +1,10 @@
 /.idea
+/venv
 *.pyc
 *.swp
 
 runs
+experiment
+multirun
+
+*.log

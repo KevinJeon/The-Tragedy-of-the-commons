@@ -5,6 +5,7 @@ from torch.distributions import Categorical
 import torch.nn.functional as F
 import torch.optim as optim
 
+
 class CPC(nn.Module):
 
     def __init__(self, num_action, num_channel, batch_size):
@@ -47,6 +48,7 @@ class CPC(nn.Module):
         s_f = s_f.view(bs*step, -1)
         h = h.squeeze(0)
         return self.value(s_f), s_f, h
+
 
 class CPCAgent(nn.Module):
 
@@ -113,8 +115,8 @@ class CPCAgent(nn.Module):
         
         return p_s, p_a
 
+
 class CPCTrainer:
-    
     def __init__(self, agent, eps, alpha, max_grad_norm, lr, entropy_coef, vloss_coef):
         self.agent = agent
         self.optimizer = optim.RMSprop(self.agent.parameters(), lr, eps=eps, alpha=alpha)
@@ -124,6 +126,7 @@ class CPCTrainer:
         self.softmax = nn.Softmax(dim=0)
         self.entropy_coef = entropy_coef
         self.vloss_coef = vloss_coef
+
     def cpc_loss(self, s_f, a_f):
         num_step, batch_size, num_hidden = a_f.shape
         nce_s = 0
@@ -139,7 +142,7 @@ class CPCTrainer:
             nce_a += tr.sum(tr.diag(self.log_softmax(a_total)))
             acc_s += tr.sum(tr.eq(tr.argmax(self.softmax(s_total), dim=0), tr.arange(0, batch_size).to(self.device)))
             acc_a += tr.sum(tr.eq(tr.argmax(self.softmax(a_total), dim=0), tr.arange(0, batch_size).to(self.device)))
-        
+
         nce_s /= -1 * batch_size * num_step
         nce_a /= -1 * batch_size * num_step
         acc_s = 1. * acc_s.item() / (batch_size * num_step)
@@ -160,7 +163,7 @@ class CPCTrainer:
         rets = samples[4]
         masks = samples[5][:-1]
 
-        
+
         vs, logprobs, entropy, _, s_f, a_f = self.agent.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].view(-1, 128), act_inds.view(-1, 1), masks.reshape(-1, 1))
         vs = vs.view(step, bs, 1)
         s_f = s_f.view(step, bs, -1)
