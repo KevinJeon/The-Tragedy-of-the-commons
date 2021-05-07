@@ -26,7 +26,6 @@ class TOCEnv(object):
 
     def __init__(self,
                  agents: list,
-                 apple_respawn_rate=1,
 
                  map_size=(16, 16),
                  episode_max_length=300,
@@ -52,8 +51,6 @@ class TOCEnv(object):
 
         self.pixel_per_block = 16
         self._individual_render_pixel = 8
-
-        self.apple_respawn_rate = apple_respawn_rate
 
         ''' Info variables '''
         self._total_red_eaten_count = 0

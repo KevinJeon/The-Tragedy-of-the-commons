@@ -31,8 +31,11 @@ class Workspace(object):
         prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
         self.env = TOCEnv(agents=prefer,
                           episode_max_length=cfg.env.episode_length,
-                          apple_color_ratio=0.5,
-                          apple_spawn_ratio=0.1)
+                          apple_color_ratio=cfg.env.apple_color_ratio,
+                          apple_spawn_ratio=cfg.env.apple_spawn_ratio,
+                          patch_count=cfg.env.patch_count,
+                          patch_distance=cfg.env.patch_distance,
+                          )
 
         # self.env = ParallelTOCEnv(num_envs=2,
         #                           agents=prefer,
@@ -154,6 +157,10 @@ class Workspace(object):
                     action = self.agent.act(obs, sample=False)
 
             next_obs, rewards, dones, env_info = self.env.step(action)
+
+            if self.cfg.render:
+                cv2.imshow('TOCEnv', self.env.render())
+                cv2.waitKey(1)
 
             done = True in dones
             if episode_step >= self.env.episode_length:

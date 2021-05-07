@@ -19,9 +19,10 @@ device: cuda
 log_frequency: 1000
 log_save_tb: true
 save_video: true
+# save_model: false
 
 # Save Buffer
-# save_model: false
+render: false
 
 # hydra configuration
 hydra:
