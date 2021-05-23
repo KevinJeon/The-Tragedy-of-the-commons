@@ -1,10 +1,15 @@
 from models.Agent import Agent
 
+import os
+
+import torch
 import torch as tr
 import torch.nn as nn
 from torch.distributions import Categorical
 import torch.nn.functional as F
 import torch.optim as optim
+
+from utils.sys import make_dir
 
 
 class CPC(nn.Module):
@@ -108,13 +113,14 @@ class A2CCPCAgent(nn.Module):
             lin_s_f = self.act_linear(s_f)
             lin_s_f = F.softmax(lin_s_f, dim=-1)
             dist = Categorical(lin_s_f)
+
             if sample:
                 act = dist.sample().unsqueeze(-1)
 
             # TODO torch==1.8.0 doesn't support Categorial.mode()
             else:
+                # act = dist.sample().unsqueeze(-1)
                 act = dist.sample().unsqueeze(-1)
-            #     act = dist.mode().unsqueeze(-1)
 
             a_f = self.action_encoder(act.view(-1))
 
@@ -212,6 +218,12 @@ class A2CCPCAgent(nn.Module):
 
         return vloss.item(), aloss.item(), entropy.item(), cpc_res
 
+    def save(self, num):
+        make_dir('models')
+        make_dir(f'models/{num}')
+
+        torch.save(self.state_dict(), os.path.join('.', 'models', str(num), f'{self.name}.pth'))
+
 
 class CPCAgentGroup(object):
 
@@ -242,7 +254,7 @@ class CPCAgentGroup(object):
         self.use_cpc = use_cpc
 
         self.agent_types = agent_types
-        self.agents = [A2CCPCAgent(name,
+        self.agents = [A2CCPCAgent(name + "_" + str(i) + "_" + color,
                                    lr,
                                    eps,
                                    alpha,
@@ -255,7 +267,7 @@ class CPCAgentGroup(object):
                                    seq_len,
                                    num_channel,
                                    use_cpc,
-                                   device) for _ in self.agent_types]
+                                   device) for i, color in enumerate(self.agent_types)]
 
         self.seq_len = seq_len
 
@@ -310,12 +322,11 @@ class CPCAgentGroup(object):
                 entropies.append(entropy)
                 memory.after_update()  # Need to Check!
 
-            # anum = args.red + args.blue
-
             logger.log('train/v_loss', sum(v_losses) / len(self.agents), total_step)
             logger.log('train/a_loss', sum(a_losses) / len(self.agents), total_step)
             logger.log('train/entropy', sum(entropies) / len(self.agents), total_step)
 
-            # print('Value loss : {:.2f} Action loss : {:.2f} Entropy : {:.2f}'.format(sum(vlosses) / anum,
-                                                                                     # sum(alosses) / anum,
-                                                                                     # sum(entropies) / anum))
+                                                                       # sum(alosses) / anum,
+    def save(self, model_num):
+        for agent in self.agents:
+            agent.save(model_num)

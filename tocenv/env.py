@@ -5,7 +5,9 @@ class TOCEnv(object):
 import random
 import numpy as np
 import cv2 as cv
+import json
 import ray
+import os
 
 from tocenv.components.block import BlockType
 from tocenv.components.position import Position
@@ -36,6 +38,9 @@ class TOCEnv(object):
 
                  patch_count=3,
                  patch_distance=5,
+
+                 reward_same_color=3,
+                 reward_oppo_color=1
                  ):
 
         self.agents = agents
@@ -75,6 +80,10 @@ class TOCEnv(object):
         ''' Apple spawning settings '''
         self._apple_color_ratio = apple_color_ratio
         self._apple_spawn_ratio = apple_spawn_ratio
+
+        ''' Reward settings '''
+        self.reward_same_color = float(reward_same_color)
+        self.reward_oppo_color = float(reward_oppo_color)
 
         ''' Debug '''
         self._debug_buffer_line = []
@@ -518,7 +527,7 @@ class TOCEnv(object):
 
     @property
     def action_space(self):
-        action_space = ActionSpace(shape=self.num_agents, n=Action().count)
+        action_space = ActionSpace(shape=(self.num_agents, Action().action_count), n=Action().action_count)
         return action_space
 
     def get_observation_space(self):
@@ -533,7 +542,7 @@ class TOCEnv(object):
                 dtype=np.float32)
 
     def get_action_space(self):
-        action_space = ActionSpace(shape=self.num_agents, n=Action().count)
+        action_space = ActionSpace(shape=(self.num_agents, Action().action_count), n=Action().action_count)
         return action_space
 
     @property
@@ -570,6 +579,15 @@ class ParallelTOCEnv(object):
         jobs = [env.get_numeric_observation.remote() for env in self.envs]
         result = ray.get(jobs)
         return np.array(result)
+
+
+    def load_from_json(self, path):
+        print(path)
+        with open(path, 'r') as f:
+            setting_json = json.load(os.path.join('config', f))
+            print(setting_json)
+
+
 
     @property
     def observation_space(self):

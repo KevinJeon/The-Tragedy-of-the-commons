@@ -1,5 +1,5 @@
 # @package _group_
-name: rule
+name: rule_agent
 _target_: models.RuleBasedAgent.RuleBasedAgentGroup
 
 

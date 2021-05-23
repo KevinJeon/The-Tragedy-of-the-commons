@@ -1,5 +1,5 @@
 # @package _group_
-name: a2ccpc
+name: cpc_agent
 _target_: models.CPCAgent.CPCAgentGroup
 
 # Default Parameters

@@ -1,6 +1,6 @@
 defaults:
     - agent: rule
-    - env: default
+    - env: 5b5r_rs3ro1_pc4pd8
 
 # Experiment Settings
 experiment: vanilla
@@ -19,7 +19,7 @@ device: cuda
 log_frequency: 1000
 log_save_tb: true
 save_video: true
-# save_model: false
+save_model: true
 
 # Save Buffer
 render: false

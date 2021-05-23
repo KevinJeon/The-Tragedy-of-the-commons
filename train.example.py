@@ -35,22 +35,15 @@ class Workspace(object):
                           apple_spawn_ratio=cfg.env.apple_spawn_ratio,
                           patch_count=cfg.env.patch_count,
                           patch_distance=cfg.env.patch_distance,
+                          reward_same_color=cfg.env.reward_same_color,
+                          reward_oppo_color=cfg.env.reward_oppo_color
                           )
-
-        # self.env = ParallelTOCEnv(num_envs=2,
-        #                           agents=prefer,
-        #                           episode_max_length=cfg.episode_length,
-        #                           apple_color_ratio=0.5,
-        #                           apple_spawn_ratio=0.1
-        #                           )
-
-
 
         self.device = torch.device(cfg.device)
         self.env.reset()
 
         cfg.agent.obs_dim = self.env.observation_space.shape
-        cfg.agent.action_dim = self.env.action_space.shape
+        cfg.agent.action_dim = self.env.action_space.n
         cfg.agent.agent_types = prefer
 
         self.agent = hydra.utils.instantiate(cfg.agent)
@@ -100,6 +93,9 @@ class Workspace(object):
 
             average_episode_reward += episode_reward
         self.video_recorder.save(f'{self.step}.mp4')
+
+        if self.cfg.save_model:
+            self.agent.save(self.step)
 
         average_episode_reward /= self.cfg.num_eval_episodes
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
@@ -155,7 +151,6 @@ class Workspace(object):
                     action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=False)
                 else:
                     action = self.agent.act(obs, sample=False)
-
             next_obs, rewards, dones, env_info = self.env.step(action)
 
             if self.cfg.render:

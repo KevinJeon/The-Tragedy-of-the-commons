@@ -27,10 +27,10 @@ COMMON_STATISTICS_FORMAT = [
 ]
 
 AGENT_TRAIN_FORMAT = {
-    'rule': [],
+    'rule_agent': [],
     'a2c': [],
     'cpc': [],
-    'a2ccpc': [
+    'cpc_agent': [
         ('a_loss', 'ALOSS', 'float'),
         ('v_loss', 'VLOSS', 'float'),
         ('entropy', 'ENT', 'float')

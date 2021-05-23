@@ -1,4 +1,5 @@
 import abc
+from abc import ABC
 
 
 class Item(object):
@@ -10,19 +11,16 @@ class Item(object):
     def on_collapsed(self): pass
 
 
-class Apple(Item):
-
+class Apple(Item, ABC):
     def __init__(self):
-        self.reward = 1.
+        pass
 
 
-class RedApple(Apple):
+class RedApple(Apple, ABC):
     def __init__(self):
         super(RedApple, self).__init__()
-        self.reward = 3.
 
 
-class BlueApple(Apple):
+class BlueApple(Apple, ABC):
     def __init__(self):
         super(BlueApple, self).__init__()
-        self.reward = 3.

@@ -26,19 +26,16 @@ class Color:
 
 class Action:
     No_Op = 0
-
     Move_Up = 1
     Move_Down = 2
     Move_Left = 3
     Move_Right = 4
-
     Rotate_Right = 5
     Rotate_Left = 6
-
     Attack = 7
 
     @property
-    def count(self):
+    def action_count(self):
         return 8
 
 
@@ -343,11 +340,11 @@ class RedAgent(Agent):
         item = self.world.correct_item(pos=self.position)
 
         if isinstance(item, items.RedApple):
-            self._tick_reward += item.reward
+            self._tick_reward += self.world.env.reward_same_color
             self._tick_apple_eaten = 'red'
             self.world.env.increase_red_apple_count(eaten_by=self)
         elif isinstance(item, items.BlueApple):
-            self._tick_reward += 1
+            self._tick_reward += self.world.env.reward_oppo_color
             self._tick_apple_eaten = 'blue'
             self.world.env.increase_blue_apple_count(eaten_by=self)
 
@@ -363,11 +360,11 @@ class BlueAgent(Agent):
         item = self.world.correct_item(pos=self.position)
 
         if isinstance(item, items.BlueApple):
-            self._tick_reward += item.reward
+            self._tick_reward += self.world.env.reward_same_color
             self._tick_apple_eaten = 'blue'
             self.world.env.increase_blue_apple_count(eaten_by=self)
         elif isinstance(item, items.RedApple):
-            self._tick_reward += 1
+            self._tick_reward += self.world.env.reward_oppo_color
             self._tick_apple_eaten = 'red'
             self.world.env.increase_red_apple_count(eaten_by=self)
         return self
