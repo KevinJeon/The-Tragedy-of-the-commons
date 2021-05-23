@@ -3,7 +3,7 @@ name: default
 
 width: 16
 height: 16
-episode_length: 1000
+episode_length: 100
 
 blue_agent_count: 2
 red_agent_count: 2
