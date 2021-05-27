@@ -22,3 +22,4 @@ RUN pip install --upgrade pip setuptools wheel
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+RUN apt-get install -y vim tmux nano
