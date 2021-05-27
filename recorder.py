@@ -27,6 +27,14 @@ class VideoRecorder(object):
             frame = np.array(frame, dtype=np.uint8)
             self.frames.append(frame)
 
+    def record_observation(self, frame):
+        if self.enabled:
+            frame = cv2.resize(frame, (96, 96))
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            frame = frame * 255.
+            frame = np.array(frame, dtype=np.uint8)
+            self.frames.append(frame)
+
     def save(self, file_name):
         if self.enabled:
             path = os.path.join(self.save_dir, file_name)

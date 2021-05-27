@@ -46,10 +46,16 @@ class Workspace(object):
         cfg.agent.action_dim = self.env.action_space.n
         cfg.agent.agent_types = prefer
 
+        try:
+            cfg.agent.seq_len = self.env.episode_length
+        except:
+            pass
+
         self.agent = hydra.utils.instantiate(cfg.agent)
 
         if type(self.agent) in [CPCAgentGroup]:
-            self.replay_buffer = RolloutStorage(agent_type='ac', num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
+            self.replay_buffer = RolloutStorage(agent_type='ac',
+                                                num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.agent.batch_size, num_obs=(88, 88, 3), num_action=8,
                                                 num_rec=128)
@@ -58,12 +64,18 @@ class Workspace(object):
         self.writer = None
 
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
+        self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
+        self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
+
         self.step = 0
 
     def evaluate(self):
         average_episode_reward = 0
 
         self.video_recorder.init(enabled=True)
+        self.video_recorder_blue.init(enabled=True)
+        self.video_recorder_red.init(enabled=True)
+
         for episode in range(self.cfg.num_eval_episodes):
             obs, _ = self.env.reset()
             episode_step = 0
@@ -87,12 +99,19 @@ class Workspace(object):
                     done = True
 
                 self.video_recorder.record(self.env)
+
+                ''' Render Individual Sight-view '''
+                self.video_recorder_blue.record_observation(obs[0])
+                self.video_recorder_red.record_observation(obs[4])
+
                 episode_reward += sum(rewards)
 
                 episode_step += 1
 
             average_episode_reward += episode_reward
         self.video_recorder.save(f'{self.step}.mp4')
+        self.video_recorder_blue.save(f'{self.step}_blue.mp4')
+        self.video_recorder_red.save(f'{self.step}_red.mp4')
 
         if self.cfg.save_model:
             self.agent.save(self.step)

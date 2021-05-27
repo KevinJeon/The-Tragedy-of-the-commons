@@ -15,8 +15,37 @@ Placeholder
 
 ### Action
 
+## Preliminaries
+### Using Dockerfile
+```bash
+docker build  -t tocenv .
+```
+### Using Anaconda
+```bash
+conda create -n tocenv python=3.7
+activate tocenv
+pip install -r requirements.txt
+```
+
+
+## Experiment
+### Train Roll-out Agents
+```bash
+python train.py --multirun \
+      env=5b5r_rs4ro0_pc4pd8,5b5r_rs3ro1_pc4pd8,5b5r_rs2ro2_pc4pd8 \
+      agent=a2ccpc \
+      save_model=true
+```
+This command with train your A2C-CPC agents on these reward settings
+- Motivated reward - 4, Un-motivated reward - 0
+- Motivated reward - 3, Un-motivated reward - 1
+- Motivated reward - 2, Un-motivated reward - 2
+
+The model files with save in your `multirun/{seq}/models` directory. The `{seq}` will be running sequence of defined on your parameter.  
+You also check training status with your tensorboard file in `multirun/{seq}/tb` directory.
 
 ### Info
+
 #### Agents
 ##### Directions
 Which directions the agents are looking for  

@@ -16,6 +16,7 @@ from copy import deepcopy
 
 from tocenv.components.observation import NumericObservation
 
+
 class Color:
     Red = (255, 0, 0)
     Orange = (200, 0, 0)
@@ -63,11 +64,16 @@ class Agent(object):
         # Agent's accumulated reward during one step
         self._tick_reward = 0.
         self._tick_apple_eaten = None
+
+        self._blue_eaten_count = 0
+        self._red_eaten_count = 0
+
         self._tick_used_punishment = False
         self._tick_punished = False
         self._tick_prev_action = None
 
         self.accum_reward = 0.
+
 
     def act(self, action: Action):
         action = int(action)
@@ -215,6 +221,10 @@ class Agent(object):
     def reset_accumulated_reward(self):
         self.accum_reward = 0.
 
+    def reset_statistics(self) -> None:
+        self._blue_eaten_count = 0
+        self._red_eaten_count = 0
+
     def gather_info(self) -> dict():
         info = dict()
 
@@ -226,6 +236,7 @@ class Agent(object):
         info['punishing'] = self.get_used_punishment()
         info['eaten'] = self.get_apple_eaten()
         info['accum_reward'] = self.accum_reward
+        info['eaten_apples'] = {'blue': self._blue_eaten_count, 'red': self._red_eaten_count}
 
         return info
 
@@ -342,10 +353,12 @@ class RedAgent(Agent):
         if isinstance(item, items.RedApple):
             self._tick_reward += self.world.env.reward_same_color
             self._tick_apple_eaten = 'red'
+            self._red_eaten_count += 1
             self.world.env.increase_red_apple_count(eaten_by=self)
         elif isinstance(item, items.BlueApple):
             self._tick_reward += self.world.env.reward_oppo_color
             self._tick_apple_eaten = 'blue'
+            self._blue_eaten_count += 1
             self.world.env.increase_blue_apple_count(eaten_by=self)
 
         return self
@@ -362,11 +375,14 @@ class BlueAgent(Agent):
         if isinstance(item, items.BlueApple):
             self._tick_reward += self.world.env.reward_same_color
             self._tick_apple_eaten = 'blue'
+            self._blue_eaten_count += 1
             self.world.env.increase_blue_apple_count(eaten_by=self)
         elif isinstance(item, items.RedApple):
             self._tick_reward += self.world.env.reward_oppo_color
             self._tick_apple_eaten = 'red'
+            self._red_eaten_count += 1
             self.world.env.increase_red_apple_count(eaten_by=self)
+
         return self
 
 

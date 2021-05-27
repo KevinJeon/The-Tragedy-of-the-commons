@@ -6,12 +6,12 @@ defaults:
 experiment: vanilla
 seed: 0
 
-num_train_steps: 1e6
+num_train_steps: 5e5
 # replay_buffer_capacity: 1e6 Not use on CPC
 num_seed_steps: 0
 
-eval_frequency: 5000
-num_eval_episodes: 5
+eval_frequency: 10000
+num_eval_episodes: 3
 
 device: cuda
 
@@ -19,7 +19,7 @@ device: cuda
 log_frequency: 1000
 log_save_tb: true
 save_video: true
-save_model: true
+save_model: false
 
 # Save Buffer
 render: false

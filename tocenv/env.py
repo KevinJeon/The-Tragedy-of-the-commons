@@ -174,6 +174,7 @@ class TOCEnv(object):
         [iter_agent.tick() for iter_agent in self.world.agents]
 
         self._reset_statistics()
+        [iter_agent.reset_statistics() for iter_agent in self.world.agents]
 
         return obs, info
 
