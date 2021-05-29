@@ -12,7 +12,7 @@ from models.utils.RolloutStorage import RolloutStorage
 from recorder import VideoRecorder
 from tocenv.env import *
 from utils.logging import *
-
+from utils.svm import svo
 
 class Workspace(object):
     def __init__(self, cfg):
@@ -50,7 +50,7 @@ class Workspace(object):
             cfg.agent.seq_len = self.env.episode_length
         except:
             pass
-
+        self.num_agent = cfg.env.blue_agent_count + cfg.env.red_agent_count
         self.agent = hydra.utils.instantiate(cfg.agent)
 
         if type(self.agent) in [CPCAgentGroup]:
@@ -182,9 +182,12 @@ class Workspace(object):
                 done = True
 
             episode_reward += sum(rewards)
-
+            modified_reward = np.zeros(self.num_agent)
+            # Applying prosocial SVO
+            for i in range(self.num_agent):
+                modified_reward[i] = svo(rewards, i)
             if type(self.agent) in [CPCAgentGroup]:
-                self.replay_buffer.add(obs, action, rewards, dones, cpc_info)
+                self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
 
             obs = next_obs
             episode_step += 1
