@@ -80,8 +80,7 @@ class Field(object):
     def tick(self):
         self.generate_item()
 
-    def force_spawn_item(self, ratio=0.5):
-        print(ratio)
+    def force_spawn_item(self, ratio=0.025):
         positions = self.positions
         num_samples = max(math.ceil(len(positions) * ratio), 1)
 
@@ -129,7 +128,7 @@ class VariousAppleField(Field):
             if random.random() < prob:
                 self.world.spawn_item(item(), pos)
 
-    def force_spawn_item(self, ratio=0.5):
+    def force_spawn_item(self, ratio=0.025):
 
         positions = self.positions
         num_samples = max(math.ceil(len(positions) * ratio), 1)
