@@ -81,6 +81,7 @@ class Field(object):
         self.generate_item()
 
     def force_spawn_item(self, ratio=0.5):
+        print(ratio)
         positions = self.positions
         num_samples = max(math.ceil(len(positions) * ratio), 1)
 
