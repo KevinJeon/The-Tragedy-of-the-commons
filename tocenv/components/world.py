@@ -127,10 +127,16 @@ class VariousAppleField(Field):
         surrounded_items = self.world.get_surrounded_items(pos=Position(x=x, y=y), radius=3)
         apple_ratio = len(surrounded_items) / len(surrounded_positions) * prob
 
-
+        spawned_apple = []
         for pos, item in zip(sampled_positions, spawned_apples):
             if random.random() < apple_ratio:
-                self.world.spawn_item(item(), apple_ratio)
+                # 배치할거지만 배열
+                spawned_apple.append((item(), pos))
+                # self.world.spawn_item(item(), apple_ratio)
+
+        for item, pos in spawned_apple:
+            self.world.spawn_item(item, apple_ratio)
+
 
     def force_spawn_item(self, ratio=0.5):
 

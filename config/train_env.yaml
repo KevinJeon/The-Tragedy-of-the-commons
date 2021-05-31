@@ -1,0 +1,30 @@
+defaults:
+    - agent: rule
+    - env: 5b5r_rs3ro1_pc4pd8
+
+# Experiment Settings
+experiment: vanilla
+seed: 0
+
+num_train_steps: 5e5
+# replay_buffer_capacity: 1e6 Not use on CPC
+num_seed_steps: 0
+
+eval_frequency: 10000
+num_eval_episodes: 3
+
+device: cuda
+
+# Logging Settings
+log_frequency: 1000
+log_save_tb: true
+save_video: true
+save_model: false
+
+# Save Buffer
+render: false
+
+# hydra configuration
+hydra:
+    run:
+        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${agent.name}
