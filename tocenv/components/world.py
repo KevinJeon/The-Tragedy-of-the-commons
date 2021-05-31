@@ -117,20 +117,16 @@ class VariousAppleField(Field):
         empty_positions = self._get_empty_positions()
         agent_positions = [iter_agent.position for iter_agent in self.world.agents]
 
-        apple_count = min(1, len(empty_positions))
-
-        sampled_positions = random.sample(empty_positions, k=apple_count)
 
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
-        surrounded_positions = self.world.get_surrounded_positions(pos=Position(x=x, y=y), radius=3)
-        surrounded_items = self.world.get_surrounded_items(pos=Position(x=x, y=y), radius=3)
-        apple_ratio = len(surrounded_items) / len(surrounded_positions) * prob
+        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(empty_positions))
 
-
-        for pos, item in zip(sampled_positions, spawned_apples):
+        for pos, item in zip(empty_positions, spawned_apples):
+            surrounded_positions = self.world.get_surrounded_positions(pos=pos, radius=3)
+            surrounded_items = self.world.get_surrounded_items(pos=pos, radius=3)
+            apple_ratio = len(surrounded_items) / len(surrounded_positions) * prob
             if random.random() < apple_ratio:
-                self.world.spawn_item(item(), apple_ratio)
+                self.world.spawn_item(item(), pos)
 
     def force_spawn_item(self, ratio=0.5):
 

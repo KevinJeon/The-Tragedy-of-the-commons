@@ -43,6 +43,7 @@ class Workspace(object):
 
         prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
         self.env = TOCEnv(agents=prefer,
+                          map_size=(cfg.env.width, cfg.env.height),
                           episode_max_length=cfg.env.episode_length,
                           apple_color_ratio=cfg.env.apple_color_ratio,
                           apple_spawn_ratio=cfg.env.apple_spawn_ratio,
@@ -58,8 +59,7 @@ class Workspace(object):
         cfg.agent.obs_dim = self.env.observation_space.shape
         cfg.agent.action_dim = self.env.action_space.n
         cfg.agent.agent_types = prefer
-        print(cfg.agent.obs_dim)
-
+        self.obs_dim = 15
         try:
             cfg.agent.seq_len = self.env.episode_length
         except:
