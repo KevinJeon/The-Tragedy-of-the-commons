@@ -45,7 +45,7 @@ class TOCEnv(object):
 
         self.agents = agents
         self.num_agents = len(self.agents)
-
+        self.obs_dim = 15
         self.map_size = map_size
         self.episode_max_length = episode_max_length
         self.obs_type = obs_type
@@ -518,12 +518,12 @@ class TOCEnv(object):
     def observation_space(self):
         if self.obs_type == 'rgb_array':
             return np.zeros(
-                shape=(self.num_agents, self._individual_render_pixel * 11, self._individual_render_pixel * 11),
+                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim),
                 dtype=np.float32)
 
         elif self.obs_type == 'numeric':
             return np.zeros(
-                shape=(self.num_agents, 11, 11),
+                shape=(self.num_agents, self.obs_dim, self.obs_dim),
                 dtype=np.float32)
 
     @property
@@ -534,7 +534,7 @@ class TOCEnv(object):
     def get_observation_space(self):
         if self.obs_type == 'rgb_array':
             return np.zeros(
-                shape=(self.num_agents, self._individual_render_pixel * 11, self._individual_render_pixel * 11),
+                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim),
                 dtype=np.float32)
 
         elif self.obs_type == 'numeric':

@@ -80,7 +80,7 @@ class Field(object):
     def tick(self):
         self.generate_item()
 
-    def force_spawn_item(self, ratio=0.025):
+    def force_spawn_item(self, ratio=0.5):
         positions = self.positions
         num_samples = max(math.ceil(len(positions) * ratio), 1)
 
@@ -112,7 +112,7 @@ class VariousAppleField(Field):
     def tick(self):
         self.generate_item(prob=self.prob)
 
-    def generate_item(self, prob=0.3):
+    def generate_item(self, prob=0.025):
 
         empty_positions = self._get_empty_positions()
         agent_positions = [iter_agent.position for iter_agent in self.world.agents]
@@ -123,12 +123,16 @@ class VariousAppleField(Field):
 
         apples = [items.BlueApple, items.RedApple]
         spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
+        surrounded_positions = self.world.get_surrounded_positions(pos=Position(x=x, y=y), radius=3)
+        surrounded_items = self.world.get_surrounded_items(pos=Position(x=x, y=y), radius=3)
+        apple_ratio = len(surrounded_items) / len(surrounded_positions) * prob
+
 
         for pos, item in zip(sampled_positions, spawned_apples):
-            if random.random() < prob:
-                self.world.spawn_item(item(), pos)
+            if random.random() < apple_ratio:
+                self.world.spawn_item(item(), apple_ratio)
 
-    def force_spawn_item(self, ratio=0.025):
+    def force_spawn_item(self, ratio=0.5):
 
         positions = self.positions
         num_samples = max(math.ceil(len(positions) * ratio), 1)

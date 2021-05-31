@@ -58,6 +58,7 @@ class Workspace(object):
         cfg.agent.obs_dim = self.env.observation_space.shape
         cfg.agent.action_dim = self.env.action_space.n
         cfg.agent.agent_types = prefer
+        print(cfg.agent.obs_dim)
 
         try:
             cfg.agent.seq_len = self.env.episode_length
@@ -70,7 +71,7 @@ class Workspace(object):
             self.replay_buffer = RolloutStorage(agent_type='ac',
                                                 num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
                                                 num_step=cfg.env.episode_length,
-                                                batch_size=cfg.agent.batch_size, num_obs=(88, 88, 3), num_action=8,
+                                                batch_size=cfg.agent.batch_size, num_obs=(8 * self.obs_dim, 8 * self.obs_dim, 3), num_action=8,
                                                 num_rec=128)
 
         # self.writer = SummaryWriter(log_dir="tb")
