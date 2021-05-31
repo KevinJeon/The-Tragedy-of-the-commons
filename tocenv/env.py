@@ -518,7 +518,7 @@ class TOCEnv(object):
     def observation_space(self):
         if self.obs_type == 'rgb_array':
             return np.zeros(
-                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim),
+                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim, 3),
                 dtype=np.float32)
 
         elif self.obs_type == 'numeric':
@@ -534,7 +534,7 @@ class TOCEnv(object):
     def get_observation_space(self):
         if self.obs_type == 'rgb_array':
             return np.zeros(
-                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim),
+                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim, 3),
                 dtype=np.float32)
 
         elif self.obs_type == 'numeric':
