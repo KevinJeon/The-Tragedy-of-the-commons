@@ -1,5 +1,5 @@
 defaults:
-    - agent: rule
+    - ra_agent: rule
     - env: 5b5r_rs3ro1_pc4pd8
 
 # Experiment Settings
@@ -27,4 +27,4 @@ render: false
 # hydra configuration
 hydra:
     run:
-        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${agent.name}
+        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${ra_agent.name}

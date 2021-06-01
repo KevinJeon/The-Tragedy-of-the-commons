@@ -113,29 +113,18 @@ class VariousAppleField(Field):
         self.generate_item(prob=self.prob)
 
     def generate_item(self, prob=0.025):
-
         empty_positions = self._get_empty_positions()
         agent_positions = [iter_agent.position for iter_agent in self.world.agents]
 
-        apple_count = min(1, len(empty_positions))
-
-        sampled_positions = random.sample(empty_positions, k=apple_count)
-
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_positions))
-        surrounded_positions = self.world.get_surrounded_positions(pos=Position(x=x, y=y), radius=3)
-        surrounded_items = self.world.get_surrounded_items(pos=Position(x=x, y=y), radius=3)
-        apple_ratio = len(surrounded_items) / len(surrounded_positions) * prob
+        spawned_apples = random.choices(apples, weights=(self.world.env.apple_color_ratio, 1-self.world.env.apple_color_ratio), k=len(empty_positions))
 
-        spawned_apple = []
-        for pos, item in zip(sampled_positions, spawned_apples):
-            if random.random() < apple_ratio:
-                # 배치할거지만 배열
-                spawned_apple.append((item(), pos))
-                # self.world.spawn_item(item(), apple_ratio)
-
-        for item, pos in spawned_apple:
-            self.world.spawn_item(item, apple_ratio)
+        # for pos, item in zip(empty_positions, spawned_apples):
+        #     surrounded_positions = self.world.get_surrounded_positions(pos=pos, radius=3)
+        #     surrounded_items = self.world.get_surrounded_items(pos=pos, radius=3)
+        #     apple_ratio = len(surroundedt_items) / len(surrounded_positions) * prob
+        #     if random.random() < apple_ratio:
+        #         self.world.spawn_item(item(), pos)
 
 
     def force_spawn_item(self, ratio=0.5):
@@ -146,7 +135,7 @@ class VariousAppleField(Field):
         sampled_position = random.sample(positions, num_samples)
 
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.ratio, 1-self.ratio), k=len(sampled_position))
+        spawned_apples = random.choices(apples, weights=(self.world.env.apple_color_ratio, 1-self.world.env.apple_color_ratio), k=len(sampled_position))
 
         for pos, item in zip(sampled_position, spawned_apples):
             if random.random() < ratio:

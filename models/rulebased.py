@@ -4,7 +4,7 @@ import numpy as np
 class RuleBasedAgent:
 
     def __init__(self, prefer, justice, obs_size):
-        # agent characteristics
+        # ra_agent characteristics
         self.prefer = prefer
         if self.prefer == 'red':
             self.u = [1, 2]
@@ -22,7 +22,7 @@ class RuleBasedAgent:
         self.is_train = False
 
     def act(self, obs):
-        # Each step, agent find the most closest apple. 
+        # Each step, ra_agent find the most closest apple.
         
         # if can get apple
         act  = None

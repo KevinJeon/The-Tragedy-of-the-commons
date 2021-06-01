@@ -142,7 +142,7 @@ class Agent(object):
             elif self.direction.value == DirectionType.Right:
                 new_pos = self.position - Position(x=0, y=1)
 
-        if not self.world.get_agent(new_pos) is not None: # If other agent exists
+        if not self.world.get_agent(new_pos) is not None: # If other ra_agent exists
             if self.world.map_contains(new_pos):
                 self.position = new_pos
 
@@ -256,7 +256,7 @@ class Agent(object):
         positions = view.View.get_visible_positions(self.direction)
         positions = np.array(positions, dtype=object)
 
-        # Fill agent on grid
+        # Fill ra_agent on grid
         grid = deepcopy(self.world.grid)
         effects = deepcopy(self.world.effects)
 
@@ -273,19 +273,19 @@ class Agent(object):
                 if self.world.map_contains(abs_position):  # If position is outside of map
                     item = grid[abs_position.y][abs_position.x]
 
-                    if item is None:  # If item or agent exists on the position
+                    if item is None:  # If item or ra_agent exists on the position
                         sketch[y][x] = BlockType.Empty
                     else:
 
                         if isinstance(item, Agent):
-                            if isinstance(item, BlueAgent):  # If the agent is myself
+                            if isinstance(item, BlueAgent):  # If the ra_agent is myself
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueAgent)
-                            elif isinstance(item, RedAgent):  # Or agent is companion or opponent
+                            elif isinstance(item, RedAgent):  # Or ra_agent is companion or opponent
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedAgent)
                         elif isinstance(item, items.Apple):
-                            if isinstance(item, items.BlueApple):  # If the agent is myself
+                            if isinstance(item, items.BlueApple):  # If the ra_agent is myself
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueApple)
-                            elif isinstance(item, items.RedApple):  # Or agent is companion or opponent
+                            elif isinstance(item, items.RedApple):  # Or ra_agent is companion or opponent
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedApple)
 
                     effect = effects[abs_position.y][abs_position.x]
@@ -302,7 +302,7 @@ class Agent(object):
         positions = view.View.get_visible_positions(self.direction)
         positions = np.array(positions, dtype=object)
 
-        # Fill agent on grid
+        # Fill ra_agent on grid
         grid = deepcopy(self.world.grid)
 
         for iter_agent in self.world.agents:
@@ -318,11 +318,11 @@ class Agent(object):
                 if self.world.map_contains(abs_position):  # If position is outside of map
                     item = grid[abs_position.y][abs_position.x]
 
-                    if item is None:  # If item or agent exists on the position
+                    if item is None:  # If item or ra_agent exists on the position
                         sketch[y][x] = NumericObservation.Empty
                     else:
                         if isinstance(item, Agent):
-                            if item == self:  # If the agent is myself
+                            if item == self:  # If the ra_agent is myself
                                 sketch[y][x] = NumericObservation.Self
                             elif isinstance(item, BlueAgent):
                                 sketch[y][x] = NumericObservation.BlueAgent

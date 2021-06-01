@@ -78,8 +78,8 @@ class TOCEnv(object):
         self.patch_distance = patch_distance
 
         ''' Apple spawning settings '''
-        self._apple_color_ratio = apple_color_ratio
-        self._apple_spawn_ratio = apple_spawn_ratio
+        self.apple_color_ratio = apple_color_ratio
+        self.apple_spawn_ratio = apple_spawn_ratio
 
         ''' Reward settings '''
         self.reward_same_color = float(reward_same_color)
@@ -205,7 +205,7 @@ class TOCEnv(object):
         from tocenv.components.world import World
         self.world = World(env=self, size=self.map_size, \
                            patch_distance=self.patch_distance, patch_count=self.patch_count,
-                           apple_color_ratio=self._apple_color_ratio, apple_spawn_ratio=self._apple_spawn_ratio
+                           apple_color_ratio=self.apple_color_ratio, apple_spawn_ratio=self.apple_spawn_ratio
                            )
 
     def _render_layers(self) -> None:
@@ -504,10 +504,10 @@ class TOCEnv(object):
         self.patch_distance = distance
 
     def set_apple_color_ratio(self, ratio: float) -> None:
-        self._apple_color_ratio = ratio
+        self.apple_color_ratio = ratio
 
     def apple_spawn_ratio(self, ratio: float) -> None:
-        self._apple_spawn_ratio = ratio
+        self.apple_spawn_ratio = ratio
 
     ''' Debug settings '''
 
@@ -580,15 +580,6 @@ class ParallelTOCEnv(object):
         jobs = [env.get_numeric_observation.remote() for env in self.envs]
         result = ray.get(jobs)
         return np.array(result)
-
-
-    def load_from_json(self, path):
-        print(path)
-        with open(path, 'r') as f:
-            setting_json = json.load(os.path.join('config', f))
-            print(setting_json)
-
-
 
     @property
     def observation_space(self):

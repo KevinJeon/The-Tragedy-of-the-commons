@@ -1,5 +1,6 @@
 defaults:
-    - agent: rule
+    - ra_agent: rule
+    - ma_agent: ppolstm
     - env: 5b5r_rs3ro1_pc4pd8
 
 # Experiment Settings
@@ -21,10 +22,12 @@ log_save_tb: true
 save_video: true
 save_model: false
 
+ma_agent_action_interval: 100
+
 # Save Buffer
 render: false
 
 # hydra configuration
 hydra:
     run:
-        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${agent.name}
+        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${ra_agent.name}

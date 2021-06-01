@@ -33,7 +33,7 @@ pip install -r requirements.txt
 ```bash
 python train.py --multirun \
       env=5b5r_rs4ro0_pc4pd8,5b5r_rs3ro1_pc4pd8,5b5r_rs2ro2_pc4pd8 \
-      agent=a2ccpc \
+      ra_agent=a2ccpc \
       save_model=true
 ```
 This command with train your A2C-CPC agents on these reward settings

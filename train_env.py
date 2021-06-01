@@ -1,3 +1,7 @@
+import copy
+import logging
+import random
+
 import cv2
 import hydra
 import os
@@ -5,15 +9,20 @@ import time
 import torch
 from omegaconf import DictConfig
 
+import logging
 from logger import Logger
 from models.RuleBasedAgent import *
 from models.CPCAgent import *
 from models.utils.RolloutStorage import RolloutStorage
+from models.utils.ManagerReplayStorage import ManagerReplayStorage
 from recorder import VideoRecorder
 from tocenv.env import *
 from utils.logging import *
 import numpy as np
 
+from utils.observation import ma_obs_to_numpy
+
+logger = logging.getLogger(__file__)
 
 def svo(rews, aind):
     exc_rews = (np.sum(rews) - rews[aind]) / (len(rews) - 1)
@@ -41,7 +50,7 @@ class Workspace(object):
         self.logger = Logger(self.work_dir,
                              save_tb=cfg.log_save_tb,
                              log_frequency=cfg.log_frequency,
-                             agent=cfg.agent.name)
+                             agent=cfg.ra_agent.name)
 
         prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
         self.env = TOCEnv(agents=prefer,
@@ -57,19 +66,23 @@ class Workspace(object):
         self.device = torch.device(cfg.device)
         self.env.reset()
 
-        cfg.agent.obs_dim = self.env.observation_space.shape
-        cfg.agent.action_dim = self.env.action_space.n
-        cfg.agent.agent_types = prefer
+        cfg.ra_agent.obs_dim = self.env.observation_space.shape
+        cfg.ra_agent.action_dim = self.env.action_space.n
+        cfg.ra_agent.agent_types = prefer
+
+        cfg.ma_agent.obs_dim = (self.cfg.ma_agent_action_interval, 84, 84, 3)
+        cfg.ma_agent.action_dim = 1
 
         try:
-            cfg.agent.seq_len = self.env.episode_length
+            cfg.ra_agent.seq_len = self.env.episode_length
         except:
             pass
 
         self.num_agent = cfg.env.blue_agent_count + cfg.env.red_agent_count
-        self.agent = hydra.utils.instantiate(cfg.agent)
+        self.ra_agent = hydra.utils.instantiate(cfg.ra_agent)
+        self.ma_agent = hydra.utils.instantiate(cfg.ma_agent)
 
-        if type(self.agent) in [CPCAgentGroup]:
+        if type(self.ra_agent) in [CPCAgentGroup]:
             self.replay_buffer = RolloutStorage(agent_type='ac',
                                                 num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
                                                 num_step=cfg.env.episode_length,
@@ -100,13 +113,13 @@ class Workspace(object):
             episode_reward = 0
             while not done:
 
-                if type(self.agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
+                if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                     obs = self.env.get_numeric_observation()
 
-                if type(self.agent) is CPCAgentGroup:
-                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=True)
+                if type(self.ra_agent) is CPCAgentGroup:
+                    action, cpc_info = self.ra_agent.act(self.replay_buffer, obs, episode_step, sample=True)
                 else:
-                    action = self.agent.act(obs, sample=True)
+                    action = self.ra_agent.act(obs, sample=True)
 
                 obs, rewards, dones, _ = self.env.step(action)
 
@@ -130,7 +143,7 @@ class Workspace(object):
         self.video_recorder_red.save(f'{self.step}_red.mp4')
 
         if self.cfg.save_model:
-            self.agent.save(self.step)
+            self.ra_agent.save(self.step)
 
         average_episode_reward /= self.cfg.num_eval_episodes
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
@@ -142,7 +155,15 @@ class Workspace(object):
         start_time = time.time()
         env_info = None
 
+        ''' MA variables '''
+        prev_ma_obs = None
+        arr_ma_obs = []
+        ma_action = 0
+        ma_reward = 0
+        self.env.set_apple_color_ratio(ma_action) # Initial MA action
+
         while self.step < self.cfg.num_train_steps + 1:
+
             if done or self.step % self.cfg.eval_frequency == 0:
                 if self.step > 0:
                     self.logger.log('train/duration', time.time() - start_time, self.step)
@@ -163,7 +184,7 @@ class Workspace(object):
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
 
                 if hasattr(self, 'replay_buffer'):
-                    self.agent.train(self.replay_buffer, self.logger, self.step)
+                    self.ra_agent.train(self.replay_buffer, self.logger, self.step)
                 self.logger.log('train/episode', episode, self.step)
 
                 obs, env_info = self.env.reset()
@@ -172,45 +193,75 @@ class Workspace(object):
                 episode_step = 0
                 episode += 1
 
-            if type(self.agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
+            if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                 obs = self.env.get_numeric_observation()
 
             if self.step < self.cfg.num_seed_steps:
                 # Define random actions
-                if type(self.agent) is CPCAgentGroup:
-                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=True)
+                if type(self.ra_agent) is CPCAgentGroup:
+                    action, cpc_info = self.ra_agent.act(self.replay_buffer, obs, episode_step, sample=True)
                 else:
-                    action = self.agent.act(obs, sample=True)
+                    action = self.ra_agent.act(obs, sample=True)
             else:
-                if type(self.agent) is CPCAgentGroup:
-                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=False)
+                if type(self.ra_agent) is CPCAgentGroup:
+                    action, cpc_info = self.ra_agent.act(self.replay_buffer, obs, episode_step, sample=False)
                 else:
-                    action = self.agent.act(obs, sample=False)
+                    action = self.ra_agent.act(obs, sample=False)
+
+            self.env.set_apple_color_ratio(random.random())
+
             next_obs, rewards, dones, env_info = self.env.step(action)
+            ma_obs = self.env.render(coordination=False)
+
+            arr_ma_obs.append(ma_obs)
 
             if self.cfg.render:
-                cv2.imshow('TOCEnv', self.env.render())
+                cv2.imshow('TOCEnv', ma_obs)
                 cv2.waitKey(1)
 
             done = True in dones
             if episode_step >= self.env.episode_length:
-                print(episode_step, self.env.episode_length, 'oot')
                 done = True
 
             episode_reward += sum(rewards)
+            ma_reward += sum(rewards)
+
             modified_rewards = np.zeros(self.num_agent)
             # Applying prosocial SVO
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i)
-            if type(self.agent) in [CPCAgentGroup]:
+            if type(self.ra_agent) in [CPCAgentGroup]:
                 self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
+
+            # On state sequence collected (MA step)
+            if len(arr_ma_obs) == self.cfg.ma_agent_action_interval:
+
+                ma_obs = ma_obs_to_numpy(arr_ma_obs)
+
+                if prev_ma_obs is not None:
+                    self.ma_agent.buffer.rewards.append(ma_reward)
+                    self.ma_agent.buffer.is_terminals.append(False)
+
+                if len(self.ma_agent.buffer.states) >= self.ma_agent.batch_size:
+                    logger.info('Train MA Agent')
+                    self.ma_agent.update()
+
+                ma_action = self.ma_agent.act(ma_obs)
+                logger.info('MA Agent Acted - {0}'.format(ma_action))
+                self.env.set_apple_color_ratio(ma_action)
+
+                prev_ma_obs = copy.deepcopy(ma_obs)
+                arr_ma_obs.clear()
+                ma_reward = 0
+
+
 
             obs = next_obs
             episode_step += 1
             self.step += 1
 
 
-@hydra.main(config_path="config", config_name="train")
+@hydra.main(config_path="config", config_name="train_env")
 def main(cfg: DictConfig) -> None:
     workspace = Workspace(cfg)
     workspace.run()
