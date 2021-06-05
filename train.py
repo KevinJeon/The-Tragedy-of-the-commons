@@ -13,6 +13,7 @@ from recorder import VideoRecorder
 from tocenv.env import *
 from utils.logging import *
 from utils.svo import svo
+from make_pool import make_pool
 import numpy as np
 
 
@@ -41,6 +42,9 @@ class Workspace(object):
                           reward_same_color=cfg.env.reward_same_color,
                           reward_oppo_color=cfg.env.reward_oppo_color
                           )
+
+        preferences = make_pool(2.5, self.env.num_agents)
+        self.env.set_agent_preference(preferences)
 
         self.device = torch.device(cfg.device)
         self.env.reset()

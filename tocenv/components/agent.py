@@ -278,9 +278,9 @@ class Agent(object):
                     else:
 
                         if isinstance(item, Agent):
-                            if isinstance(item, BlueAgent):  # If the agent is myself
+                            if isinstance(item, BlueAgent) or isinstance(item, CustomPreferenceBlueAgent):  # If the agent is myself
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueAgent)
-                            elif isinstance(item, RedAgent):  # Or agent is companion or opponent
+                            elif isinstance(item, RedAgent) or isinstance(item, CustomPreferenceRedAgent):  # Or agent is companion or opponent
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedAgent)
                         elif isinstance(item, items.Apple):
                             if isinstance(item, items.BlueApple):  # If the agent is myself
@@ -324,9 +324,9 @@ class Agent(object):
                         if isinstance(item, Agent):
                             if item == self:  # If the agent is myself
                                 sketch[y][x] = NumericObservation.Self
-                            elif isinstance(item, BlueAgent):
+                            elif isinstance(item, BlueAgent) or isinstance(item, CustomPreferenceBlueAgent):
                                 sketch[y][x] = NumericObservation.BlueAgent
-                            elif isinstance(item, RedAgent):
+                            elif isinstance(item, RedAgent) or isinstance(item, CustomPreferenceRedAgent):
                                 sketch[y][x] = NumericObservation.RedAgent
                         elif isinstance(item, items.Apple):
                             if isinstance(item, items.BlueApple):
@@ -384,6 +384,53 @@ class BlueAgent(Agent):
             self.world.env.increase_red_apple_count(eaten_by=self)
 
         return self
+
+
+class CustomPreferenceRedAgent(RedAgent):
+    def __init__(self, world, pos, preference):
+        super(CustomPreferenceRedAgent, self).__init__(world=world, pos=pos)
+        self.color = 'red'
+        self.preference = preference
+
+    def _try_gather(self):
+        item = self.world.correct_item(pos=self.position)
+
+        if isinstance(item, items.RedApple):
+            self._tick_reward += self.preference
+            self._tick_apple_eaten = 'red'
+            self._red_eaten_count += 1
+            self.world.env.increase_red_apple_count(eaten_by=self)
+        elif isinstance(item, items.BlueApple):
+            self._tick_reward += 4 - self.preference
+            self._tick_apple_eaten = 'blue'
+            self._blue_eaten_count += 1
+            self.world.env.increase_blue_apple_count(eaten_by=self)
+
+        return self
+
+
+class CustomPreferenceBlueAgent(BlueAgent):
+    def __init__(self, world, pos, preference):
+        super(CustomPreferenceBlueAgent, self).__init__(world=world, pos=pos)
+        self.color = 'blue'
+        self.preference = preference
+
+    def _try_gather(self):
+        item = self.world.correct_item(pos=self.position)
+
+        if isinstance(item, items.BlueApple):
+            self._tick_reward += self.preference
+            self._tick_apple_eaten = 'blue'
+            self._blue_eaten_count += 1
+            self.world.env.increase_blue_apple_count(eaten_by=self)
+        elif isinstance(item, items.RedApple):
+            self._tick_reward += 4 - self.preference
+            self._tick_apple_eaten = 'red'
+            self._red_eaten_count += 1
+            self.world.env.increase_red_apple_count(eaten_by=self)
+
+        return self
+
 
 
 # Lazy import (Circular import issue)

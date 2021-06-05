@@ -224,6 +224,16 @@ class World(object):
 
         return spawned
 
+    def spawn_agent_with_preference(self, pos: Position, color: Color, preference: float):
+        if color == Color.Red:
+            spawned = agent.CustomPreferenceRedAgent(world=self, pos=pos, preference=preference)
+        elif color == Color.Blue:
+            spawned = agent.CustomPreferenceBlueAgent(world=self, pos=pos, preference=preference)
+
+        self.agents.append(spawned)
+
+        return spawned
+
     def spawn_block(self, pos: Position):
         spawned = block.Block(world=self)
         self.grid[pos.y][pos.x] = block

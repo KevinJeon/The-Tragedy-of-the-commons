@@ -1,3 +1,6 @@
+import logging
+
+
 class TOCEnv(object):
     pass
 
@@ -22,6 +25,8 @@ from tocenv.components.agent import Color
 
 ObservationSpace = namedtuple('ObservationSpace', 'shape')
 ActionSpace = namedtuple('ActionSpace', 'shape n')
+
+logger = logging.getLogger(__file__)
 
 
 class TOCEnv(object):
@@ -139,15 +144,27 @@ class TOCEnv(object):
         self._create_world()
         self._step_count = 0
 
-        for color in self.agents:
-            pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
+        if not hasattr(self, 'custom_preference'):
+            for color in self.agents:
+                pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
 
-            if color == 'red':
-                self.world.spawn_agent(pos=pos, color=Color.Red)
-            elif color == 'blue':
-                self.world.spawn_agent(pos=pos, color=Color.Blue)
-            else:
-                raise Exception('Unknown color type')
+                if color == 'red':
+                    self.world.spawn_agent(pos=pos, color=Color.Red)
+                elif color == 'blue':
+                    self.world.spawn_agent(pos=pos, color=Color.Blue)
+                else:
+                    raise Exception('Unknown color type')
+
+        else:
+            for color, preference in zip(self.agents, self.custom_preference):
+                pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
+
+                if color == 'red':
+                    self.world.spawn_agent_with_preference(pos=pos, color=Color.Red, preference=preference)
+                elif color == 'blue':
+                    self.world.spawn_agent_with_preference(pos=pos, color=Color.Blue, preference=preference)
+                else:
+                    raise Exception('Unknown color type')
 
         if self.obs_type == 'rgb_array':
             obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
@@ -274,11 +291,11 @@ class TOCEnv(object):
         for iter_agent in self.world.agents:
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
 
-            from tocenv.components.agent import BlueAgent, RedAgent
+            from tocenv.components.agent import BlueAgent, RedAgent, CustomPreferenceBlueAgent, CustomPreferenceRedAgent
 
-            if type(iter_agent) == BlueAgent:
+            if type(iter_agent) in [BlueAgent, CustomPreferenceBlueAgent]:
                 put_rgba_to_image(resized_agent_blue, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
-            elif type(iter_agent) == RedAgent:
+            elif type(iter_agent) in [RedAgent, CustomPreferenceRedAgent]:
                 put_rgba_to_image(resized_agent_red, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
@@ -518,7 +535,8 @@ class TOCEnv(object):
     def observation_space(self):
         if self.obs_type == 'rgb_array':
             return np.zeros(
-                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim, 3),
+                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim,
+                       self._individual_render_pixel * self.obs_dim, 3),
                 dtype=np.float32)
 
         elif self.obs_type == 'numeric':
@@ -534,7 +552,8 @@ class TOCEnv(object):
     def get_observation_space(self):
         if self.obs_type == 'rgb_array':
             return np.zeros(
-                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim, self._individual_render_pixel * self.obs_dim, 3),
+                shape=(self.num_agents, self._individual_render_pixel * self.obs_dim,
+                       self._individual_render_pixel * self.obs_dim, 3),
                 dtype=np.float32)
 
         elif self.obs_type == 'numeric':
@@ -545,6 +564,13 @@ class TOCEnv(object):
     def get_action_space(self):
         action_space = ActionSpace(shape=(self.num_agents, Action().action_count), n=Action().action_count)
         return action_space
+
+    def set_agent_preference(self, preferences: list) -> None:
+        logging.warning('Custom preference setting applied. The \'reward_same_color\' and \'reward_oppo_color\' parameter will be ignored.')
+        logging.info('Custom preference setting - {0}'.format(preferences))
+
+        self.custom_preference = preferences
+        self.reset()
 
     @property
     def episode_length(self) -> int:
@@ -580,14 +606,6 @@ class ParallelTOCEnv(object):
         jobs = [env.get_numeric_observation.remote() for env in self.envs]
         result = ray.get(jobs)
         return np.array(result)
-
-
-    def load_from_json(self, path):
-        print(path)
-        with open(path, 'r') as f:
-            setting_json = json.load(os.path.join('config', f))
-            print(setting_json)
-
 
 
     @property
