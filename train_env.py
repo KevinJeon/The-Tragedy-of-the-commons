@@ -22,7 +22,8 @@ import numpy as np
 
 from utils.observation import ma_obs_to_numpy
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(os.path.basename(__file__))
+
 
 def svo(rews, aind):
     exc_rews = (np.sum(rews) - rews[aind]) / (len(rews) - 1)

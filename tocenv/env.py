@@ -6,7 +6,6 @@ import random
 import numpy as np
 import cv2 as cv
 import json
-import ray
 import os
 
 from tocenv.components.block import BlockType
@@ -551,7 +550,6 @@ class TOCEnv(object):
         return self.episode_max_length
 
 
-@ray.remote
 class WorkerTOCEnv(TOCEnv):
     def __init__(self):
         super(WorkerTOCEnv, self).__init__()
