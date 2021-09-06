@@ -1,0 +1,28 @@
+# @package _group_
+name: a2clstm
+_target_: models.PPOLSTMAgent.PPOLSTMAgent
+
+# Default Parameters
+obs_dim: ???
+action_dim: ???
+device: ${device}
+
+lr_actor: 0.0003
+lr_critic: 0.001
+
+K_epochs: 5
+eps_clip: 0.2
+gamma: 0.99
+
+max_grad_norm: 0.5
+entropy_coef: 0.01
+v_loss_coef: 0.5
+
+lstm_length: ${ma_agent_action_interval}
+
+# Specific Parameters
+batch_size: 32
+
+
+
+

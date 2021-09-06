@@ -156,7 +156,7 @@ class Logger(object):
             self._sw = SummaryWriter(tb_dir)
         else:
             self._sw = None
-        # each agent has specific output format for training
+        # each ra_agent has specific output format for training
 
         assert agent in AGENT_TRAIN_FORMAT
         train_format = COMMON_TRAIN_FORMAT + AGENT_TRAIN_FORMAT[agent]
