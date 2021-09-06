@@ -24,7 +24,7 @@ class CPC(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
 
-        self.gru = nn.GRU(576, 128)
+        self.gru = nn.GRU(1600, 128)
         for n, p in self.gru.named_parameters():
             if 'bias' in n:
                 nn.init.constant_(p, 0)

@@ -124,8 +124,7 @@ class VariousAppleField(Field):
         #     surrounded_items = self.world.get_surrounded_items(pos=pos, radius=3)
         #     apple_ratio = len(surroundedt_items) / len(surrounded_positions) * prob
         #     if random.random() < apple_ratio:
-        #         self.world.spawn_item(item(), pos)
-
+        #         self.world.spawn_item(item(), pos
 
     def force_spawn_item(self, ratio=0.5):
 

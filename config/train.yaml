@@ -10,7 +10,7 @@ num_train_steps: 5e5
 # replay_buffer_capacity: 1e6 Not use on CPC
 num_seed_steps: 0
 
-eval_frequency: 10000
+eval_frequency: 20000
 num_eval_episodes: 3
 
 device: cuda
