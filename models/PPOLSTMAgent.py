@@ -79,13 +79,13 @@ class Actor(nn.Module):
 
         self.feature_layer = CNNLSTMBlock()
         self.layers = nn.Sequential(
-            nn.Linear(200 * seq_len, 10000),
-            nn.BatchNorm1d(10000),
+            nn.Linear(200 * seq_len, 100 * seq_len),
+            nn.BatchNorm1d(100 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(10000, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(100 * seq_len, 4 * seq_len),
+            nn.BatchNorm1d(4 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(512, action_dim),
+            nn.Linear(4 * seq_len, action_dim),
             nn.Tanh()
         )
 
@@ -101,13 +101,13 @@ class Critic(nn.Module):
 
         self.feature_layer = CNNLSTMBlock()
         self.layers = nn.Sequential(
-            nn.Linear(200 * seq_len, 10000),
-            nn.BatchNorm1d(10000),
+            nn.Linear(200 * seq_len, 100 * seq_len),
+            nn.BatchNorm1d(100 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(10000, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(100 * seq_len, 4 * seq_len),
+            nn.BatchNorm1d(4 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(512, 1),
+            nn.Linear(4 * seq_len, 1),
         )
 
     def forward(self, x):
