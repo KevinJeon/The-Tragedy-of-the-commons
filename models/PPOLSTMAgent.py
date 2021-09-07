@@ -96,12 +96,12 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self):
+    def __init__(self, seq_len):
         super(Critic, self).__init__()
 
         self.feature_layer = CNNLSTMBlock()
         self.layers = nn.Sequential(
-            nn.Linear(20000, 10000),
+            nn.Linear(200 * seq_len, 10000),
             nn.BatchNorm1d(10000),
             nn.ReLU(inplace=True),
             nn.Linear(10000, 512),
@@ -126,7 +126,7 @@ class ActorCritic(nn.Module):
         self.action_var = torch.full((action_dim,), action_std_init * action_std_init).to(device)
 
         self.actor = Actor(action_dim, seq_len=lstm_length)
-        self.critic = Critic()
+        self.critic = Critic(seq_len=lstm_length)
 
     def forward(self, x):
         raise NotImplementedError
