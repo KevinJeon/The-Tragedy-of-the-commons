@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
-
+import torch.nn.functional as F
 
 from utils.sys import make_dir
 
@@ -63,10 +63,8 @@ class CNNLSTMBlock(nn.Module):
 
         stacked_input = inputs.reshape(batch_size * seq_len, img_channel, img_height, img_width)
         x = self.conv_encoder(stacked_input)
-
-        x = x.view(-1, 32 * 16 * 16)
+        x = x.reshape(-1, 32 * 16 * 16)
         x = self.fc_layer(x)
-
         unstacked_input = x.reshape(batch_size, seq_len, 128)
 
         output, _ = self.lstm(unstacked_input)
@@ -76,18 +74,18 @@ class CNNLSTMBlock(nn.Module):
 
 
 class Actor(nn.Module):
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, seq_len):
         super(Actor, self).__init__()
 
         self.feature_layer = CNNLSTMBlock()
         self.layers = nn.Sequential(
-            nn.Linear(20000, 10000),
-            nn.BatchNorm1d(10000),
+            nn.Linear(200 * seq_len, 100 * seq_len),
+            nn.BatchNorm1d(100 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(10000, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(100 * seq_len, 4 * seq_len),
+            nn.BatchNorm1d(4 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(512, action_dim),
+            nn.Linear(4 * seq_len, action_dim),
             nn.Tanh()
         )
 
@@ -98,18 +96,18 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self):
+    def __init__(self, seq_len):
         super(Critic, self).__init__()
 
         self.feature_layer = CNNLSTMBlock()
         self.layers = nn.Sequential(
-            nn.Linear(20000, 10000),
-            nn.BatchNorm1d(10000),
+            nn.Linear(200 * seq_len, 100 * seq_len),
+            nn.BatchNorm1d(100 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(10000, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(100 * seq_len, 4 * seq_len),
+            nn.BatchNorm1d(4 * seq_len),
             nn.ReLU(inplace=True),
-            nn.Linear(512, 1),
+            nn.Linear(4 * seq_len, 1),
         )
 
     def forward(self, x):
@@ -119,7 +117,7 @@ class Critic(nn.Module):
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, action_dim, device, action_std_init=0.6):
+    def __init__(self, action_dim, lstm_length, device, action_std_init=0.6):
         super(ActorCritic, self).__init__()
 
         self.device = device
@@ -127,8 +125,8 @@ class ActorCritic(nn.Module):
         self.action_dim = action_dim
         self.action_var = torch.full((action_dim,), action_std_init * action_std_init).to(device)
 
-        self.actor = Actor(action_dim)
-        self.critic = Critic()
+        self.actor = Actor(action_dim, seq_len=lstm_length)
+        self.critic = Critic(seq_len=lstm_length)
 
     def forward(self, x):
         raise NotImplementedError
@@ -195,13 +193,13 @@ class PPOLSTMAgent(nn.Module):
 
         self.lstm_length = lstm_length
 
-        self.policy = ActorCritic(action_dim, device=device).to(device)
+        self.policy = ActorCritic(action_dim, lstm_length, device=device).to(device)
         self.optimizer = torch.optim.Adam([
             {'params': self.policy.actor.parameters(), 'lr': lr_actor},
             {'params': self.policy.critic.parameters(), 'lr': lr_critic}
         ])
 
-        self.policy_old = ActorCritic(action_dim, device=device).to(device)
+        self.policy_old = ActorCritic(action_dim, lstm_length, device=device).to(device)
         self.policy_old.load_state_dict(self.policy.state_dict())
 
         self.MseLoss = nn.MSELoss()
@@ -219,7 +217,7 @@ class PPOLSTMAgent(nn.Module):
         self.buffer.actions.append(action)
         self.buffer.logprobs.append(action_logprob)
 
-        converted_action = action * 0.5 + 0.5
+        converted_action = F.sigmoid(action)
         self.train()
         return converted_action.detach().cpu().numpy().flatten()
 
