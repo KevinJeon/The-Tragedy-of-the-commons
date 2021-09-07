@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import MultivariateNormal
-
+import torch.nn.functional as F
 
 from utils.sys import make_dir
 
@@ -64,7 +64,7 @@ class CNNLSTMBlock(nn.Module):
         stacked_input = inputs.reshape(batch_size * seq_len, img_channel, img_height, img_width)
         x = self.conv_encoder(stacked_input)
 
-        x = x.view(-1, 32 * 16 * 16)
+        x = x.reshape(-1, 32 * 16 * 16)
         x = self.fc_layer(x)
 
         unstacked_input = x.reshape(batch_size, seq_len, 128)
@@ -127,8 +127,8 @@ class ActorCritic(nn.Module):
         self.action_dim = action_dim
         self.action_var = torch.full((action_dim,), action_std_init * action_std_init).to(device)
 
-        self.actor = Actor(action_dim)
-        self.critic = Critic()
+        self.actor = nn.DataParallel(Actor(action_dim))
+        self.critic = nn.DataParallel(Critic())
 
     def forward(self, x):
         raise NotImplementedError
@@ -219,7 +219,7 @@ class PPOLSTMAgent(nn.Module):
         self.buffer.actions.append(action)
         self.buffer.logprobs.append(action_logprob)
 
-        converted_action = action * 0.5 + 0.5
+        converted_action = F.sigmoid(action)
         self.train()
         return converted_action.detach().cpu().numpy().flatten()
 
