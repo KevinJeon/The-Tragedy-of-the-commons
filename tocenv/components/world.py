@@ -110,14 +110,16 @@ class VariousAppleField(Field):
         self.ratio = ratio
 
     def tick(self):
-        self.generate_item(prob=self.prob)
+        pass
+        # self.generate_item(prob=self.prob)
 
     def generate_item(self, prob=0.025):
         empty_positions = self._get_empty_positions()
         agent_positions = [iter_agent.position for iter_agent in self.world.agents]
 
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.world.env.apple_color_ratio, 1-self.world.env.apple_color_ratio), k=len(empty_positions))
+        spawned_apples = random.choices(apples, weights=(
+        self.world.env.apple_color_ratio, 1 - self.world.env.apple_color_ratio), k=len(empty_positions))
 
         # for pos, item in zip(empty_positions, spawned_apples):
         #     surrounded_positions = self.world.get_surrounded_positions(pos=pos, radius=3)
@@ -125,6 +127,30 @@ class VariousAppleField(Field):
         #     apple_ratio = len(surroundedt_items) / len(surrounded_positions) * prob
         #     if random.random() < apple_ratio:
         #         self.world.spawn_item(item(), pos
+
+    def place_an_apple(self, color: Color) -> int:
+        '''
+        Fullfill apples to the patch
+        :param color: Color to place
+        :return: How many apples were placed on this field
+        '''
+        empty_positions = self._get_empty_positions()
+
+        if len(empty_positions) == 0:
+            return 0
+
+        placeable_position = random.sample(empty_positions, k=1)[0]
+
+        if color == Color.Red:
+            item = items.RedApple
+        elif color == Color.Blue:
+            item = items.BlueApple
+        else:
+            raise Exception('Unknown color')
+
+        self.world.spawn_item(item(world=self.world), placeable_position)
+
+        return 1
 
     def force_spawn_item(self, ratio=0.5):
 
@@ -134,11 +160,14 @@ class VariousAppleField(Field):
         sampled_position = random.sample(positions, num_samples)
 
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.world.env.apple_color_ratio, 1-self.world.env.apple_color_ratio), k=len(sampled_position))
+        spawned_apples = random.choices(apples, weights=(
+        self.world.env.apple_color_ratio, 1 - self.world.env.apple_color_ratio), k=len(sampled_position))
 
         for pos, item in zip(sampled_position, spawned_apples):
             if random.random() < ratio:
-                self.world.spawn_item(item(), pos)
+                spawned_apple = item(world=self.world)
+                spawned_apple.elapsed_step_from_spawned = random.randint(1, 10)
+                self.world.spawn_item(spawned_apple, pos)
 
     def _get_empty_positions(self) -> [Position]:
         positions = []
@@ -146,7 +175,7 @@ class VariousAppleField(Field):
             for x in range(self.p1.x, self.p2.x + 1):
                 pos = Position(x, y)
                 if self.world.get_item(pos) is None and \
-                            self.world.get_agent(pos) is None:
+                        self.world.get_agent(pos) is None:
                     positions.append(pos)
 
         return positions
@@ -185,14 +214,31 @@ class World(object):
 
         self._create_random_field()
 
+        self._episode_length = 0
+
         self.clear_effect()
 
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
 
-            
     def _create_random_field(self):
 
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(4, 4), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
+
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(11, 4), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
+
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(4, 11), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
+
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(11, 11), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
+        '''
         patch_size = 3
         half_size = patch_size // 2
         distance = self.patch_distance
@@ -203,14 +249,23 @@ class World(object):
             y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
         )
 
-        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=initial_pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=initial_pos, radius=half_size,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
 
         bfs = BFS(world=self)
         searched_positions = bfs.search(pos=initial_pos, radius=half_size, distance=distance, \
                                         k=self.patch_count - 1)
 
         for pos in searched_positions:
-            self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
+            self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=pos, radius=half_size,
+                                                                          prob=self.apple_spawn_ratio,
+                                                                          ratio=self.apple_color_ratio))
+        '''
+
+    def place_apple_on_field(self, field_idx: int, color: Color):
+        cnt_generated_apple = self.fruits_fields[field_idx].place_an_apple(color)
+        return cnt_generated_apple
 
     def spawn_agent(self, pos: Position, color: Color):
         if color == Color.Red:
@@ -315,7 +370,17 @@ class World(object):
         self.effects = np.zeros(shape=self.size, dtype=np.uint64)
 
     def tick(self):
+        self._episode_length += 1
         [field.tick() for field in self.fruits_fields]
+
+        for y, row in enumerate(self.grid):
+            for x, item in enumerate(row):
+                if item is None: continue
+                item.tick()
+
+                if self.env.apple_rotten_time is not None:
+                    if item.elapsed_step_from_spawned >= self.env.apple_rotten_time:
+                        self.grid[y][x] = None
 
     @property
     def width(self) -> int:

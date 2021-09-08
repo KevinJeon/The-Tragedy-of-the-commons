@@ -74,7 +74,6 @@ class Agent(object):
 
         self.accum_reward = 0.
 
-
     def act(self, action: Action):
         action = int(action)
         if action is Action.Move_Up:

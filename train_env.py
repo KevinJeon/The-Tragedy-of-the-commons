@@ -61,7 +61,8 @@ class Workspace(object):
                           patch_count=cfg.env.patch_count,
                           patch_distance=cfg.env.patch_distance,
                           reward_same_color=cfg.env.reward_same_color,
-                          reward_oppo_color=cfg.env.reward_oppo_color
+                          reward_oppo_color=cfg.env.reward_oppo_color,
+                          apple_rotten_time=cfg.env.apple_rotten_time
                           )
 
         self.device = torch.device(cfg.device)
@@ -247,9 +248,18 @@ class Workspace(object):
                     logger.info('Train MA Agent')
                     self.ma_agent.update()
 
-                ma_action = self.ma_agent.act(ma_obs)
-                logger.info('MA Agent Acted - {0}'.format(ma_action))
-                self.env.set_apple_color_ratio(ma_action)
+                # ma_action = self.ma_agent.act(ma_obs)
+                # logger.info('MA Agent Acted - {0}'.format(ma_action))
+                # self.env.set_apple_color_ratio(ma_action)
+
+                ma_action = np.array([
+                    [1, 0, 0],
+                    [1, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 1],
+                ]).reshape(-1)
+
+                self.env.place_apples(ma_action)
 
                 prev_ma_obs = copy.deepcopy(ma_obs)
                 arr_ma_obs.clear()

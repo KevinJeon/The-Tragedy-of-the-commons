@@ -12,15 +12,19 @@ class Item(object):
 
 
 class Apple(Item, ABC):
-    def __init__(self):
-        pass
+    def __init__(self, world):
+        self.world = world
+        self.elapsed_step_from_spawned = 0
+
+    def tick(self):
+        self.elapsed_step_from_spawned += 1
 
 
 class RedApple(Apple, ABC):
-    def __init__(self):
-        super(RedApple, self).__init__()
+    def __init__(self, world) -> None:
+        super(RedApple, self).__init__(world)
 
 
 class BlueApple(Apple, ABC):
-    def __init__(self):
-        super(BlueApple, self).__init__()
+    def __init__(self, world) -> None:
+        super(BlueApple, self).__init__(world)

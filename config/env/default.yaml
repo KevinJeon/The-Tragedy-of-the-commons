@@ -16,3 +16,5 @@ apple_spawn_ratio: 0.1
 
 patch_count: 3
 patch_distance: 5
+
+apple_rotten_time: 30

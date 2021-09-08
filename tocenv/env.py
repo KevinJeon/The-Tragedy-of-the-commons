@@ -39,7 +39,9 @@ class TOCEnv(object):
                  patch_distance=5,
 
                  reward_same_color=3,
-                 reward_oppo_color=1
+                 reward_oppo_color=1,
+
+                 apple_rotten_time=30
                  ):
 
         self.agents = agents
@@ -83,6 +85,8 @@ class TOCEnv(object):
         ''' Reward settings '''
         self.reward_same_color = float(reward_same_color)
         self.reward_oppo_color = float(reward_oppo_color)
+
+        self.apple_rotten_time = apple_rotten_time
 
         ''' Debug '''
         self._debug_buffer_line = []
@@ -148,7 +152,9 @@ class TOCEnv(object):
             else:
                 raise Exception('Unknown color type')
 
+
         if self.obs_type == 'rgb_array':
+
             obs = [self._render_individual_view(iter_agent.get_view()) for iter_agent in self.world.agents]
             obs = np.array(obs, dtype=np.float32)
         elif self.obs_type == 'numeric':
@@ -544,6 +550,29 @@ class TOCEnv(object):
     def get_action_space(self):
         action_space = ActionSpace(shape=(self.num_agents, Action().action_count), n=Action().action_count)
         return action_space
+
+    def place_apples(self, ma_action: np.array) -> None:
+        '''
+        :param ma_action: shape(num_fields, 3)
+        3 - one-hot of [NO_OP, RED, BLUE]
+        :return:
+        '''
+
+        assert len(ma_action) % 3 == 0  # MA's action should be: 'num_fields' * 3
+        ma_action = ma_action.reshape(-1, 3)
+
+        for field_num, action in enumerate(ma_action):
+            print(action)
+            _action = np.argmax(action)
+            print(_action)
+            if _action == 0:  # No-op
+                pass
+            elif _action == 1:  # Red
+                self.world.place_apple_on_field(field_idx=field_num, color=Color.Red)
+            elif _action == 2:  # Blue
+                self.world.place_apple_on_field(field_idx=field_num, color=Color.Blue)
+            else:
+                raise Exception('Not support one-hot action')
 
     @property
     def episode_length(self) -> int:
