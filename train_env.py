@@ -160,8 +160,10 @@ class Workspace(object):
         ''' MA variables '''
         prev_ma_obs = None
         arr_ma_obs = []
-        ma_action = 0
-        ma_reward = 0
+
+        epi_placed_apple = 0
+        epi_rotten_apple = 0
+        epi_eaten_apple = 0
 
         while self.step < self.cfg.num_train_steps + 1:
 
@@ -179,10 +181,15 @@ class Workspace(object):
                 self.logger.log('train/episode_reward', episode_reward, self.step)
 
                 ''' Log Environment Statistics '''
-
                 if env_info:
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
+
+                self.logger.log('episode/placed_apple', epi_placed_apple, self.step)
+                self.logger.log('episode/rotten_apple', epi_rotten_apple, self.step)
+                self.logger.log('episode/eaten_apple', epi_eaten_apple, self.step)
+
+                epi_placed_apple, epi_rotten_apple, epi_eaten_apple = 0, 0, 0
 
                 if hasattr(self, 'replay_buffer'):
                     self.ra_agent.train(self.replay_buffer, self.logger, self.step)
@@ -246,6 +253,11 @@ class Workspace(object):
                 cnt_rotten_apple = self.env.pop_rotten_apple_buffer()  # This is for statistics
                 cnt_eaten_apple = self.env.pop_eaten_apple_buffer()
 
+                epi_placed_apple += cnt_placed_apple
+                epi_rotten_apple += cnt_rotten_apple
+                epi_eaten_apple += cnt_eaten_apple
+
+                # MA reward shaping
                 ma_reward = cnt_eaten_apple - cnt_placed_apple
 
                 if prev_ma_obs is not None:
@@ -257,17 +269,7 @@ class Workspace(object):
                     self.ma_agent.update()
 
                 ma_action = self.ma_agent.act(ma_obs)
-                print(ma_action)
-                # logger.info('MA Agent Acted - {0}'.format(ma_action))
-                # self.env.set_apple_color_ratio(ma_action)
-
-                # Example of 'ma_action'
-                ma_action = np.array([
-                    [1, 0, 0],
-                    [1, 0, 0],
-                    [0, 1, 0],
-                    [0, 0, 1],
-                ]).reshape(-1)
+                logger.info('MA Agent Acted - {0}'.format(ma_action))
 
                 # 'ma_action' shape is (12, ) when the num of patch is four.
                 self.env.place_apples(ma_action)

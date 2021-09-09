@@ -96,6 +96,11 @@ class TOCEnv(object):
 
         self._debug_buffer_line.clear()
 
+        ''' MA Agent Variables '''
+        self.cnt_rotten_apple = 0
+        self.cnt_placed_apple = 0
+        self.cnt_eaten_apple = 0
+
     def step(self, actions):
         assert len(actions) is self.num_agents
 
@@ -183,6 +188,7 @@ class TOCEnv(object):
 
         self.cnt_rotten_apple = 0
         self.cnt_placed_apple = 0
+        self.cnt_eaten_apple = 0
 
         return obs, info
 
@@ -481,6 +487,7 @@ class TOCEnv(object):
 
     def increase_red_apple_count(self, eaten_by: Agent) -> int:
         self._total_red_eaten_count += 1
+        self.cnt_eaten_apple += 1
 
         from tocenv.components.agent import RedAgent, BlueAgent
 
@@ -493,6 +500,7 @@ class TOCEnv(object):
 
     def increase_blue_apple_count(self, eaten_by: Agent) -> int:
         self._total_blue_eaten_count += 1
+        self.cnt_eaten_apple += 1
 
         from tocenv.components.agent import RedAgent, BlueAgent
 
@@ -502,6 +510,21 @@ class TOCEnv(object):
             self._blue_team_blue_apple_count += 1
 
         return self._total_blue_eaten_count
+
+    def pop_placed_apple_buffer(self):
+        cnt_placed_apple = self.cnt_placed_apple
+        self.cnt_placed_apple = 0
+        return cnt_placed_apple
+
+    def pop_rotten_apple_buffer(self):
+        cnt_rotten_apple = self.cnt_rotten_apple
+        self.cnt_rotten_apple = 0
+        return cnt_rotten_apple
+
+    def pop_eaten_apple_buffer(self):
+        cnt_eaten_apple = self.cnt_eaten_apple
+        self.cnt_eaten_apple = 0
+        return cnt_eaten_apple
 
     ''' Environment Variables Settings '''
 
@@ -556,24 +579,28 @@ class TOCEnv(object):
 
     def place_apples(self, ma_action: np.array) -> None:
         '''
-        :param ma_action: shape(num_fields, 3)
-        3 - one-hot of [NO_OP, RED, BLUE]
-        :return:
+        :param ma_action: shape(9, )
+         [NO_OP, PATCH1_RED, PATCH1_BLUE, PATCH2_RED, PATCH2_BLUE, ...]
+        :return: None
         '''
 
-        assert len(ma_action) % 3 == 0  # MA's action should be: 'num_fields' * 3
-        ma_action = ma_action.reshape(-1, 3)
+        ma_action = ma_action[0]
+        assert ma_action < 1 + len(self.world.fruits_fields) * 2  # MA's action should be: 'num_fields' * 3
 
-        for field_num, action in enumerate(ma_action):
-            _action = np.argmax(action)
-            if _action == 0:  # No-op
-                pass
-            elif _action == 1:  # Red
-                self.world.place_apple_on_field(field_idx=field_num, color=Color.Red)
-            elif _action == 2:  # Blue
-                self.world.place_apple_on_field(field_idx=field_num, color=Color.Blue)
+        if ma_action == 0:
+            pass  # No-op
+        else:
+            _ma_action = ma_action - 1
+
+            patch_idx = _ma_action // 2
+            apple_color = _ma_action % 2
+
+            if apple_color == 0:
+                color = Color.Red
             else:
-                raise Exception('Not support one-hot action')
+                color = Color.Blue
+
+            self.world.place_apple_on_field(field_idx=patch_idx, color=color)
 
     @property
     def episode_length(self) -> int:
@@ -583,43 +610,6 @@ class TOCEnv(object):
 class WorkerTOCEnv(TOCEnv):
     def __init__(self):
         super(WorkerTOCEnv, self).__init__()
-
-
-class ParallelTOCEnv(object):
-    def __init__(self,
-                 num_envs: int,
-                 **kwargs):
-        ray.init()
-        assert ray.is_initialized()
-
-        self.envs = [WorkerTOCEnv.remote(**kwargs) for i in range(num_envs)]
-
-    def step(self, actions):
-        jobs = [env.step.remote(actions) for env in self.envs]
-        result = ray.get(jobs)
-        return result
-
-    def reset(self):
-        jobs = [env.reset.remote() for env in self.envs]
-        result = ray.get(jobs)
-        return np.array(result)
-
-    def get_numeric_observation(self) -> np.array:
-        jobs = [env.get_numeric_observation.remote() for env in self.envs]
-        result = ray.get(jobs)
-        return np.array(result)
-
-    @property
-    def observation_space(self):
-        job = self.envs[0].observation_space.remote()
-        ret = ray.get(job)
-        return ret
-
-    @property
-    def action_space(self):
-        job = self.envs[0].action_space.remote()
-        ret = ray.get(job)
-        return ret
 
 
 from tocenv.components.resource import Resource

@@ -383,8 +383,7 @@ class World(object):
                 if self.env.apple_rotten_time is not None:
                     if item.elapsed_step_from_spawned >= self.env.apple_rotten_time:
                         self.grid[y][x] = None
-
-                    self.env.cnt_rotten_apple += 1
+                        self.env.cnt_rotten_apple += 1
 
     @property
     def width(self) -> int:
