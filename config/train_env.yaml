@@ -22,7 +22,7 @@ log_save_tb: true
 save_video: true
 save_model: false
 
-ma_agent_action_interval: 32
+ma_agent_action_interval: 4
 
 # Save Buffer
 render: false

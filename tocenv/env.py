@@ -181,6 +181,9 @@ class TOCEnv(object):
         self._reset_statistics()
         [iter_agent.reset_statistics() for iter_agent in self.world.agents]
 
+        self.cnt_rotten_apple = 0
+        self.cnt_placed_apple = 0
+
         return obs, info
 
     def get_numeric_observation(self) -> np.array:
@@ -562,9 +565,7 @@ class TOCEnv(object):
         ma_action = ma_action.reshape(-1, 3)
 
         for field_num, action in enumerate(ma_action):
-            print(action)
             _action = np.argmax(action)
-            print(_action)
             if _action == 0:  # No-op
                 pass
             elif _action == 1:  # Red

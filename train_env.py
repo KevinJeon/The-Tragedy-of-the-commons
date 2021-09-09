@@ -73,7 +73,7 @@ class Workspace(object):
         cfg.ra_agent.agent_types = prefer
 
         cfg.ma_agent.obs_dim = (self.cfg.ma_agent_action_interval, 84, 84, 3)
-        cfg.ma_agent.action_dim = 1
+        cfg.ma_agent.action_dim = 9
 
         try:
             cfg.ra_agent.seq_len = self.env.episode_length
@@ -162,7 +162,6 @@ class Workspace(object):
         arr_ma_obs = []
         ma_action = 0
         ma_reward = 0
-        self.env.set_apple_color_ratio(ma_action) # Initial MA action
 
         while self.step < self.cfg.num_train_steps + 1:
 
@@ -226,7 +225,6 @@ class Workspace(object):
                 done = True
 
             episode_reward += sum(rewards)
-            ma_reward += sum(rewards)
 
             modified_rewards = np.zeros(self.num_agent)
             # Applying prosocial SVO
@@ -235,10 +233,20 @@ class Workspace(object):
             if type(self.ra_agent) in [CPCAgentGroup]:
                 self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
 
+            if done:  # Clear MA agent's observation
+                arr_ma_obs.clear()
+
             # On state sequence collected (MA step)
             if len(arr_ma_obs) == self.cfg.ma_agent_action_interval:
 
                 ma_obs = ma_obs_to_numpy(arr_ma_obs)
+
+                # Get MA's reward
+                cnt_placed_apple = self.env.pop_placed_apple_buffer()
+                cnt_rotten_apple = self.env.pop_rotten_apple_buffer()  # This is for statistics
+                cnt_eaten_apple = self.env.pop_eaten_apple_buffer()
+
+                ma_reward = cnt_eaten_apple - cnt_placed_apple
 
                 if prev_ma_obs is not None:
                     self.ma_agent.buffer.rewards.append(ma_reward)
@@ -248,10 +256,12 @@ class Workspace(object):
                     logger.info('Train MA Agent')
                     self.ma_agent.update()
 
-                # ma_action = self.ma_agent.act(ma_obs)
+                ma_action = self.ma_agent.act(ma_obs)
+                print(ma_action)
                 # logger.info('MA Agent Acted - {0}'.format(ma_action))
                 # self.env.set_apple_color_ratio(ma_action)
 
+                # Example of 'ma_action'
                 ma_action = np.array([
                     [1, 0, 0],
                     [1, 0, 0],
@@ -259,13 +269,12 @@ class Workspace(object):
                     [0, 0, 1],
                 ]).reshape(-1)
 
+                # 'ma_action' shape is (12, ) when the num of patch is four.
                 self.env.place_apples(ma_action)
 
                 prev_ma_obs = copy.deepcopy(ma_obs)
                 arr_ma_obs.clear()
                 ma_reward = 0
-
-
 
             obs = next_obs
             episode_step += 1
