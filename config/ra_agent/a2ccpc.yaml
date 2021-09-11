@@ -21,7 +21,3 @@ batch_size: 4
 seq_len: ???
 num_channel: 3
 use_cpc: true
-
-
-
-

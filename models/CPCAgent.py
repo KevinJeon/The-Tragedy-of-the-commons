@@ -326,7 +326,17 @@ class CPCAgentGroup(object):
             logger.log('train/a_loss', sum(a_losses) / len(self.agents), total_step)
             logger.log('train/entropy', sum(entropies) / len(self.agents), total_step)
 
-                                                                       # sum(alosses) / anum,
+            # sum(alosses) / anum,
+
+    def load_models(self, path):
+
+        import glob
+        files = glob.glob(path + '/*.pth')
+        print(len(files), len(self.agents))
+        assert len(files) == len(self.agents)  # Count of agents and models should be same
+        for agent, model_path in zip(self.agents, files):
+            agent.load_state_dict(torch.load(model_path))
+
     def save(self, model_num):
         for agent in self.agents:
             agent.save(model_num)

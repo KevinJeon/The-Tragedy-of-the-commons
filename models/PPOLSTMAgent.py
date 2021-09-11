@@ -197,16 +197,17 @@ class PPOLSTMAgent(nn.Module):
 
         self.to(device)
 
-    def act(self, obs):
+    def act(self, obs, store_action=True):
         self.eval()
 
         with torch.no_grad():
             state = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
             action, action_logprob = self.policy_old.act(state)
 
-        self.buffer.states.append(state)
-        self.buffer.actions.append(action)
-        self.buffer.logprobs.append(action_logprob)
+        if store_action:
+            self.buffer.states.append(state)
+            self.buffer.actions.append(action)
+            self.buffer.logprobs.append(action_logprob)
 
         self.train()
         return action.detach().cpu().numpy().flatten()

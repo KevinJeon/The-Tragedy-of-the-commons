@@ -11,6 +11,7 @@ from omegaconf import DictConfig
 
 import logging
 from logger import Logger
+from models.PPOLSTMAgent import PPOLSTMAgent
 from models.RuleBasedAgent import *
 from models.CPCAgent import *
 from models.utils.RolloutStorage import RolloutStorage
@@ -88,8 +89,9 @@ class Workspace(object):
             self.replay_buffer = RolloutStorage(agent_type='ac',
                                                 num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
                                                 num_step=cfg.env.episode_length,
-                                                batch_size=cfg.agent.batch_size,
-                                                num_obs=(8 * self.obs_dim, 8 * self.obs_dim, 3), num_action=8,
+                                                batch_size=cfg.ra_agent.batch_size,
+                                                num_obs=(8 * self.ra_agent.obs_dim[1], 8 * self.ra_agent.obs_dim[2], 3),
+                                                num_action=8,
                                                 num_rec=128)
 
         self.writer = None
@@ -99,6 +101,9 @@ class Workspace(object):
         self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
 
         self.step = 0
+
+        ''' Load RA agent's weight '''
+        # self.ra_agent.load_models(cfg.ra_model_dir)
 
     def evaluate(self):
         average_episode_reward = 0
@@ -113,6 +118,10 @@ class Workspace(object):
 
             done = False
             episode_reward = 0
+
+            arr_ma_obs = []
+            epi_ma_reward = 0
+
             while not done:
 
                 if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
@@ -129,27 +138,48 @@ class Workspace(object):
                 if episode_step == self.env.episode_length:
                     done = True
 
+                ma_obs = self.env.render(coordination=False)
                 self.video_recorder.record(self.env)
 
-                ''' Render Individual Sight-view '''
-                self.video_recorder_blue.record_observation(obs[0])
-                self.video_recorder_red.record_observation(obs[4])
+                arr_ma_obs.append(ma_obs)
+
+                if len(arr_ma_obs) == self.cfg.ma_agent_action_interval:
+
+                    ma_obs = ma_obs_to_numpy(arr_ma_obs)
+
+                    # Get MA's reward
+                    cnt_placed_apple = self.env.pop_placed_apple_buffer()
+                    cnt_eaten_apple = self.env.pop_eaten_apple_buffer()
+
+                    # MA reward shaping
+                    ma_reward = cnt_eaten_apple * 2 - cnt_placed_apple
+                    epi_ma_reward += ma_reward
+
+                    if type(self.ma_agent) is PPOLSTMAgent:
+                        ma_action = self.ma_agent.act(ma_obs, store_action=False)
+                    else:
+                        ma_action = self.ma_agent.act(ma_obs)
+
+                    self.env.place_apples(ma_action)
+
+                    arr_ma_obs.clear()
 
                 episode_reward += sum(rewards)
-
                 episode_step += 1
 
             average_episode_reward += episode_reward
+
         self.video_recorder.save(f'{self.step}.mp4')
-        self.video_recorder_blue.save(f'{self.step}_blue.mp4')
-        self.video_recorder_red.save(f'{self.step}_red.mp4')
 
         if self.cfg.save_model:
             self.ra_agent.save(self.step)
 
         average_episode_reward /= self.cfg.num_eval_episodes
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
+        self.logger.log('eval/ma_reward', average_episode_reward, self.step)
         self.logger.dump(self.step)
+
+
 
     def run(self):
 
@@ -164,6 +194,7 @@ class Workspace(object):
         epi_placed_apple = 0
         epi_rotten_apple = 0
         epi_eaten_apple = 0
+        epi_ma_reward = 0
 
         while self.step < self.cfg.num_train_steps + 1:
 
@@ -189,10 +220,17 @@ class Workspace(object):
                 self.logger.log('episode/rotten_apple', epi_rotten_apple, self.step)
                 self.logger.log('episode/eaten_apple', epi_eaten_apple, self.step)
 
+                self.logger.log('episode/recovery_rate', epi_eaten_apple / (epi_placed_apple + 0.001), self.step)
+                self.logger.log('episode/advantage_ratio', epi_eaten_apple / (epi_rotten_apple + 0.001), self.step)
+
+                self.logger.log('ma_reward', epi_ma_reward, self.step)
+
                 epi_placed_apple, epi_rotten_apple, epi_eaten_apple = 0, 0, 0
+                epi_ma_reward = 0
 
                 if hasattr(self, 'replay_buffer'):
-                    self.ra_agent.train(self.replay_buffer, self.logger, self.step)
+                    pass  # Do not train when MA agent trains
+                    # self.ra_agent.train(self.replay_buffer, self.logger, self.step)
                 self.logger.log('train/episode', episode, self.step)
 
                 obs, env_info = self.env.reset()
@@ -238,7 +276,8 @@ class Workspace(object):
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i)
             if type(self.ra_agent) in [CPCAgentGroup]:
-                self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
+                pass  # Do not train when MA agent trains
+                # self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
 
             if done:  # Clear MA agent's observation
                 arr_ma_obs.clear()
@@ -258,7 +297,8 @@ class Workspace(object):
                 epi_eaten_apple += cnt_eaten_apple
 
                 # MA reward shaping
-                ma_reward = cnt_eaten_apple - cnt_placed_apple
+                ma_reward = cnt_eaten_apple * 2 - cnt_placed_apple
+                epi_ma_reward += ma_reward
 
                 if prev_ma_obs is not None:
                     self.ma_agent.buffer.rewards.append(ma_reward)
@@ -269,14 +309,14 @@ class Workspace(object):
                     self.ma_agent.update()
 
                 ma_action = self.ma_agent.act(ma_obs)
-                logger.info('MA Agent Acted - {0}'.format(ma_action))
+                # logger.info('MA Agent Acted - {0}'.format(ma_action))
 
                 # 'ma_action' shape is (12, ) when the num of patch is four.
                 self.env.place_apples(ma_action)
 
                 prev_ma_obs = copy.deepcopy(ma_obs)
                 arr_ma_obs.clear()
-                ma_reward = 0
+
 
             obs = next_obs
             episode_step += 1
