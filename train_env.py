@@ -265,21 +265,20 @@ class Workspace(object):
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.ra_agent) in [CPCAgentGroup]:
-                #print('ra1', np.sum(obs[0]))
-                #print('ra2', np.sum(obs[1]))
-                #print('ra3', np.sum(obs[2]))
-                #print('ra4', np.sum(obs[3]))
                 self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
             if episode_step == 0:
                 ma_reward = np.zeros((1, 1))
             else:
-                ma_reward =  np.reshape(env_info['step_eaten_apple'], (1, -1))
+                ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
+
+                if int(ma_action[0]) > 0:
+                    ma_reward = ma_reward - np.array([[-1]])
+
             if type(self.ma_agent) in [CPCAgentGroup]:
                 #print('ma', np.sum(ma_obs_in))
                 self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
-            # logger.info('MA Agent Acted - {0}'.format(ma_action))
             self.env.punish_agent(ma_action[0])
 
             obs = next_obs
