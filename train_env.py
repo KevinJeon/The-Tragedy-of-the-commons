@@ -70,7 +70,7 @@ class Workspace(object):
         cfg.ra_agent.action_dim = self.env.action_space.n
         cfg.ra_agent.agent_types = prefer
 
-        cfg.ma_agent.obs_dim = (self.cfg.ma_agent_action_interval, 84, 84, 3)
+        cfg.ma_agent.obs_dim = (1, 84, 84, 3)
         cfg.ma_agent.action_dim = 5
 
         try:
@@ -251,6 +251,7 @@ class Workspace(object):
             if done:  # Clear MA agent's observation
                 arr_ma_obs.clear()
 
+
             episode_reward += sum(rewards)
             ma_reward += sum(rewards)
 
@@ -262,28 +263,28 @@ class Workspace(object):
                 self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
 
             # On state sequence collected (MA step)
-            if len(arr_ma_obs) == self.cfg.ma_agent_action_interval:
 
-                ma_obs = ma_obs_to_numpy(arr_ma_obs)
+            ma_obs = ma_obs_to_numpy(arr_ma_obs)
 
-                if prev_ma_obs is not None:
-                    self.ma_agent.buffer.rewards.append(ma_reward)
-                    self.ma_agent.buffer.is_terminals.append(False)
+            if prev_ma_obs is not None:
+                self.ma_agent.buffer.rewards.append(ma_reward)
+                self.ma_agent.buffer.is_terminals.append(False)
 
-                if len(self.ma_agent.buffer.states) >= self.ma_agent.batch_size:
-                    logger.info('Train MA Agent')
-                    self.ma_agent.update()
+            if len(self.ma_agent.buffer.states) >= self.ma_agent.batch_size:
+                logger.info('Train MA Agent')
+                # self.ma_agent.update()
 
-                ma_action = self.ma_agent.act(ma_obs)
-                # logger.info('MA Agent Acted - {0}'.format(ma_action))
-                self.env.punish_agent(ma_action)
+            ma_action = self.ma_agent.act(ma_obs)
+            # logger.info('MA Agent Acted - {0}'.format(ma_action))
+            self.env.punish_agent(ma_action)
 
-                if self.cfg.render:
-                    ma_obs = self.env.render(coordination=False)
+            if self.cfg.render:
+                ma_obs = self.env.render(coordination=False)
 
-                prev_ma_obs = copy.deepcopy(ma_obs)
-                arr_ma_obs.clear()
-                ma_reward = 0
+            prev_ma_obs = copy.deepcopy(ma_obs)
+            arr_ma_obs.clear()
+
+            ma_reward = 0
 
             obs = next_obs
             episode_step += 1

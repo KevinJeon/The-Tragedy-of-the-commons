@@ -11,7 +11,7 @@ class Punish(Skill):
 
     def __init__(self):
         self.reward = -1.
-        self.damage = -2.
+        self.damage = -50.
 
     def get_targets(self, direction: DirectionType) -> [Position]:
         if direction.value == DirectionType.Up:

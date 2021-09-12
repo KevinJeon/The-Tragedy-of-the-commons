@@ -73,8 +73,7 @@ class Agent(object):
         self._tick_reward = 0.
         self._tick_apple_eaten = None
 
-        self._blue_eaten_count = 0
-        self._red_eaten_count = 0
+        self._eaten_apple_count = 0
 
         self._tick_used_punishment = False
         self._tick_punished = False
@@ -191,6 +190,7 @@ class Agent(object):
         if isinstance(item, items.Apple):
             self._tick_reward += item.reward
             self._tick_apple_eaten = 'apple'
+            self._eaten_apple_count += 1
 
         return self
 
@@ -230,8 +230,7 @@ class Agent(object):
         self.accum_reward = 0.
 
     def reset_statistics(self) -> None:
-        self._blue_eaten_count = 0
-        self._red_eaten_count = 0
+        self._eaten_apple_count = 0
 
     def gather_info(self) -> dict():
         info = dict()
@@ -244,7 +243,7 @@ class Agent(object):
         info['punishing'] = self.get_used_punishment()
         info['eaten'] = self.get_apple_eaten()
         info['accum_reward'] = self.accum_reward
-        info['eaten_apples'] = {'blue': self._blue_eaten_count, 'red': self._red_eaten_count}
+        info['eaten_apples'] = self._eaten_apple_count
 
         return info
 

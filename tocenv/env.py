@@ -181,6 +181,8 @@ class TOCEnv(object):
         self._reset_statistics()
         [iter_agent.reset_statistics() for iter_agent in self.world.agents]
 
+
+
         return obs, info
 
     def get_numeric_observation(self) -> np.array:
@@ -203,6 +205,8 @@ class TOCEnv(object):
 
         self._movement_count = 0
         self._rotate_count = 0
+
+        self._ma_punished_cnt = 0
 
         [agent.reset_accumulated_reward() for agent in self.world.agents]
 
@@ -546,20 +550,7 @@ class TOCEnv(object):
         else:
             punish = skills.Punish()
             self.world.apply_effect(self.world.agents[ma_action - 1].position, punish)
-            # pass
-            #
-            #
-            # _ma_action = ma_action - 1
-            #
-            # patch_idx = _ma_action // 2
-            # apple_color = _ma_action % 2
-            #
-            # if apple_color == 0:
-            #     color = Color.Red
-            # else:
-            #     color = Color.Blue
-
-        # self.world.place_apple_on_field(field_idx=patch_idx, color=color)
+            self._ma_punished_cnt += 1
 
     ''' Debug settings '''
 
