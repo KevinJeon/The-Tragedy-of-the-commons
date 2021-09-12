@@ -78,7 +78,7 @@ class Workspace(object):
                                                 num_agent=self.num_agent,
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.ra_agent.batch_size,
-                                                num_obs=(4 * self.ra_agent.obs_dim[1], 4 * self.ra_agent.obs_dim[2], 3),
+                                                num_obs=(self.ra_agent.obs_dim[1], self.ra_agent.obs_dim[2], 3),
                                                 num_action=8,
                                                 num_rec=128)
 
@@ -262,7 +262,6 @@ class Workspace(object):
                 done = True
 
             episode_reward += sum(rewards)
-
             modified_rewards = np.zeros(self.num_agent)
             # Applying prosocial SVO
             for i in range(self.num_agent):
@@ -271,17 +270,14 @@ class Workspace(object):
                 self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
             if episode_step == 0:
-                ma_reward = 0
+                ma_reward = np.zeros((1, 1))
             else:
-                ma_reward =  rewards
+                ma_reward =  np.reshape(np.sum(rewards),(-1, 1))
             if type(self.ma_agent) in [CPCAgentGroup]:
-                self.ma_replay_buffer.add(ma_obs_in, ma_action, ma_reward, dones, ma_cpc_info)
-
-
-            print(ma_obs_in.shape)
+                self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
             # logger.info('MA Agent Acted - {0}'.format(ma_action))
-            self.env.punish_agent(ma_action)
+            self.env.punish_agent(ma_action[0])
 
             if self.cfg.render:
                 ma_obs = self.env.render(coordination=False)

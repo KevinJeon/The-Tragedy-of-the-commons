@@ -20,7 +20,7 @@ class View(object):
     @staticmethod
     def get_visible_positions(direction: DirectionType) -> [Position]:
         direction = direction.get_type()
-        obs_dim = 15
+        obs_dim = 11
         positions = []
         if direction == DirectionType.Up:
 

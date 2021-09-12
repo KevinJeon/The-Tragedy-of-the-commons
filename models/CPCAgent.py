@@ -24,7 +24,7 @@ class CPC(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
         if name == 'ra':
-            gru_in = 1600
+            gru_in = 576
         else:
             gru_in = 10816
         self.gru = nn.GRU(gru_in, 128)
