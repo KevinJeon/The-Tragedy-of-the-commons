@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.distributions import Categorical
 import torch.nn.functional as F
 import torch.optim as optim
-
+import numpy as np
 from utils.sys import make_dir
 
 
@@ -36,7 +36,7 @@ class CPC(nn.Module):
         self.value = nn.Linear(128, 1)
         self.softmax = nn.Softmax()
         self.batch_size = batch_size
-
+        self.name = name
     def init_hidden(self, batch_size):
         return self.encoder.weight.new(1, 128).zero_()
 
@@ -52,7 +52,7 @@ class CPC(nn.Module):
         else:
             bs = self.batch_size
             step = int(n // self.batch_size)
-        z = self.encoder(obs.reshape(-1, c, he, w) / 255.0).reshape(bs, step, -1)
+        z = self.encoder(obs.reshape(-1, c, he, w)).reshape(bs, step, -1)
         s_f, h = self.gru(z, h)
         s_f = s_f.view(bs * step, -1)
         h = h.squeeze(0)
@@ -105,25 +105,21 @@ class A2CCPCAgent(nn.Module):
         self.entropy_coef = entropy_coef
         self.v_loss_coef = v_loss_coef
 
-    def act(self, obs, h, sample=False):
+    def act(self, obs, h, sample=True):
         obs = tr.from_numpy(obs).unsqueeze(0)
         h = h.unsqueeze(0).to(self.device)
         obs = obs.permute((0, 3, 1, 2)).to(self.device)
-
         with tr.no_grad():
             v, s_f, h = self.state_encoder(obs, h.unsqueeze(0))
             lin_s_f = self.act_linear(s_f)
             lin_s_f = F.softmax(lin_s_f, dim=-1)
-            print(lin_s_f)
             dist = Categorical(lin_s_f)
 
             if sample:
                 act = dist.sample().unsqueeze(-1)
-
-            # TODO torch==1.8.0 doesn't support Categorial.mode()
             else:
                 # act = dist.sample().unsqueeze(-1)
-                act = dist.sample().unsqueeze(-1)
+                act = dist.probs.argmax(dim=-1, keepdim=True)
 
             a_f = self.action_encoder(act.view(-1))
 
@@ -199,7 +195,6 @@ class A2CCPCAgent(nn.Module):
         rews = samples[3]
         rets = samples[4].to(self.device)
         masks = samples[5][:-1]
-
         vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].reshape(-1, 128),
                                                                  act_inds.reshape(-1, 1), masks.reshape(-1, 1))
         vs = vs.view(step, bs, 1)
@@ -250,7 +245,7 @@ class CPCAgentGroup(object):
         self.name = name
         self.batch_size = batch_size
         self.device = device
-
+        self.agent_name = agent_name
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.use_cpc = use_cpc
@@ -274,7 +269,6 @@ class CPCAgentGroup(object):
     def act(self, memory, obses, step, sample=False):
         actions = []
         infos = []
-
         for obs, agent, h in zip(obses, self.agents, memory.h):
             act, info = agent.act(obs, h[step, memory.n], sample=sample)
             actions.append(act.view(-1).detach().cpu().numpy())
@@ -288,7 +282,6 @@ class CPCAgentGroup(object):
             for i, agent in enumerate(self.agents):
                 next_val = agent.get_value(memory.obs[i][-1, memory.n], memory.h[i][-1, memory.n]).detach()
                 next_vals.append(next_val)
-
         memory.compute_return(next_vals, gamma=0.99)
         memory.n += 1
         if memory.n % self.batch_size == 0:  # if (memory.n != 0) and (memory.n % args.batch_size == 0):

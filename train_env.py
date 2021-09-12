@@ -191,8 +191,8 @@ class Workspace(object):
                     self.logger.dump(self.step, save=(self.step > self.cfg.num_seed_steps))
                     if hasattr(self, 'ra_replay_buffer'):
                         self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
-                    if hasattr(self, 'ma_replay_buffer'):
-                        self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
+                    #if hasattr(self, 'ma_replay_buffer'):
+                    #    self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
                     self.logger.log('eval/episode', episode - 1, self.step)
@@ -231,7 +231,7 @@ class Workspace(object):
                 if type(self.ra_agent) is CPCAgentGroup:
                     action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=False)
                 else:
-                    action = self.ra_agent.act(obs, sample=False)
+                    action = self.ra_agent.act(obs, sample=True)
 
             #self.env.set_apple_color_ratio(random.random())
 
@@ -249,7 +249,7 @@ class Workspace(object):
                 if type(self.ma_agent) is CPCAgentGroup:
                     ma_action, ma_cpc_info = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=False)
                 else:
-                    ma_action = self.ma_agent.act(ma_obs_in, sample=False)
+                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
 
             if self.cfg.render:
                 cv2.imshow('TOCEnv', ma_obs)
@@ -265,6 +265,10 @@ class Workspace(object):
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.ra_agent) in [CPCAgentGroup]:
+                #print('ra1', np.sum(obs[0]))
+                #print('ra2', np.sum(obs[1]))
+                #print('ra3', np.sum(obs[2]))
+                #print('ra4', np.sum(obs[3]))
                 self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
             if episode_step == 0:
@@ -272,6 +276,7 @@ class Workspace(object):
             else:
                 ma_reward =  np.reshape(env_info['step_eaten_apple'], (1, -1))
             if type(self.ma_agent) in [CPCAgentGroup]:
+                #print('ma', np.sum(ma_obs_in))
                 self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
             # logger.info('MA Agent Acted - {0}'.format(ma_action))
