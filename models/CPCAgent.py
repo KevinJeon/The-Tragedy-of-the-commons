@@ -8,13 +8,13 @@ import torch.nn as nn
 from torch.distributions import Categorical
 import torch.nn.functional as F
 import torch.optim as optim
-
+import numpy as np
 from utils.sys import make_dir
 
 
 class CPC(nn.Module):
 
-    def __init__(self, num_action, num_channel, batch_size):
+    def __init__(self, num_action, num_channel, batch_size, name='ra'):
         super(CPC, self).__init__()
         self.num_hidden = 128
         # Input Size (N, 88, 88, 3)
@@ -23,8 +23,11 @@ class CPC(nn.Module):
             nn.Conv2d(128, 64, kernel_size=5, stride=3, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
-
-        self.gru = nn.GRU(1600, 128)
+        if name == 'ra':
+            gru_in = 576
+        else:
+            gru_in = 10816
+        self.gru = nn.GRU(gru_in, 128)
         for n, p in self.gru.named_parameters():
             if 'bias' in n:
                 nn.init.constant_(p, 0)
@@ -33,7 +36,7 @@ class CPC(nn.Module):
         self.value = nn.Linear(128, 1)
         self.softmax = nn.Softmax()
         self.batch_size = batch_size
-
+        self.name = name
     def init_hidden(self, batch_size):
         return self.encoder.weight.new(1, 128).zero_()
 
@@ -49,8 +52,7 @@ class CPC(nn.Module):
         else:
             bs = self.batch_size
             step = int(n // self.batch_size)
-
-        z = self.encoder(obs.reshape(-1, c, he, w) / 255.0).reshape(bs, step, -1)
+        z = self.encoder(obs.reshape(-1, c, he, w)).reshape(bs, step, -1)
         s_f, h = self.gru(z, h)
         s_f = s_f.view(bs * step, -1)
         h = h.squeeze(0)
@@ -91,7 +93,7 @@ class A2CCPCAgent(nn.Module):
         self.s_linear = nn.ModuleList([nn.Linear(128, 128) for _ in range(seq_len)]).to(self.device)
         self.a_linear = nn.ModuleList([nn.Linear(128, 128) for _ in range(seq_len)]).to(self.device)
         self.action_encoder = nn.Embedding(action_dim, 128).to(self.device)
-        self.state_encoder = CPC(action_dim, num_channel, batch_size).to(self.device)
+        self.state_encoder = CPC(action_dim, num_channel, batch_size, name).to(self.device)
         self.act_linear = nn.Linear(128, action_dim).to(self.device)
 
         self.optimizer = optim.RMSprop(self.parameters(), lr, eps=eps, alpha=alpha)
@@ -103,11 +105,10 @@ class A2CCPCAgent(nn.Module):
         self.entropy_coef = entropy_coef
         self.v_loss_coef = v_loss_coef
 
-    def act(self, obs, h, sample=False):
+    def act(self, obs, h, sample=True):
         obs = tr.from_numpy(obs).unsqueeze(0)
         h = h.unsqueeze(0).to(self.device)
         obs = obs.permute((0, 3, 1, 2)).to(self.device)
-
         with tr.no_grad():
             v, s_f, h = self.state_encoder(obs, h.unsqueeze(0))
             lin_s_f = self.act_linear(s_f)
@@ -116,18 +117,15 @@ class A2CCPCAgent(nn.Module):
 
             if sample:
                 act = dist.sample().unsqueeze(-1)
-
-            # TODO torch==1.8.0 doesn't support Categorial.mode()
             else:
                 # act = dist.sample().unsqueeze(-1)
-                act = dist.sample().unsqueeze(-1)
+                act = dist.probs.argmax(dim=-1, keepdim=True)
 
             a_f = self.action_encoder(act.view(-1))
 
         logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
         infos = [v, logprobs, h, s_f, a_f]
-
         return act, infos
 
     def evaluate(self, obs, h, act, mask):
@@ -197,7 +195,6 @@ class A2CCPCAgent(nn.Module):
         rews = samples[3]
         rets = samples[4].to(self.device)
         masks = samples[5][:-1]
-
         vs, logprobs, entropy, _, s_f, a_f = self.evaluate(obss.reshape(-1, *num_obs), hs[:, 0, :].reshape(-1, 128),
                                                                  act_inds.reshape(-1, 1), masks.reshape(-1, 1))
         vs = vs.view(step, bs, 1)
@@ -229,8 +226,8 @@ class CPCAgentGroup(object):
 
     def __init__(self,
                  name,
-                 agent_types,
                  lr,
+                 num_agent,
                  eps,
                  alpha,
                  max_grad_norm,
@@ -242,19 +239,17 @@ class CPCAgentGroup(object):
                  seq_len,
                  num_channel,
                  use_cpc,
+                 agent_name,
                  device):
         super(CPCAgentGroup, self).__init__()
-
         self.name = name
         self.batch_size = batch_size
         self.device = device
-
+        self.agent_name = agent_name
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.use_cpc = use_cpc
-
-        self.agent_types = agent_types
-        self.agents = [A2CCPCAgent(name + "_" + str(i) + "_" + color,
+        self.agents = [A2CCPCAgent(agent_name,
                                    lr,
                                    eps,
                                    alpha,
@@ -267,14 +262,13 @@ class CPCAgentGroup(object):
                                    seq_len,
                                    num_channel,
                                    use_cpc,
-                                   device) for i, color in enumerate(self.agent_types)]
+                                   device) for i in range(num_agent)]
 
         self.seq_len = seq_len
 
-    def act(self, memory, obses, step, sample=False):
+    def act(self, memory, obses, step, sample=True):
         actions = []
         infos = []
-
         for obs, agent, h in zip(obses, self.agents, memory.h):
             act, info = agent.act(obs, h[step, memory.n], sample=sample)
             actions.append(act.view(-1).detach().cpu().numpy())
@@ -283,13 +277,11 @@ class CPCAgentGroup(object):
         return actions, infos
 
     def train(self, memory, logger=None, total_step=None):
-
         with tr.no_grad():
             next_vals = []
             for i, agent in enumerate(self.agents):
                 next_val = agent.get_value(memory.obs[i][-1, memory.n], memory.h[i][-1, memory.n]).detach()
                 next_vals.append(next_val)
-
         memory.compute_return(next_vals, gamma=0.99)
         memory.n += 1
         if memory.n % self.batch_size == 0:  # if (memory.n != 0) and (memory.n % args.batch_size == 0):

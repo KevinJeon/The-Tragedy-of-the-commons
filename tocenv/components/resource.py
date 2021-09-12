@@ -19,7 +19,11 @@ class Resource(object):
     AppleRed = load_asset('apple_red.png')
     AppleBlue = load_asset('apple_blue.png')
     Agent = load_asset('monster.png')
-    AgentRed = load_asset('monster_red.png')
+
     AgentBlue = load_asset('monster_blue.png')
+    AgentGreen = load_asset('monster_green.png')
+    AgentOrange = load_asset('monster_orange.png')
+    AgentPurple = load_asset('monster_purple.png')
+
     Wall = load_asset('wall.png')
     Flame = load_asset('flame.png')

@@ -18,11 +18,19 @@ from tocenv.components.observation import NumericObservation
 
 
 class Color:
+    '''
     Red = (255, 0, 0)
     Orange = (200, 0, 0)
     Blue = (0, 0, 255)
     White = (255, 255, 255)
     Green = (0, 255, 0)
+    '''
+
+    Green = (0, 255, 0)
+    Purple = (200, 200, 0)
+    Orange = (200, 0, 0)
+    Blue = (0, 0, 255)
+
 
 
 class Action:
@@ -65,8 +73,9 @@ class Agent(object):
         self._tick_reward = 0.
         self._tick_apple_eaten = None
 
-        self._blue_eaten_count = 0
-        self._red_eaten_count = 0
+        self._eaten_apple_count = 0
+        self._punishing_count = 0
+        self._punished_count = 0
 
         self._tick_used_punishment = False
         self._tick_punished = False
@@ -175,6 +184,8 @@ class Agent(object):
 
         self._tick_reward += punish.reward
         self._tick_used_punishment = True
+        self._punishing_count += 1
+
         self.world.env.increase_punishing_count()
 
     def _try_gather(self):
@@ -183,6 +194,7 @@ class Agent(object):
         if isinstance(item, items.Apple):
             self._tick_reward += item.reward
             self._tick_apple_eaten = 'apple'
+            self._eaten_apple_count += 1
 
         return self
 
@@ -192,6 +204,7 @@ class Agent(object):
     def on_punished(self, damage: float) -> None:
         self._tick_reward += damage
         self._tick_punished = True
+        self._punished_count += 1
         self.world.env.increase_punished_count()
 
     def tick(self) -> None:
@@ -222,8 +235,9 @@ class Agent(object):
         self.accum_reward = 0.
 
     def reset_statistics(self) -> None:
-        self._blue_eaten_count = 0
-        self._red_eaten_count = 0
+        self._eaten_apple_count = 0
+        self._punishing_count = 0
+        self._punished_count = 0
 
     def gather_info(self) -> dict():
         info = dict()
@@ -236,7 +250,9 @@ class Agent(object):
         info['punishing'] = self.get_used_punishment()
         info['eaten'] = self.get_apple_eaten()
         info['accum_reward'] = self.accum_reward
-        info['eaten_apples'] = {'blue': self._blue_eaten_count, 'red': self._red_eaten_count}
+        info['eaten_apples'] = self._eaten_apple_count
+        info['punished_count'] = self._punished_count
+        info['punishing_count'] = self._punishing_count
 
         return info
 
@@ -280,8 +296,12 @@ class Agent(object):
                         if isinstance(item, Agent):
                             if isinstance(item, BlueAgent):  # If the ra_agent is myself
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueAgent)
-                            elif isinstance(item, RedAgent):  # Or ra_agent is companion or opponent
-                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.RedAgent)
+                            elif isinstance(item, PurpleAgent):  # Or ra_agent is companion or opponent
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.PurpleAgent)
+                            elif isinstance(item, GreenAgent):  # Or ra_agent is companion or opponent
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.GreenAgent)
+                            elif isinstance(item, OrangeAgent):  # Or ra_agent is companion or opponent
+                                sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.OrangeAgent)
                         elif isinstance(item, items.Apple):
                             if isinstance(item, items.BlueApple):  # If the ra_agent is myself
                                 sketch[y][x] = np.bitwise_or(int(sketch[y][x]), BlockType.BlueApple)
@@ -326,8 +346,12 @@ class Agent(object):
                                 sketch[y][x] = NumericObservation.Self
                             elif isinstance(item, BlueAgent):
                                 sketch[y][x] = NumericObservation.BlueAgent
-                            elif isinstance(item, RedAgent):
-                                sketch[y][x] = NumericObservation.RedAgent
+                            elif isinstance(item, PurpleAgent):
+                                sketch[y][x] = NumericObservation.PurpleAgent
+                            elif isinstance(item, OrangeAgent):
+                                sketch[y][x] = NumericObservation.OrangeAgent
+                            elif isinstance(item, GreenAgent):
+                                sketch[y][x] = NumericObservation.GreenAgent
                         elif isinstance(item, items.Apple):
                             if isinstance(item, items.BlueApple):
                                 sketch[y][x] = NumericObservation.BlueApple
@@ -342,26 +366,16 @@ class Agent(object):
         return '<Agent (name={0}, position={1}, direction={2})>'.format(self.name, self.position, self.direction)
 
 
-class RedAgent(Agent):
+class PurpleAgent(Agent):
     def __init__(self, world, pos):
-        super(RedAgent, self).__init__(world=world, pos=pos)
-        self.color = 'red'
+        super(PurpleAgent, self).__init__(world=world, pos=pos)
+        self.color = 'purple'
 
-    def _try_gather(self):
-        item = self.world.correct_item(pos=self.position)
 
-        if isinstance(item, items.RedApple):
-            self._tick_reward += self.world.env.reward_same_color
-            self._tick_apple_eaten = 'red'
-            self._red_eaten_count += 1
-            self.world.env.increase_red_apple_count(eaten_by=self)
-        elif isinstance(item, items.BlueApple):
-            self._tick_reward += self.world.env.reward_oppo_color
-            self._tick_apple_eaten = 'blue'
-            self._blue_eaten_count += 1
-            self.world.env.increase_blue_apple_count(eaten_by=self)
-
-        return self
+class GreenAgent(Agent):
+    def __init__(self, world, pos):
+        super(GreenAgent, self).__init__(world=world, pos=pos)
+        self.color = 'green'
 
 
 class BlueAgent(Agent):
@@ -369,22 +383,11 @@ class BlueAgent(Agent):
         super(BlueAgent, self).__init__(world=world, pos=pos)
         self.color = 'blue'
 
-    def _try_gather(self):
-        item = self.world.correct_item(pos=self.position)
 
-        if isinstance(item, items.BlueApple):
-            self._tick_reward += self.world.env.reward_same_color
-            self._tick_apple_eaten = 'blue'
-            self._blue_eaten_count += 1
-            self.world.env.increase_blue_apple_count(eaten_by=self)
-        elif isinstance(item, items.RedApple):
-            self._tick_reward += self.world.env.reward_oppo_color
-            self._tick_apple_eaten = 'red'
-            self._red_eaten_count += 1
-            self.world.env.increase_red_apple_count(eaten_by=self)
-
-        return self
-
+class OrangeAgent(Agent):
+    def __init__(self, world, pos):
+        super(OrangeAgent, self).__init__(world=world, pos=pos)
+        self.color = 'orange'
 
 # Lazy import (Circular import issue)
 import tocenv.components.item as items

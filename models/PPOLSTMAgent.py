@@ -3,7 +3,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions import MultivariateNormal
+from torch.distributions import Categorical
 import torch.nn.functional as F
 
 from utils.sys import make_dir
@@ -86,7 +86,7 @@ class Actor(nn.Module):
             nn.BatchNorm1d(4 * seq_len),
             nn.ReLU(inplace=True),
             nn.Linear(4 * seq_len, action_dim),
-            nn.Tanh()
+            nn.Softmax(dim=-1)
         )
 
     def forward(self, x):
@@ -132,9 +132,8 @@ class ActorCritic(nn.Module):
         raise NotImplementedError
 
     def act(self, state):
-        action_mean = self.actor(state)
-        cov_mat = torch.diag(self.action_var).unsqueeze(dim=0)
-        dist = MultivariateNormal(action_mean, cov_mat)
+        action_probs = self.actor(state)
+        dist = Categorical(action_probs)
 
         action = dist.sample()
         action_logprob = dist.log_prob(action)
@@ -143,16 +142,8 @@ class ActorCritic(nn.Module):
 
     def evaluate(self, state, action):
 
-        action_mean = self.actor(state)
-
-        action_var = self.action_var.expand_as(action_mean)
-        cov_mat = torch.diag_embed(action_var).to(self.device)
-        dist = MultivariateNormal(action_mean, cov_mat)
-
-        # For Single Action Environments.
-        if self.action_dim == 1:
-            action = action.reshape(-1, self.action_dim)
-
+        action_probs = self.actor(state)
+        dist = Categorical(action_probs)
         action_logprobs = dist.log_prob(action)
         dist_entropy = dist.entropy()
         state_values = self.critic(state)
@@ -206,20 +197,20 @@ class PPOLSTMAgent(nn.Module):
 
         self.to(device)
 
-    def act(self, obs):
+    def act(self, obs, store_action=True):
         self.eval()
 
         with torch.no_grad():
             state = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
             action, action_logprob = self.policy_old.act(state)
 
-        self.buffer.states.append(state)
-        self.buffer.actions.append(action)
-        self.buffer.logprobs.append(action_logprob)
+        if store_action:
+            self.buffer.states.append(state)
+            self.buffer.actions.append(action)
+            self.buffer.logprobs.append(action_logprob)
 
-        converted_action = F.sigmoid(action)
         self.train()
-        return converted_action.detach().cpu().numpy().flatten()
+        return action.detach().cpu().numpy().flatten()
 
     def update(self):
         # Monte Carlo estimate of returns

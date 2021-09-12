@@ -30,16 +30,14 @@ class Workspace(object):
                              log_frequency=cfg.log_frequency,
                              agent=cfg.ra_agent.name)
 
-        prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
+        self.preferences = list(eval(self.cfg.svo))
+        prefer = ['green', 'purple', 'blue', 'orange']
+
+        self.num_agent = len(prefer)
         self.env = TOCEnv(agents=prefer,
                           map_size=(cfg.env.width, cfg.env.height),
                           episode_max_length=cfg.env.episode_length,
-                          apple_color_ratio=cfg.env.apple_color_ratio,
                           apple_spawn_ratio=cfg.env.apple_spawn_ratio,
-                          patch_count=cfg.env.patch_count,
-                          patch_distance=cfg.env.patch_distance,
-                          reward_same_color=cfg.env.reward_same_color,
-                          reward_oppo_color=cfg.env.reward_oppo_color
                           )
 
         self.device = torch.device(cfg.device)
@@ -53,14 +51,14 @@ class Workspace(object):
             cfg.ra_agent.seq_len = self.env.episode_length
         except:
             pass
-        self.num_agent = cfg.env.blue_agent_count + cfg.env.red_agent_count
+
         self.agent = hydra.utils.instantiate(cfg.ra_agent)
 
         if type(self.agent) in [CPCAgentGroup]:
             self.replay_buffer = RolloutStorage(agent_type='ac',
-                                                num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
+                                                num_agent=self.num_agent,
                                                 num_step=cfg.env.episode_length,
-                                                batch_size=cfg.agent.batch_size,
+                                                batch_size=cfg.ra_agent.batch_size,
                                                 num_obs=(8 * self.obs_dim, 8 * self.obs_dim, 3), num_action=8,
                                                 num_rec=128)
 
@@ -68,8 +66,6 @@ class Workspace(object):
         self.writer = None
 
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
-        self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
-        self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
 
         self.step = 0
 
@@ -77,8 +73,7 @@ class Workspace(object):
         average_episode_reward = 0
 
         self.video_recorder.init(enabled=True)
-        self.video_recorder_blue.init(enabled=True)
-        self.video_recorder_red.init(enabled=True)
+
 
         for episode in range(self.cfg.num_eval_episodes):
             obs, _ = self.env.reset()
@@ -105,8 +100,7 @@ class Workspace(object):
                 self.video_recorder.record(self.env)
 
                 ''' Render Individual Sight-view '''
-                self.video_recorder_blue.record_observation(obs[0])
-                self.video_recorder_red.record_observation(obs[4])
+
 
                 episode_reward += sum(rewards)
 
@@ -114,8 +108,6 @@ class Workspace(object):
 
             average_episode_reward += episode_reward
         self.video_recorder.save(f'{self.step}.mp4')
-        self.video_recorder_blue.save(f'{self.step}_blue.mp4')
-        self.video_recorder_red.save(f'{self.step}_red.mp4')
 
         if self.cfg.save_model:
             self.agent.save(self.step)
@@ -174,6 +166,7 @@ class Workspace(object):
                     action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=False)
                 else:
                     action = self.agent.act(obs, sample=False)
+
             next_obs, rewards, dones, env_info = self.env.step(action)
 
             if self.cfg.render:
@@ -188,7 +181,7 @@ class Workspace(object):
             modified_rewards = np.zeros(self.num_agent)
             # Applying prosocial SVO
             for i in range(self.num_agent):
-                modified_rewards[i] = svo(rewards, i)
+                modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.agent) in [CPCAgentGroup]:
                 self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
 

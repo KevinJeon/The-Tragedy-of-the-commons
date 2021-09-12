@@ -1,7 +1,7 @@
 defaults:
     - ra_agent: rule
-    - ma_agent: ppolstm
-    - env: 5b5r_rs3ro1_pc4pd8
+    - ma_agent: a2ccpc
+    - env: default
 
 # Experiment Settings
 experiment: vanilla
@@ -26,8 +26,9 @@ ma_agent_action_interval: 32
 
 # Save Buffer
 render: false
+svo: '45,45,45,45'
 
 # hydra configuration
 hydra:
     run:
-        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${ra_agent.name}
+        dir: ./experiment/${now:%Y.%m.%d}/${now:%H%M}_${experiment}_${ma_agent.name}

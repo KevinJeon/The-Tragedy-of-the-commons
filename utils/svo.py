@@ -1,15 +1,14 @@
 import numpy as np
+import math
 
-
-def svo(rews, aind):
-    exc_rews = (np.sum(rews) - rews[aind]) / (len(rews) - 1)
-    my_rew = rews[aind]
-    if my_rew == 0:
-        rew_angle = np.pi / 2
+def svo(rews, aind, preferences):
+    if (np.array(rews) == np.zeros(len(rews))).all():
+        rew_angle = 45
     else:
-        rew_angle = np.arctan(exc_rews / my_rew)
-
-    target_angle = np.pi / 2
+        exc_rews = (np.sum(rews) - rews[aind]) / (len(rews) - 1)
+        rew_angle = math.atan(exc_rews / int(rews[aind])) * 180 / math.pi
+    my_rew = rews[aind]
+    preference = preferences[aind]
     w = 0.2
-    U = my_rew - w * abs(target_angle - rew_angle)
+    U = my_rew - w * abs(preference - rew_angle)
     return U

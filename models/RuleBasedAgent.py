@@ -45,7 +45,7 @@ class RuleBasedAgent(Agent):
             for x, data in enumerate(row):
                 dist = abs(self.agent_pos[0] - y) + abs(self.agent_pos[1] - x)
                 if data in [NumericObservation.BlueApple, NumericObservation.RedApple]:
-                    weight[y][x] += self.get_favorable(data) * (0.5 ** dist)
+                    weight[y][x] += self.main_favorable * (0.5 ** dist)
 
         return weight
 

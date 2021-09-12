@@ -8,6 +8,8 @@ import cv2 as cv
 import json
 import os
 
+import tocenv.components.skill as skills
+
 from tocenv.components.block import BlockType
 from tocenv.components.position import Position
 
@@ -44,7 +46,7 @@ class TOCEnv(object):
 
         self.agents = agents
         self.num_agents = len(self.agents)
-        self.obs_dim = 15
+        self.obs_dim = 11
         self.map_size = map_size
         self.episode_max_length = episode_max_length
         self.obs_type = obs_type
@@ -68,6 +70,8 @@ class TOCEnv(object):
 
         self._punishing_count = 0
         self._punished_count = 0
+
+        self._ma_punishing_cnt = 0
 
         self._movement_count = 0
         self._rotate_count = 0
@@ -141,10 +145,14 @@ class TOCEnv(object):
         for color in self.agents:
             pos = Position(x=random.randint(0, self.world.width - 1), y=random.randint(0, self.world.height - 1))
 
-            if color == 'red':
-                self.world.spawn_agent(pos=pos, color=Color.Red)
+            if color == 'green':
+                self.world.spawn_agent(pos=pos, color=Color.Green)
+            elif color == 'purple':
+                self.world.spawn_agent(pos=pos, color=Color.Purple)
             elif color == 'blue':
                 self.world.spawn_agent(pos=pos, color=Color.Blue)
+            elif color == 'orange':
+                self.world.spawn_agent(pos=pos, color=Color.Orange)
             else:
                 raise Exception('Unknown color type')
 
@@ -197,6 +205,8 @@ class TOCEnv(object):
 
         self._movement_count = 0
         self._rotate_count = 0
+
+        self._ma_punishing_cnt = 0
 
         [agent.reset_accumulated_reward() for agent in self.world.agents]
 
@@ -267,18 +277,24 @@ class TOCEnv(object):
         layer_field = cv.add(masked_layer_field, masked_layer_items)
 
         # Draw agents
-        resized_agent_red = cv.resize(Resource.AgentRed, dsize=(self.pixel_per_block, self.pixel_per_block))
         resized_agent_blue = cv.resize(Resource.AgentBlue, dsize=(self.pixel_per_block, self.pixel_per_block))
+        resized_agent_green = cv.resize(Resource.AgentGreen, dsize=(self.pixel_per_block, self.pixel_per_block))
+        resized_agent_orange = cv.resize(Resource.AgentOrange, dsize=(self.pixel_per_block, self.pixel_per_block))
+        resized_agent_purple = cv.resize(Resource.AgentPurple, dsize=(self.pixel_per_block, self.pixel_per_block))
 
         for iter_agent in self.world.agents:
             pos_y, pos_x = (iter_agent.get_position() * self.pixel_per_block).to_tuple()
 
-            from tocenv.components.agent import BlueAgent, RedAgent
+            from tocenv.components.agent import BlueAgent, GreenAgent, OrangeAgent, PurpleAgent
 
             if type(iter_agent) == BlueAgent:
                 put_rgba_to_image(resized_agent_blue, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
-            elif type(iter_agent) == RedAgent:
-                put_rgba_to_image(resized_agent_red, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+            elif type(iter_agent) == GreenAgent:
+                put_rgba_to_image(resized_agent_green, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+            elif type(iter_agent) == OrangeAgent:
+                put_rgba_to_image(resized_agent_orange, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
+            elif type(iter_agent) == PurpleAgent:
+                put_rgba_to_image(resized_agent_purple, layer_field, pos_x, image_size[0] - pos_y - self.pixel_per_block)
 
         gray_layer_actors = cv.cvtColor(layer_actors.astype(np.uint8), cv.COLOR_BGR2GRAY)
         ret, mask = cv.threshold(gray_layer_actors, 1, 255, cv.THRESH_BINARY)
@@ -347,9 +363,13 @@ class TOCEnv(object):
         layer_output = np.zeros(shape=image_size)
 
         resized_agent = cv.resize(Resource.Agent, dsize=(self._individual_render_pixel, self._individual_render_pixel))
-        resized_agent_red = cv.resize(Resource.AgentRed,
-                                      dsize=(self._individual_render_pixel, self._individual_render_pixel))
         resized_agent_blue = cv.resize(Resource.AgentBlue,
+                                       dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_agent_green = cv.resize(Resource.AgentGreen,
+                                       dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_agent_orange = cv.resize(Resource.AgentOrange,
+                                       dsize=(self._individual_render_pixel, self._individual_render_pixel))
+        resized_agent_purple = cv.resize(Resource.AgentPurple,
                                        dsize=(self._individual_render_pixel, self._individual_render_pixel))
 
         resized_apple_red = cv.resize(Resource.AppleRed,
@@ -374,12 +394,20 @@ class TOCEnv(object):
                 if np.bitwise_and(int(item), BlockType.Self):
                     put_rgba_to_image(resized_agent, layer_output, pos_x,
                                       image_size[0] - pos_y - self._individual_render_pixel)
-                if np.bitwise_and(int(item), BlockType.RedAgent):
-                    put_rgba_to_image(resized_agent_red, layer_output, pos_x,
-                                      image_size[0] - pos_y - self._individual_render_pixel)
+
                 if np.bitwise_and(int(item), BlockType.BlueAgent):
                     put_rgba_to_image(resized_agent_blue, layer_output, pos_x,
                                       image_size[0] - pos_y - self._individual_render_pixel)
+                if np.bitwise_and(int(item), BlockType.GreenAgent):
+                    put_rgba_to_image(resized_agent_green, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
+                if np.bitwise_and(int(item), BlockType.OrangeAgent):
+                    put_rgba_to_image(resized_agent_orange, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
+                if np.bitwise_and(int(item), BlockType.PurpleAgent):
+                    put_rgba_to_image(resized_agent_purple, layer_output, pos_x,
+                                      image_size[0] - pos_y - self._individual_render_pixel)
+
                 if np.bitwise_and(int(item), BlockType.BlueApple):
                     pos_y, pos_x = (Position(x=x, y=y) * self._individual_render_pixel).to_tuple()
                     put_rgba_to_image(resized_apple_blue, layer_output, pos_x,
@@ -426,6 +454,12 @@ class TOCEnv(object):
         total_eaten_apples['blue'] = self._total_blue_eaten_count
         eaten_apples['total'] = total_eaten_apples
 
+        cnt_eaten_apple = 0
+        for agent in info['agents']:
+            if agent['eaten'] == 'apple':
+                cnt_eaten_apple += 1
+        info['step_eaten_apple'] = cnt_eaten_apple
+
         team_eaten_apples = dict()
         team_eaten_apples['red'] = {'red': self._red_team_red_apple_count, 'blue': self._red_team_blue_apple_count}
         team_eaten_apples['blue'] = {'red': self._blue_team_red_apple_count, 'blue': self._blue_team_blue_apple_count}
@@ -451,6 +485,9 @@ class TOCEnv(object):
         map_info['size'] = size
 
         info['map'] = map_info
+
+        info['statistics']['ma_agent_punishing'] = self._ma_punishing_cnt
+        info['statistics']['alive_patches'] = len(self.world.get_alive_patches())
 
         return info
 
@@ -508,6 +545,22 @@ class TOCEnv(object):
     def apple_spawn_ratio(self, ratio: float) -> None:
         self.apple_spawn_ratio = ratio
 
+    def punish_agent(self, ma_action: np.array) -> None:
+        '''
+        :param ma_action: shape(5, )
+         [NO_OP, AGENT_1, AGENT_2, AGENT_3, AGENT_4]
+        :return: None
+        '''
+
+        ma_action = ma_action[0]
+
+        if ma_action == 0:
+            pass  # No-op
+        else:
+            punish = skills.Punish()
+            self.world.apply_effect(self.world.agents[ma_action - 1].position, punish)
+            self._ma_punishing_cnt += 1
+
     ''' Debug settings '''
 
     def draw_line(self, pos1: Position, pos2: Position, color: Color):
@@ -548,48 +601,6 @@ class TOCEnv(object):
     @property
     def episode_length(self) -> int:
         return self.episode_max_length
-
-
-class WorkerTOCEnv(TOCEnv):
-    def __init__(self):
-        super(WorkerTOCEnv, self).__init__()
-
-
-class ParallelTOCEnv(object):
-    def __init__(self,
-                 num_envs: int,
-                 **kwargs):
-        ray.init()
-        assert ray.is_initialized()
-
-        self.envs = [WorkerTOCEnv.remote(**kwargs) for i in range(num_envs)]
-
-    def step(self, actions):
-        jobs = [env.step.remote(actions) for env in self.envs]
-        result = ray.get(jobs)
-        return result
-
-    def reset(self):
-        jobs = [env.reset.remote() for env in self.envs]
-        result = ray.get(jobs)
-        return np.array(result)
-
-    def get_numeric_observation(self) -> np.array:
-        jobs = [env.get_numeric_observation.remote() for env in self.envs]
-        result = ray.get(jobs)
-        return np.array(result)
-
-    @property
-    def observation_space(self):
-        job = self.envs[0].observation_space.remote()
-        ret = ray.get(job)
-        return ret
-
-    @property
-    def action_space(self):
-        job = self.envs[0].action_space.remote()
-        ret = ray.get(job)
-        return ret
 
 
 from tocenv.components.resource import Resource
