@@ -3,7 +3,7 @@ name: default
 
 width: 16
 height: 16
-episode_length: 1000
+episode_length: 100
 
 apple_color_ratio: 0.5
 apple_spawn_ratio: 0.1

@@ -114,6 +114,7 @@ class A2CCPCAgent(nn.Module):
             v, s_f, h = self.state_encoder(obs, h.unsqueeze(0))
             lin_s_f = self.act_linear(s_f)
             lin_s_f = F.softmax(lin_s_f, dim=-1)
+            print(lin_s_f)
             dist = Categorical(lin_s_f)
 
             if sample:
@@ -129,7 +130,6 @@ class A2CCPCAgent(nn.Module):
         logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
         infos = [v, logprobs, h, s_f, a_f]
-
         return act, infos
 
     def evaluate(self, obs, h, act, mask):

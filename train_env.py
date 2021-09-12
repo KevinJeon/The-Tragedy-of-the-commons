@@ -54,8 +54,7 @@ class Workspace(object):
         self.env.reset()
 
         cfg.ra_agent.obs_dim = self.env.observation_space.shape
-        print(cfg.ra_agent.obs_dim)
-        cfg.ra_agent.action_dim = self.env.action_space.n
+        cfg.ra_agent.action_dim = self.env.action_space.n - 1
 
         cfg.ma_agent.obs_dim = (1, 256, 256, 3)
         cfg.ma_agent.action_dim = 5
@@ -79,7 +78,7 @@ class Workspace(object):
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.ra_agent.batch_size,
                                                 num_obs=(self.ra_agent.obs_dim[1], self.ra_agent.obs_dim[2], 3),
-                                                num_action=8,
+                                                num_action=7,
                                                 num_rec=128)
 
         if type(self.ma_agent) in [CPCAgentGroup]:
@@ -156,7 +155,7 @@ class Workspace(object):
                 episode_reward += sum(rewards)
                 episode_step += 1
 
-
+            average_episode_reward += episode_reward
             average_ma_reward += epi_ma_reward
 
         self.video_recorder.save(f'{self.step}.mp4')
@@ -204,6 +203,7 @@ class Workspace(object):
                 self.logger.log('train/episode_reward', episode_reward, self.step)
 
                 ''' Log Environment Statistics '''
+
                 if env_info:
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
@@ -224,6 +224,7 @@ class Workspace(object):
             if self.step < self.cfg.num_seed_steps:
                 # Define random actions
                 if type(self.ra_agent) is CPCAgentGroup:
+                    print('RA : ', obs.shape)
                     action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=True)
                 else:
                     action = self.ra_agent.act(obs, sample=True)
@@ -236,13 +237,8 @@ class Workspace(object):
             #self.env.set_apple_color_ratio(random.random())
 
             next_obs, rewards, dones, env_info = self.env.step(action)
-
-            from pprint import pprint
-            pprint(env_info)
-
             ma_obs = self.env.render(coordination=False)
             ma_obs_in = np.expand_dims(ma_obs, axis=0)
-
             '''MA action'''
             if self.step < self.cfg.num_seed_steps:
                 # Define random actions
@@ -275,7 +271,7 @@ class Workspace(object):
             if episode_step == 0:
                 ma_reward = np.zeros((1, 1))
             else:
-                ma_reward =  np.reshape(np.sum(rewards),(-1, 1))
+                ma_reward =  np.reshape(env_info['step_eaten_apple'], (1, -1))
             if type(self.ma_agent) in [CPCAgentGroup]:
                 self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
