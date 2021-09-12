@@ -1,6 +1,6 @@
 defaults:
     - ra_agent: rule
-    - env: 5b5r_rs3ro1_pc4pd8
+    - env: default
 
 # Experiment Settings
 experiment: vanilla

@@ -53,15 +53,13 @@ class Workspace(object):
                              log_frequency=cfg.log_frequency,
                              agent=cfg.ra_agent.name)
 
-        prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
+        prefer = ['green', 'purple', 'blue', 'orange']
+
+        self.num_agent = len(prefer)
         self.env = TOCEnv(agents=prefer,
+                          map_size=(cfg.env.width, cfg.env.height),
                           episode_max_length=cfg.env.episode_length,
-                          apple_color_ratio=cfg.env.apple_color_ratio,
                           apple_spawn_ratio=cfg.env.apple_spawn_ratio,
-                          patch_count=cfg.env.patch_count,
-                          patch_distance=cfg.env.patch_distance,
-                          reward_same_color=cfg.env.reward_same_color,
-                          reward_oppo_color=cfg.env.reward_oppo_color
                           )
 
         self.device = torch.device(cfg.device)
@@ -72,30 +70,30 @@ class Workspace(object):
         cfg.ra_agent.agent_types = prefer
 
         cfg.ma_agent.obs_dim = (self.cfg.ma_agent_action_interval, 84, 84, 3)
-        cfg.ma_agent.action_dim = 1
+        cfg.ma_agent.action_dim = 5
 
         try:
             cfg.ra_agent.seq_len = self.env.episode_length
         except:
             pass
 
-        self.num_agent = cfg.env.blue_agent_count + cfg.env.red_agent_count
         self.ra_agent = hydra.utils.instantiate(cfg.ra_agent)
         self.ma_agent = hydra.utils.instantiate(cfg.ma_agent)
 
         if type(self.ra_agent) in [CPCAgentGroup]:
             self.replay_buffer = RolloutStorage(agent_type='ac',
-                                                num_agent=cfg.env.blue_agent_count + cfg.env.red_agent_count,
+                                                num_agent=self.num_agent,
                                                 num_step=cfg.env.episode_length,
-                                                batch_size=cfg.agent.batch_size,
-                                                num_obs=(8 * self.obs_dim, 8 * self.obs_dim, 3), num_action=8,
+                                                batch_size=cfg.ra_agent.batch_size,
+                                                num_obs=(8 * self.ra_agent.obs_dim[1], 8 * self.ra_agent.obs_dim[2], 3),
+                                                num_action=8,
                                                 num_rec=128)
 
         self.writer = None
 
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
-        self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
-        self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
+        # self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
+        # self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
 
         self.step = 0
 
@@ -103,8 +101,8 @@ class Workspace(object):
         average_episode_reward = 0
 
         self.video_recorder.init(enabled=True)
-        self.video_recorder_blue.init(enabled=True)
-        self.video_recorder_red.init(enabled=True)
+        # self.video_recorder_blue.init(enabled=True)
+        # self.video_recorder_red.init(enabled=True)
 
         for episode in range(self.cfg.num_eval_episodes):
             obs, _ = self.env.reset()
@@ -131,8 +129,8 @@ class Workspace(object):
                 self.video_recorder.record(self.env)
 
                 ''' Render Individual Sight-view '''
-                self.video_recorder_blue.record_observation(obs[0])
-                self.video_recorder_red.record_observation(obs[4])
+                # self.video_recorder_blue.record_observation(obs[0])
+                # self.video_recorder_red.record_observation(obs[4])
 
                 episode_reward += sum(rewards)
 
@@ -140,8 +138,8 @@ class Workspace(object):
 
             average_episode_reward += episode_reward
         self.video_recorder.save(f'{self.step}.mp4')
-        self.video_recorder_blue.save(f'{self.step}_blue.mp4')
-        self.video_recorder_red.save(f'{self.step}_red.mp4')
+        # self.video_recorder_blue.save(f'{self.step}_blue.mp4')
+        # self.video_recorder_red.save(f'{self.step}_red.mp4')
 
         if self.cfg.save_model:
             self.ra_agent.save(self.step)
@@ -194,6 +192,9 @@ class Workspace(object):
                 episode_step = 0
                 episode += 1
 
+                ma_reward = 0
+
+
             if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                 obs = self.env.get_numeric_observation()
 
@@ -212,6 +213,8 @@ class Workspace(object):
             self.env.set_apple_color_ratio(random.random())
 
             next_obs, rewards, dones, env_info = self.env.step(action)
+            from pprint import pprint
+            pprint(env_info)
             ma_obs = self.env.render(coordination=False)
 
             arr_ma_obs.append(ma_obs)
@@ -223,6 +226,9 @@ class Workspace(object):
             done = True in dones
             if episode_step >= self.env.episode_length:
                 done = True
+
+            if done:  # Clear MA agent's observation
+                arr_ma_obs.clear()
 
             episode_reward += sum(rewards)
             ma_reward += sum(rewards)
@@ -249,13 +255,14 @@ class Workspace(object):
 
                 ma_action = self.ma_agent.act(ma_obs)
                 logger.info('MA Agent Acted - {0}'.format(ma_action))
-                self.env.set_apple_color_ratio(ma_action)
+                self.env.punish_agent(ma_action)
+
+                if self.cfg.render:
+                    ma_obs = self.env.render(coordination=False)
 
                 prev_ma_obs = copy.deepcopy(ma_obs)
                 arr_ma_obs.clear()
                 ma_reward = 0
-
-
 
             obs = next_obs
             episode_step += 1

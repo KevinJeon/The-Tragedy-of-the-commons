@@ -8,4 +8,8 @@ class NumericObservation:
 
     Self = 4
     BlueAgent = 5
-    RedAgent = 6
+    PurpleAgent = 6
+    OrangeAgent = 7
+    GreenAgent = 8
+
+    # RedAgent = 6
