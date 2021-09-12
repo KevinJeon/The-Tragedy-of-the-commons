@@ -11,6 +11,7 @@ from omegaconf import DictConfig
 
 import logging
 from logger import Logger
+from models.PPOLSTMAgent import PPOLSTMAgent
 from models.RuleBasedAgent import *
 from models.CPCAgent import *
 from models.utils.RolloutStorage import RolloutStorage
@@ -99,10 +100,9 @@ class Workspace(object):
 
     def evaluate(self):
         average_episode_reward = 0
+        average_ma_reward = 0
 
         self.video_recorder.init(enabled=True)
-        # self.video_recorder_blue.init(enabled=True)
-        # self.video_recorder_red.init(enabled=True)
 
         for episode in range(self.cfg.num_eval_episodes):
             obs, _ = self.env.reset()
@@ -110,6 +110,10 @@ class Workspace(object):
 
             done = False
             episode_reward = 0
+
+            arr_ma_obs = []
+            epi_ma_reward = 0
+
             while not done:
 
                 if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
@@ -126,26 +130,45 @@ class Workspace(object):
                 if episode_step == self.env.episode_length:
                     done = True
 
+                ma_obs = self.env.render(coordination=False)
                 self.video_recorder.record(self.env)
 
-                ''' Render Individual Sight-view '''
-                # self.video_recorder_blue.record_observation(obs[0])
-                # self.video_recorder_red.record_observation(obs[4])
+                arr_ma_obs.append(ma_obs)
+
+                if len(arr_ma_obs) == self.cfg.ma_agent_action_interval:
+
+                    ma_obs = ma_obs_to_numpy(arr_ma_obs)
+
+                    # MA reward shaping
+                    ma_reward = sum(rewards)
+                    epi_ma_reward += ma_reward
+
+
+                    if type(self.ma_agent) is PPOLSTMAgent:
+                        ma_action = self.ma_agent.act(ma_obs, store_action=False)
+                    else:
+                        ma_action = self.ma_agent.act(ma_obs)
+
+                    self.env.punish_agent(ma_action)
+
+                    arr_ma_obs.clear()
 
                 episode_reward += sum(rewards)
-
                 episode_step += 1
 
             average_episode_reward += episode_reward
+            average_ma_reward += epi_ma_reward
+
         self.video_recorder.save(f'{self.step}.mp4')
-        # self.video_recorder_blue.save(f'{self.step}_blue.mp4')
-        # self.video_recorder_red.save(f'{self.step}_red.mp4')
 
         if self.cfg.save_model:
             self.ra_agent.save(self.step)
 
         average_episode_reward /= self.cfg.num_eval_episodes
+        average_ma_reward /= self.cfg.num_eval_episodes
+
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
+        self.logger.log('eval/ma_reward', average_ma_reward, self.step)
         self.logger.dump(self.step)
 
     def run(self):
@@ -213,8 +236,6 @@ class Workspace(object):
             self.env.set_apple_color_ratio(random.random())
 
             next_obs, rewards, dones, env_info = self.env.step(action)
-            from pprint import pprint
-            pprint(env_info)
             ma_obs = self.env.render(coordination=False)
 
             arr_ma_obs.append(ma_obs)
@@ -254,7 +275,7 @@ class Workspace(object):
                     self.ma_agent.update()
 
                 ma_action = self.ma_agent.act(ma_obs)
-                logger.info('MA Agent Acted - {0}'.format(ma_action))
+                # logger.info('MA Agent Acted - {0}'.format(ma_action))
                 self.env.punish_agent(ma_action)
 
                 if self.cfg.render:
