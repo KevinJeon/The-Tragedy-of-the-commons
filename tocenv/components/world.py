@@ -155,7 +155,7 @@ class VariousAppleField(Field):
     def create_from_parameter(world: World, pos: Position, radius: int, prob: float, ratio: float):
         p1 = Position(pos.x - radius, pos.y - radius)
         p2 = Position(pos.x + radius, pos.y + radius)
-        return VariousAppleField(world=world, p1=p1, p2=p2, prob=prob, ratio=ratio)
+        return Field(world=world, p1=p1, p2=p2)
 
 
 class World(object):
@@ -190,33 +190,34 @@ class World(object):
     def _build_grid(self):
         self.grid = np.empty(shape=self.size, dtype=object)
 
-            
     def _create_random_field(self):
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(4, 4), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
 
-        patch_size = 3
-        half_size = patch_size // 2
-        distance = self.patch_distance
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(11, 4), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
 
-        initial_pos = get_weighted_position(mu=0, sigma=1, map_size=self.size)
-        initial_pos = Position(
-            x=max(half_size + 1, min(initial_pos.x, self.width - half_size - 1)),
-            y=max(half_size + 1, min(initial_pos.y, self.height - half_size - 1))
-        )
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(4, 11), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
 
-        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=initial_pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
+        self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(11, 11), radius=1,
+                                                                      prob=self.apple_spawn_ratio,
+                                                                      ratio=self.apple_color_ratio))
 
-        bfs = BFS(world=self)
-        searched_positions = bfs.search(pos=initial_pos, radius=half_size, distance=distance, \
-                                        k=self.patch_count - 1)
 
-        for pos in searched_positions:
-            self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=pos, radius=half_size, prob=self.apple_spawn_ratio, ratio=self.apple_color_ratio))
 
     def spawn_agent(self, pos: Position, color: Color):
-        if color == Color.Red:
-            spawned = agent.RedAgent(world=self, pos=pos)
+        if color == Color.Purple:
+            spawned = agent.PurpleAgent(world=self, pos=pos)
+        elif color == Color.Green:
+            spawned = agent.GreenAgent(world=self, pos=pos)
         elif color == Color.Blue:
             spawned = agent.BlueAgent(world=self, pos=pos)
+        elif color == Color.Orange:
+            spawned = agent.OrangeAgent(world=self, pos=pos)
 
         self.agents.append(spawned)
 

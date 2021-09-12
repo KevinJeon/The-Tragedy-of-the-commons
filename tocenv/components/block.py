@@ -7,8 +7,12 @@ class BlockType:
 
     #  Agents
     Self = 1 << 4
-    RedAgent = 1 << 5
+
+    # RedAgent = 1 << 5
     BlueAgent = 1 << 6
+    GreenAgent = 1 << 7
+    OrangeAgent = 1 << 8
+    PurpleAgent = 1 << 9
 
     #  Effects
     Punish = 1 << 20

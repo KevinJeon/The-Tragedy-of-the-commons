@@ -13,7 +13,7 @@ class Item(object):
 
 class Apple(Item, ABC):
     def __init__(self):
-        pass
+        self.reward = 1
 
 
 class RedApple(Apple, ABC):
