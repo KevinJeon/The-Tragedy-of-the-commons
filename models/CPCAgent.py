@@ -266,7 +266,7 @@ class CPCAgentGroup(object):
 
         self.seq_len = seq_len
 
-    def act(self, memory, obses, step, sample=False):
+    def act(self, memory, obses, step, sample=True):
         actions = []
         infos = []
         for obs, agent, h in zip(obses, self.agents, memory.h):
