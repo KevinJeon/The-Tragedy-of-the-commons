@@ -28,7 +28,7 @@ class Workspace(object):
         self.logger = Logger(self.work_dir,
                              save_tb=cfg.log_save_tb,
                              log_frequency=cfg.log_frequency,
-                             agent=cfg.agent.name)
+                             agent=cfg.ra_agent.name)
 
         prefer = ['blue'] * cfg.env.blue_agent_count + ['red'] * cfg.env.red_agent_count
         self.env = TOCEnv(agents=prefer,
@@ -45,16 +45,16 @@ class Workspace(object):
         self.device = torch.device(cfg.device)
         self.env.reset()
 
-        cfg.agent.obs_dim = self.env.observation_space.shape
-        cfg.agent.action_dim = self.env.action_space.n
-        cfg.agent.agent_types = prefer
+        cfg.ra_agent.obs_dim = self.env.observation_space.shape
+        cfg.ra_agent.action_dim = self.env.action_space.n
+        cfg.ra_agent.agent_types = prefer
         self.obs_dim = 15
         try:
-            cfg.agent.seq_len = self.env.episode_length
+            cfg.ra_agent.seq_len = self.env.episode_length
         except:
             pass
         self.num_agent = cfg.env.blue_agent_count + cfg.env.red_agent_count
-        self.agent = hydra.utils.instantiate(cfg.agent)
+        self.agent = hydra.utils.instantiate(cfg.ra_agent)
 
         if type(self.agent) in [CPCAgentGroup]:
             self.replay_buffer = RolloutStorage(agent_type='ac',
