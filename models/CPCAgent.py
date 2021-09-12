@@ -14,7 +14,7 @@ from utils.sys import make_dir
 
 class CPC(nn.Module):
 
-    def __init__(self, num_action, num_channel, batch_size):
+    def __init__(self, num_action, num_channel, batch_size, name='ra'):
         super(CPC, self).__init__()
         self.num_hidden = 128
         # Input Size (N, 88, 88, 3)
@@ -23,8 +23,11 @@ class CPC(nn.Module):
             nn.Conv2d(128, 64, kernel_size=5, stride=3, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True))
-
-        self.gru = nn.GRU(1600, 128)
+        if name == 'ra':
+            gru_in = 576
+        else:
+            gru_in = 10816
+        self.gru = nn.GRU(gru_in, 128)
         for n, p in self.gru.named_parameters():
             if 'bias' in n:
                 nn.init.constant_(p, 0)
@@ -49,7 +52,6 @@ class CPC(nn.Module):
         else:
             bs = self.batch_size
             step = int(n // self.batch_size)
-
         z = self.encoder(obs.reshape(-1, c, he, w) / 255.0).reshape(bs, step, -1)
         s_f, h = self.gru(z, h)
         s_f = s_f.view(bs * step, -1)
@@ -91,7 +93,7 @@ class A2CCPCAgent(nn.Module):
         self.s_linear = nn.ModuleList([nn.Linear(128, 128) for _ in range(seq_len)]).to(self.device)
         self.a_linear = nn.ModuleList([nn.Linear(128, 128) for _ in range(seq_len)]).to(self.device)
         self.action_encoder = nn.Embedding(action_dim, 128).to(self.device)
-        self.state_encoder = CPC(action_dim, num_channel, batch_size).to(self.device)
+        self.state_encoder = CPC(action_dim, num_channel, batch_size, name).to(self.device)
         self.act_linear = nn.Linear(128, action_dim).to(self.device)
 
         self.optimizer = optim.RMSprop(self.parameters(), lr, eps=eps, alpha=alpha)
@@ -112,6 +114,7 @@ class A2CCPCAgent(nn.Module):
             v, s_f, h = self.state_encoder(obs, h.unsqueeze(0))
             lin_s_f = self.act_linear(s_f)
             lin_s_f = F.softmax(lin_s_f, dim=-1)
+            print(lin_s_f)
             dist = Categorical(lin_s_f)
 
             if sample:
@@ -127,7 +130,6 @@ class A2CCPCAgent(nn.Module):
         logprobs = dist.log_prob(act.squeeze(-1)).view(act.size(0), -1).sum(-1).unsqueeze(-1)
         entropy = dist.entropy().mean()
         infos = [v, logprobs, h, s_f, a_f]
-
         return act, infos
 
     def evaluate(self, obs, h, act, mask):
@@ -229,8 +231,8 @@ class CPCAgentGroup(object):
 
     def __init__(self,
                  name,
-                 agent_types,
                  lr,
+                 num_agent,
                  eps,
                  alpha,
                  max_grad_norm,
@@ -242,9 +244,9 @@ class CPCAgentGroup(object):
                  seq_len,
                  num_channel,
                  use_cpc,
+                 agent_name,
                  device):
         super(CPCAgentGroup, self).__init__()
-
         self.name = name
         self.batch_size = batch_size
         self.device = device
@@ -252,9 +254,7 @@ class CPCAgentGroup(object):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.use_cpc = use_cpc
-
-        self.agent_types = agent_types
-        self.agents = [A2CCPCAgent(name + "_" + str(i) + "_" + color,
+        self.agents = [A2CCPCAgent(agent_name,
                                    lr,
                                    eps,
                                    alpha,
@@ -267,7 +267,7 @@ class CPCAgentGroup(object):
                                    seq_len,
                                    num_channel,
                                    use_cpc,
-                                   device) for i, color in enumerate(self.agent_types)]
+                                   device) for i in range(num_agent)]
 
         self.seq_len = seq_len
 
@@ -283,7 +283,6 @@ class CPCAgentGroup(object):
         return actions, infos
 
     def train(self, memory, logger=None, total_step=None):
-
         with tr.no_grad():
             next_vals = []
             for i, agent in enumerate(self.agents):
