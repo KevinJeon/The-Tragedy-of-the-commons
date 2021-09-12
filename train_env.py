@@ -251,7 +251,6 @@ class Workspace(object):
             if done:  # Clear MA agent's observation
                 arr_ma_obs.clear()
 
-
             episode_reward += sum(rewards)
             ma_reward += sum(rewards)
 

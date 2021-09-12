@@ -18,8 +18,6 @@ max_grad_norm: 0.5
 entropy_coef: 0.01
 v_loss_coef: 0.5
 
-lstm_length: ${ma_agent_action_interval}
-
 # Specific Parameters
 batch_size: 32
 
