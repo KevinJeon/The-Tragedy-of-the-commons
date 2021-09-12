@@ -62,6 +62,7 @@ class RolloutStorage(object):
             self.h[i, 0].copy_(self.h[i, -1])
             self.mask[i, 0].copy_(self.mask[i, 0])
         self.n = 0
+        #print(self.obs[i, 0])
 
     def compute_return(self, v_nexts, gamma):
         for i, v_next in enumerate(v_nexts):
@@ -69,4 +70,7 @@ class RolloutStorage(object):
             for step in reversed(range(self.rew.size(1))):
                 self.ret[i, step, self.n] = self.ret[i, step + 1, self.n] * gamma * \
                                             (1 - self.mask[i, step + 1, self.n]) + self.rew[i, step, self.n]
-
+                #print(self.ret[i, step + 1, self.n])
+                #print(self.ret[i, step, self.n] )
+                #print((1 - self.mask[i, step + 1, self.n]))
+                #print(self.rew[i, step, self.n])
