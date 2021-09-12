@@ -454,6 +454,12 @@ class TOCEnv(object):
         total_eaten_apples['blue'] = self._total_blue_eaten_count
         eaten_apples['total'] = total_eaten_apples
 
+        cnt_eaten_apple = 0
+        for agent in info['agents']:
+            if agent['eaten'] == 'apple':
+                cnt_eaten_apple += 1
+        info['step_eaten_apple'] = cnt_eaten_apple
+
         team_eaten_apples = dict()
         team_eaten_apples['red'] = {'red': self._red_team_red_apple_count, 'blue': self._red_team_blue_apple_count}
         team_eaten_apples['blue'] = {'red': self._blue_team_red_apple_count, 'blue': self._blue_team_blue_apple_count}
