@@ -34,8 +34,6 @@ class Workspace(object):
 
         self.cfg = cfg
 
-        # set_seed_everywhere(cfg.seed)
-
         self.logger = Logger(self.work_dir,
                              save_tb=cfg.log_save_tb,
                              log_frequency=cfg.log_frequency,
@@ -57,6 +55,7 @@ class Workspace(object):
         cfg.ra_agent.action_dim = self.env.action_space.n - 1
 
         cfg.ma_agent.obs_dim = (1, 256, 256, 3)
+
         cfg.ma_agent.action_dim = 5
 
         try:
@@ -277,9 +276,6 @@ class Workspace(object):
 
             # logger.info('MA Agent Acted - {0}'.format(ma_action))
             self.env.punish_agent(ma_action[0])
-
-            if self.cfg.render:
-                ma_obs = self.env.render(coordination=False)
 
             obs = next_obs
             episode_step += 1
