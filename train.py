@@ -30,9 +30,9 @@ class Workspace(object):
                              log_frequency=cfg.log_frequency,
                              agent=cfg.ra_agent.name)
 
+        self.preferences = list(eval(self.cfg.svo))
         prefer = ['green', 'purple', 'blue', 'orange']
 
-        self.num_agent = len(prefer)
         self.env = TOCEnv(agents=prefer,
                           map_size=(cfg.env.width, cfg.env.height),
                           episode_max_length=cfg.env.episode_length,
@@ -180,7 +180,7 @@ class Workspace(object):
             modified_rewards = np.zeros(self.num_agent)
             # Applying prosocial SVO
             for i in range(self.num_agent):
-                modified_rewards[i] = svo(rewards, i)
+                modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.agent) in [CPCAgentGroup]:
                 self.replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
 
