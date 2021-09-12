@@ -7,16 +7,16 @@ obs_dim: ???
 action_dim: ???
 device: ${device}
 
-num_agent : 4
+num_agent : 1
 lr: 5e-4
 eps: 1e-5
 alpha: 0.99
 max_grad_norm: 0.5
 entropy_coef: 0.01
 v_loss_coef: 0.5
-agent_name : 'ra'
+agent_name : 'ma'
 # Specific Parameters
-batch_size: 2
+batch_size: 4
 seq_len: ???
 num_channel: 3
 use_cpc: true

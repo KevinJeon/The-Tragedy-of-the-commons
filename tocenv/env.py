@@ -46,7 +46,7 @@ class TOCEnv(object):
 
         self.agents = agents
         self.num_agents = len(self.agents)
-        self.obs_dim = 15
+        self.obs_dim = 11
         self.map_size = map_size
         self.episode_max_length = episode_max_length
         self.obs_type = obs_type
