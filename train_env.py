@@ -47,8 +47,6 @@ class Workspace(object):
 
         self.cfg = cfg
 
-        # set_seed_everywhere(cfg.seed)
-
         self.logger = Logger(self.work_dir,
                              save_tb=cfg.log_save_tb,
                              log_frequency=cfg.log_frequency,

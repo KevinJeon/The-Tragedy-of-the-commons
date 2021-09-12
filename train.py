@@ -33,6 +33,7 @@ class Workspace(object):
         self.preferences = list(eval(self.cfg.svo))
         prefer = ['green', 'purple', 'blue', 'orange']
 
+        self.num_agent = len(prefer)
         self.env = TOCEnv(agents=prefer,
                           map_size=(cfg.env.width, cfg.env.height),
                           episode_max_length=cfg.env.episode_length,
