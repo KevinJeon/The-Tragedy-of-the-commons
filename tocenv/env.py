@@ -71,6 +71,8 @@ class TOCEnv(object):
         self._punishing_count = 0
         self._punished_count = 0
 
+        self._ma_punishing_cnt = 0
+
         self._movement_count = 0
         self._rotate_count = 0
 
@@ -181,8 +183,6 @@ class TOCEnv(object):
         self._reset_statistics()
         [iter_agent.reset_statistics() for iter_agent in self.world.agents]
 
-
-
         return obs, info
 
     def get_numeric_observation(self) -> np.array:
@@ -206,7 +206,7 @@ class TOCEnv(object):
         self._movement_count = 0
         self._rotate_count = 0
 
-        self._ma_punished_cnt = 0
+        self._ma_punishing_cnt = 0
 
         [agent.reset_accumulated_reward() for agent in self.world.agents]
 
@@ -480,6 +480,9 @@ class TOCEnv(object):
 
         info['map'] = map_info
 
+        info['statistics']['ma_agent_punishing'] = self._ma_punishing_cnt
+        info['statistics']['alive_patches'] = len(self.world.get_alive_patches())
+
         return info
 
     def increase_movement_count(self) -> int:
@@ -550,7 +553,7 @@ class TOCEnv(object):
         else:
             punish = skills.Punish()
             self.world.apply_effect(self.world.agents[ma_action - 1].position, punish)
-            self._ma_punished_cnt += 1
+            self._ma_punishing_cnt += 1
 
     ''' Debug settings '''
 

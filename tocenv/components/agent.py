@@ -74,6 +74,8 @@ class Agent(object):
         self._tick_apple_eaten = None
 
         self._eaten_apple_count = 0
+        self._punishing_count = 0
+        self._punished_count = 0
 
         self._tick_used_punishment = False
         self._tick_punished = False
@@ -182,6 +184,8 @@ class Agent(object):
 
         self._tick_reward += punish.reward
         self._tick_used_punishment = True
+        self._punishing_count += 1
+
         self.world.env.increase_punishing_count()
 
     def _try_gather(self):
@@ -200,6 +204,7 @@ class Agent(object):
     def on_punished(self, damage: float) -> None:
         self._tick_reward += damage
         self._tick_punished = True
+        self._punished_count += 1
         self.world.env.increase_punished_count()
 
     def tick(self) -> None:
@@ -231,6 +236,8 @@ class Agent(object):
 
     def reset_statistics(self) -> None:
         self._eaten_apple_count = 0
+        self._punishing_count = 0
+        self._punished_count = 0
 
     def gather_info(self) -> dict():
         info = dict()
@@ -244,6 +251,8 @@ class Agent(object):
         info['eaten'] = self.get_apple_eaten()
         info['accum_reward'] = self.accum_reward
         info['eaten_apples'] = self._eaten_apple_count
+        info['punished_count'] = self._punished_count
+        info['punishing_count'] = self._punishing_count
 
         return info
 

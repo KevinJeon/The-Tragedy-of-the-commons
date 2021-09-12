@@ -71,6 +71,13 @@ class Field(object):
 
         return True
 
+    @property
+    def is_alive(self) -> bool:
+        for pos in self.positions:
+            if self.world.get_item(pos) is not None:
+                return True
+        return False
+
     @staticmethod
     def create_from_parameter(world: World, pos: Position, radius: int):
         p1 = Position(pos.x - radius, pos.y - radius)
@@ -117,7 +124,8 @@ class VariousAppleField(Field):
         agent_positions = [iter_agent.position for iter_agent in self.world.agents]
 
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.world.env.apple_color_ratio, 1-self.world.env.apple_color_ratio), k=len(empty_positions))
+        spawned_apples = random.choices(apples, weights=(
+        self.world.env.apple_color_ratio, 1 - self.world.env.apple_color_ratio), k=len(empty_positions))
 
         # for pos, item in zip(empty_positions, spawned_apples):
         #     surrounded_positions = self.world.get_surrounded_positions(pos=pos, radius=3)
@@ -134,7 +142,8 @@ class VariousAppleField(Field):
         sampled_position = random.sample(positions, num_samples)
 
         apples = [items.BlueApple, items.RedApple]
-        spawned_apples = random.choices(apples, weights=(self.world.env.apple_color_ratio, 1-self.world.env.apple_color_ratio), k=len(sampled_position))
+        spawned_apples = random.choices(apples, weights=(
+        self.world.env.apple_color_ratio, 1 - self.world.env.apple_color_ratio), k=len(sampled_position))
 
         for pos, item in zip(sampled_position, spawned_apples):
             if random.random() < ratio:
@@ -146,7 +155,7 @@ class VariousAppleField(Field):
             for x in range(self.p1.x, self.p2.x + 1):
                 pos = Position(x, y)
                 if self.world.get_item(pos) is None and \
-                            self.world.get_agent(pos) is None:
+                        self.world.get_agent(pos) is None:
                     positions.append(pos)
 
         return positions
@@ -206,8 +215,6 @@ class World(object):
         self.add_fruits_field(VariousAppleField.create_from_parameter(world=self, pos=Position(11, 11), radius=1,
                                                                       prob=self.apple_spawn_ratio,
                                                                       ratio=self.apple_color_ratio))
-
-
 
     def spawn_agent(self, pos: Position, color: Color):
         if color == Color.Purple:
@@ -317,6 +324,16 @@ class World(object):
 
     def tick(self):
         [field.tick() for field in self.fruits_fields]
+
+    def get_alive_patches(self) -> [Field]:
+        fields = self.fruits_fields
+        alive_fields = list()
+
+        for field in fields:
+            if field.is_alive:
+                alive_fields.append(field)
+
+        return alive_fields
 
     @property
     def width(self) -> int:
