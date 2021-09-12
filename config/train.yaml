@@ -24,7 +24,7 @@ save_model: false
 # Save Buffer
 render: false
 
-svo: '45,45,45,45'
+svo: '45,45,45,45,45,45,45,45'
 
 # hydra configuration
 hydra:
