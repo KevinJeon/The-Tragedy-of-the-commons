@@ -99,7 +99,7 @@ class Workspace(object):
     def evaluate(self):
         average_episode_reward = 0
         average_ma_reward = 0
-
+        average_svo_reward = [0] * 4
         self.video_recorder.init(enabled=True)
 
         for episode in range(self.cfg.num_eval_episodes):
@@ -108,9 +108,8 @@ class Workspace(object):
 
             done = False
             episode_reward = 0
-
             epi_ma_reward = 0
-
+            episode_svo_reward = [0] * 4
             while not done:
 
                 if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
@@ -133,18 +132,25 @@ class Workspace(object):
                 ma_obs_in = np.expand_dims(ma_obs, axis=0)
 
                 if type(self.ma_agent) is CPCAgentGroup:
-                    ma_action, _ = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
+                    ma_action, ma_cpc_info = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
                 else:
                     ma_action = self.ma_agent.act(ma_obs_in, sample=True)
 
                 # MA reward shaping
-                ma_reward = sum(rewards)
-                epi_ma_reward += ma_reward
 
-                if type(self.ma_agent) is CPCAgentGroup:
-                    ma_action, _ = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
+                for i in range(self.num_agent):
+                    episode_svo_reward[i] += svo(rewards, i, self.preferences)
+                if type(self.ra_agent) in [CPCAgentGroup]:
+                    self.ra_replay_buffer.add(obs, action, rewards, dones, cpc_info)
+
+                if episode_step == 0:
+                    ma_reward = np.zeros((1, 1))
                 else:
-                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
+                    ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
+                epi_ma_reward += ma_reward[0]
+                if type(self.ma_agent) in [CPCAgentGroup]:
+                    self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
+
 
                 self.env.punish_agent(ma_action[0])
 
@@ -153,6 +159,7 @@ class Workspace(object):
 
             average_episode_reward += episode_reward
             average_ma_reward += epi_ma_reward
+            average_svo_reward += episode_svo_reward
 
         self.video_recorder.save(f'{self.step}.mp4')
 
@@ -161,9 +168,13 @@ class Workspace(object):
 
         average_episode_reward /= self.cfg.num_eval_episodes
         average_ma_reward /= self.cfg.num_eval_episodes
-
+        # Clear Buffer
+        self.ma_replay_buffer.after_update()
+        self.ra_replay_buffer.after_update()
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
         self.logger.log('eval/ma_reward', average_ma_reward, self.step)
+        for i in range(4):
+            self.logger.log('eval/agent{}_SVO_reward'.format(i), average_svo_reward[i], self.step)
         self.logger.dump(self.step)
 
     def run(self):
