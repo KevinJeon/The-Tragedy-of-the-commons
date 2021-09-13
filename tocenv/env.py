@@ -1,3 +1,6 @@
+import copy
+
+
 class TOCEnv(object):
     pass
 
@@ -101,6 +104,19 @@ class TOCEnv(object):
 
         # Clear skill (You should bew clear effects before tick
         self.world.clear_effect()
+
+        _durating_effects = list()
+
+        for pos, effect in self.world.durating_effects:
+            _effect = copy.deepcopy(effect)
+
+            self.world.effects[pos.y][pos.x] = np.bitwise_or(int(self.world.effects[pos.y][pos.x]), BlockType.Punish)
+
+            _effect.effect_duration -= 1
+            if _effect.effect_duration > 1:
+                _durating_effects.append((pos, _effect))
+
+        self.world.durating_effects = _durating_effects
 
         for agent, action in zip(self.world.agents, actions):
             agent.act(action)
@@ -333,7 +349,6 @@ class TOCEnv(object):
             for x in range(self.world.width):
 
                 effects = self.world.effects[y][x]
-
                 if np.bitwise_and(int(effects), BlockType.Punish):
                     pos_y, pos_x = (Position(x=x, y=y) * self.pixel_per_block).to_tuple()
                     put_rgba_to_image(resized_flame, output_layer, pos_x, image_size[0] - pos_y - self.pixel_per_block)
@@ -558,6 +573,7 @@ class TOCEnv(object):
             pass  # No-op
         else:
             punish = skills.Punish()
+            punish.effect_duration = 2
             self.world.apply_effect(self.world.agents[ma_action - 1].position, punish)
             self._ma_punishing_cnt += 1
 
