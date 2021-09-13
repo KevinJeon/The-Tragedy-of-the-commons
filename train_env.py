@@ -109,7 +109,6 @@ class Workspace(object):
             done = False
             episode_reward = 0
 
-            arr_ma_obs = []
             epi_ma_reward = 0
 
             while not done:
@@ -122,7 +121,7 @@ class Workspace(object):
                 else:
                     action = self.ra_agent.act(obs, sample=True)
 
-                obs, rewards, dones, _ = self.env.step(action)
+                obs, rewards, dones, env_info = self.env.step(action)
 
                 done = True in dones
                 if episode_step == self.env.episode_length:
@@ -131,25 +130,23 @@ class Workspace(object):
                 ma_obs = self.env.render(coordination=False)
                 self.video_recorder.record(self.env)
 
-                arr_ma_obs.append(ma_obs)
+                ma_obs_in = np.expand_dims(ma_obs, axis=0)
 
-                if len(arr_ma_obs) == self.cfg.ma_agent_action_interval:
+                if type(self.ma_agent) is CPCAgentGroup:
+                    ma_action, _ = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
+                else:
+                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
 
-                    ma_obs = ma_obs_to_numpy(arr_ma_obs)
+                # MA reward shaping
+                ma_reward = sum(rewards)
+                epi_ma_reward += ma_reward
 
-                    # MA reward shaping
-                    ma_reward = sum(rewards)
-                    epi_ma_reward += ma_reward
+                if type(self.ma_agent) is CPCAgentGroup:
+                    ma_action, _ = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
+                else:
+                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
 
-
-                    if type(self.ma_agent) is PPOLSTMAgent:
-                        ma_action = self.ma_agent.act(ma_obs, store_action=False)
-                    else:
-                        ma_action = self.ma_agent.act(ma_obs)
-
-                    self.env.punish_agent(ma_action)
-
-                    arr_ma_obs.clear()
+                self.env.punish_agent(ma_action[0])
 
                 episode_reward += sum(rewards)
                 episode_step += 1
