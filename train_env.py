@@ -90,6 +90,8 @@ class Workspace(object):
                                                 num_rec=128)
         self.writer = None
 
+        self.ra_agent.logger = self.logger
+        self.ma_agent.logger = self.logger
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
         # self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
         # self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
