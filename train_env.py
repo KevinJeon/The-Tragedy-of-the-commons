@@ -275,19 +275,23 @@ class Workspace(object):
             if type(self.ra_agent) in [CPCAgentGroup]:
                 self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
-            if episode_step == 0:
-                ma_reward = np.zeros((1, 1))
-            else:
-                ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
 
-                if int(ma_action[0]) > 0:
-                    ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
 
-            if type(self.ma_agent) in [CPCAgentGroup]:
-                #print('ma', np.sum(ma_obs_in))
-                self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
+            if self.step >= int(self.cfg.ma_agent_starting_step):
+                print(11111)
+                if episode_step == 0:
+                    ma_reward = np.zeros((1, 1))
+                else:
+                    ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
 
-            self.env.punish_agent(ma_action[0])
+                    if int(ma_action[0]) > 0:
+                        ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
+
+                if type(self.ma_agent) in [CPCAgentGroup]:
+                    #print('ma', np.sum(ma_obs_in))
+                    self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
+
+                self.env.punish_agent(ma_action[0])
 
             obs = next_obs
             episode_step += 1

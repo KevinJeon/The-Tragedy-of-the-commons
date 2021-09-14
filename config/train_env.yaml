@@ -28,6 +28,8 @@ save_model: false
 render: false
 svo: '45,45,45,45'
 
+ma_agent_starting_step: 1e5
+
 
 
 # hydra configuration
