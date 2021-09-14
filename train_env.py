@@ -278,7 +278,6 @@ class Workspace(object):
 
 
             if self.step >= int(self.cfg.ma_agent_starting_step):
-                print(11111)
                 if episode_step == 0:
                     ma_reward = np.zeros((1, 1))
                 else:
