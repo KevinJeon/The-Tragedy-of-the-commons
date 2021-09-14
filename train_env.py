@@ -281,7 +281,7 @@ class Workspace(object):
                 ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
 
                 if int(ma_action[0]) > 0:
-                    ma_reward = ma_reward - np.array([[-1]])
+                    ma_reward = ma_reward + np.array([[-1]])
 
             if type(self.ma_agent) in [CPCAgentGroup]:
                 #print('ma', np.sum(ma_obs_in))
