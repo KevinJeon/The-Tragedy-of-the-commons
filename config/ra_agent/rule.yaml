@@ -2,14 +2,11 @@
 name: rule_agent
 _target_: models.RuleBasedAgent.RuleBasedAgentGroup
 
-
 # Default Parameters
 
 obs_dim: ???
 action_dim: ???
 device: ${device}
-
-agent_types: ???
 
 # Specific Parameters
 batch_size: 1024

@@ -14,6 +14,8 @@ num_seed_steps: 0
 eval_frequency: 10000
 num_eval_episodes: 3
 
+ma_beam_reward: -1
+
 device: cuda
 
 # Logging Settings
@@ -22,11 +24,11 @@ log_save_tb: true
 save_video: true
 save_model: false
 
-ma_agent_action_interval: 32
-
 # Save Buffer
 render: false
 svo: '45,45,45,45'
+
+
 
 # hydra configuration
 hydra:

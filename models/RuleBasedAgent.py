@@ -84,7 +84,6 @@ class RuleBasedAgentGroup(object):
 
     def __init__(self,
                  name,
-                 agent_types,
                  obs_dim,
                  action_dim,
                  device,
@@ -98,10 +97,9 @@ class RuleBasedAgentGroup(object):
         self.obs_dim = obs_dim
         self.action_dim = action_dim
 
-        self.agent_types = agent_types
         self.agents = [RuleBasedAgent(
                  agent_type,
-                ) for agent_type in self.agent_types]
+                ) for agent_type in 'blue']
 
     def act(self, obses, sample=False):
         joint_action = []
