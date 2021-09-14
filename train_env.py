@@ -56,7 +56,7 @@ class Workspace(object):
 
         cfg.ma_agent.obs_dim = (1, 256, 256, 3)
 
-        cfg.ma_agent.action_dim = 5
+        cfg.ma_agent.action_dim = 8
 
         try:
             cfg.ra_agent.seq_len = self.env.episode_length
@@ -86,7 +86,7 @@ class Workspace(object):
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.ra_agent.batch_size,
                                                 num_obs=(self.ma_agent.obs_dim[1], self.ma_agent.obs_dim[2], 3),
-                                                num_action=5,
+                                                num_action=8,
                                                 num_rec=128)
         self.writer = None
 
@@ -280,11 +280,10 @@ class Workspace(object):
             else:
                 ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
 
-                if int(ma_action[0]) > 0:
+                if int(ma_action[0]) % 2 == 0:
                     ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
 
             if type(self.ma_agent) in [CPCAgentGroup]:
-                #print('ma', np.sum(ma_obs_in))
                 self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
             self.env.punish_agent(ma_action[0])

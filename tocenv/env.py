@@ -569,12 +569,12 @@ class TOCEnv(object):
 
         ma_action = ma_action[0]
 
-        if ma_action == 0:
+        if ma_action % 2 == 1:
             pass  # No-op
         else:
             punish = skills.Punish()
             punish.effect_duration = 2
-            self.world.apply_effect(self.world.agents[ma_action - 1].position, punish)
+            self.world.apply_effect(self.world.agents[ma_action // 2].position, punish)
             self._ma_punishing_cnt += 1
 
     ''' Debug settings '''
