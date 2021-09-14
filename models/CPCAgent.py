@@ -265,6 +265,7 @@ class CPCAgentGroup(object):
                                    device) for i in range(num_agent)]
 
         self.seq_len = seq_len
+        self.logger = None
 
     def act(self, memory, obses, step, sample=True):
         actions = []
@@ -304,21 +305,28 @@ class CPCAgentGroup(object):
 
                 agent_count = len(self.agents)
                 if logger:
-                    logger.log('{} agent_{0}/train/v_loss'.format(self.agent_name , i), v_loss, total_step)
-                    logger.log('{} agent_{0}/train/a_loss'.format(self.agent_name , i), a_loss, total_step)
-                    logger.log('{} agent_{0}/train/entropy'.format(self.agent_name, i), entropy, total_step)
-                    # writer.add_scalar('agent_{0}/train/cpc_res'.format(i), cpc_res / agent_count, total_step)
-
+                    if self.agent_name == 'ma':
+                        logger.log('agent_{0}/train/v_loss'.format(4), v_loss, total_step)
+                        logger.log('agent_{0}/train/a_loss'.format(4), a_loss, total_step)
+                        logger.log('agent_{0}/train/entropy'.format(4), entropy, total_step)
+                        # writer.add_scalar('agent_{0}/train/cpc_res'.format(i), cpc_res / agent_count, total_step)
+                    else:
+                        logger.log('agent_{0}/train/v_loss'.format(i), v_loss, total_step)
+                        logger.log('agent_{0}/train/a_loss'.format(i), a_loss, total_step)
+                        logger.log('agent_{0}/train/entropy'.format(i), entropy, total_step)
                 v_losses.append(v_loss)
                 a_losses.append(a_loss)
                 entropies.append(entropy)
                 memory.after_update()  # Need to Check!
+            if self.agent_name == 'ma':
+                logger.log('agent_{0}/train/v_loss'.format(4), sum(v_losses) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/a_loss'.format(4), sum(a_losses) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/entropy'.format(4), sum(entropies) / len(self.agents), total_step)
+            else:
+                logger.log('agent_{0}/train/v_loss'.format(0), sum(v_losses) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/a_loss'.format(0), sum(a_losses) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/entropy'.format(0), sum(entropies) / len(self.agents), total_step)
 
-            logger.log('train/{} v_loss'.format(self.agent_name), sum(v_losses) / len(self.agents), total_step)
-            logger.log('train/{} a_loss'.format(self.agent_name), sum(a_losses) / len(self.agents), total_step)
-            logger.log('train/{} entropy'.format(self.agent_name), sum(entropies) / len(self.agents), total_step)
-
-                                                                       # sum(alosses) / anum,
     def save(self, model_num):
         for agent in self.agents:
             agent.save(model_num)
