@@ -171,8 +171,8 @@ class Workspace(object):
         # Clear Buffer
         self.ma_replay_buffer.after_update()
         self.ra_replay_buffer.after_update()
-        self.logger.log('eval/episode_reward', average_episode_reward, self.step)
-        self.logger.log('eval/ma_reward', average_ma_reward, self.step)
+        self.logger.log('eval/episode_reward', average_episode_reward / 1000, self.step)
+        self.logger.log('eval/ma_reward', average_ma_reward / 1000, self.step)
         for i in range(4):
             self.logger.log('eval/agent{}_SVO_reward'.format(i), average_svo_reward[i], self.step)
         self.logger.dump(self.step)
@@ -207,7 +207,7 @@ class Workspace(object):
                     self.evaluate()
                     start_time = time.time()
 
-                self.logger.log('train/episode_reward', episode_reward, self.step)
+                self.logger.log('train/episode_reward', episode_reward / 1000, self.step)
 
                 ''' Log Environment Statistics '''
 

@@ -194,6 +194,8 @@ class World(object):
 
         self._create_random_field()
 
+        self.durating_effects = list()
+
         self.clear_effect()
 
     def _build_grid(self):
@@ -313,8 +315,11 @@ class World(object):
                 for iter_agents in self.agents:
                     if iter_agents.position == pos:
                         iter_agents.on_punished(effect.damage)
-
                 self.effects[pos.y][pos.x] = np.bitwise_or(int(self.effects[pos.y][pos.x]), BlockType.Punish)
+
+                if effect.effect_duration > 1:
+                    self.durating_effects.append((pos, effect))
+
             return True
         else:
             return False

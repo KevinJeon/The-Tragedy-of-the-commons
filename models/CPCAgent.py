@@ -304,9 +304,9 @@ class CPCAgentGroup(object):
 
                 agent_count = len(self.agents)
                 if logger:
-                    logger.log('agent_{0}/train/v_loss'.format(i), v_loss, total_step)
-                    logger.log('agent_{0}/train/a_loss'.format(i), a_loss, total_step)
-                    logger.log('agent_{0}/train/entropy'.format(i), entropy, total_step)
+                    logger.log('{} agent_{0}/train/v_loss'.format(self.agent_name , i), v_loss, total_step)
+                    logger.log('{} agent_{0}/train/a_loss'.format(self.agent_name , i), a_loss, total_step)
+                    logger.log('{} agent_{0}/train/entropy'.format(self.agent_name, i), entropy, total_step)
                     # writer.add_scalar('agent_{0}/train/cpc_res'.format(i), cpc_res / agent_count, total_step)
 
                 v_losses.append(v_loss)
@@ -314,9 +314,9 @@ class CPCAgentGroup(object):
                 entropies.append(entropy)
                 memory.after_update()  # Need to Check!
 
-            logger.log('train/v_loss', sum(v_losses) / len(self.agents), total_step)
-            logger.log('train/a_loss', sum(a_losses) / len(self.agents), total_step)
-            logger.log('train/entropy', sum(entropies) / len(self.agents), total_step)
+            logger.log('train/{} v_loss'.format(self.agent_name), sum(v_losses) / len(self.agents), total_step)
+            logger.log('train/{} a_loss'.format(self.agent_name), sum(a_losses) / len(self.agents), total_step)
+            logger.log('train/{} entropy'.format(self.agent_name), sum(entropies) / len(self.agents), total_step)
 
                                                                        # sum(alosses) / anum,
     def save(self, model_num):
