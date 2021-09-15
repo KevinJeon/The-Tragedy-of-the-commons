@@ -7,7 +7,7 @@ defaults:
 experiment: vanilla
 seed: 0
 
-num_train_steps: 5e5
+num_train_steps: 2.5e7
 # replay_buffer_capacity: 1e6 Not use on CPC
 num_seed_steps: 0
 
@@ -27,8 +27,6 @@ save_model: false
 # Save Buffer
 render: false
 svo: '45,45,45,45'
-
-ma_agent_starting_step: 1e5
 
 
 

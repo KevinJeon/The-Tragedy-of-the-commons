@@ -90,6 +90,8 @@ class Workspace(object):
                                                 num_rec=128)
         self.writer = None
 
+        self.ra_agent.logger = self.logger
+        self.ma_agent.logger = self.logger
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
         # self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
         # self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
@@ -99,7 +101,7 @@ class Workspace(object):
     def evaluate(self):
         average_episode_reward = 0
         average_ma_reward = 0
-        average_svo_reward = [0] * 4
+        average_svo_reward = np.array([0] * 4)
         self.video_recorder.init(enabled=True)
 
         for episode in range(self.cfg.num_eval_episodes):
@@ -109,7 +111,7 @@ class Workspace(object):
             done = False
             episode_reward = 0
             epi_ma_reward = 0
-            episode_svo_reward = [0] * 4
+            episode_svo_reward = np.array([0] * 4)
             while not done:
 
                 if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
@@ -168,11 +170,14 @@ class Workspace(object):
 
         average_episode_reward /= self.cfg.num_eval_episodes
         average_ma_reward /= self.cfg.num_eval_episodes
+        print(self.cfg.num_eval_episodes)
+        print(average_svo_reward)
+        average_svo_reward //= self.cfg.num_eval_episodes
         # Clear Buffer
         self.ma_replay_buffer.after_update()
         self.ra_replay_buffer.after_update()
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
-        self.logger.log('eval/ma_reward', average_ma_reward, self.step)
+        self.logger.log('eval/ma_apple', average_ma_reward, self.step)
         for i in range(4):
             self.logger.log('eval/agent{}_SVO_reward'.format(i), average_svo_reward[i], self.step)
         self.logger.dump(self.step)
@@ -187,7 +192,7 @@ class Workspace(object):
         prev_ma_obs = None
         arr_ma_obs = []
         ma_action = 0
-        ma_reward = 0
+        epi_ma_reward = 0
         self.env.set_apple_color_ratio(ma_action) # Initial MA action
 
         while self.step < self.cfg.num_train_steps + 1:
@@ -212,8 +217,13 @@ class Workspace(object):
                 ''' Log Environment Statistics '''
 
                 if env_info:
+                    total_apples = 0
+                    for item in env_info['agents']:
+                        total_apples += item['eaten_apples']
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
+                    self.logger.log('agent_{0}/train/episode_reward'.format(4), epi_ma_reward, self.step)
+                    self.logger.log('agent_{0}/train/total_apple'.format(4), total_apples, self.step)
 
                 self.logger.log('train/episode', episode, self.step)
 
@@ -223,7 +233,7 @@ class Workspace(object):
                 episode_step = 0
                 episode += 1
 
-                ma_reward = 0
+                epi_ma_reward = 0
 
             if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                 obs = self.env.get_numeric_observation()
@@ -275,24 +285,20 @@ class Workspace(object):
             if type(self.ra_agent) in [CPCAgentGroup]:
                 self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
+            if episode_step == 0:
+                ma_reward = np.zeros((1, 1))
+            else:
+                ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
 
+                if int(ma_action[0]) > 0:
+                    ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
 
-            if self.step >= int(self.cfg.ma_agent_starting_step):
-                print(11111)
-                if episode_step == 0:
-                    ma_reward = np.zeros((1, 1))
-                else:
-                    ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
+            if type(self.ma_agent) in [CPCAgentGroup]:
+                #print('ma', np.sum(ma_obs_in))
+                self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
-                    if int(ma_action[0]) > 0:
-                        ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
-
-                if type(self.ma_agent) in [CPCAgentGroup]:
-                    #print('ma', np.sum(ma_obs_in))
-                    self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
-
-                self.env.punish_agent(ma_action[0])
-
+            self.env.punish_agent(ma_action[0])
+            epi_ma_reward += ma_reward
             obs = next_obs
             episode_step += 1
             self.step += 1
