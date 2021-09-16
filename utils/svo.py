@@ -3,6 +3,7 @@ import math
 
 def svo(rews, aind, preferences):
     if (np.array(rews) == np.zeros(len(rews))).all():
+        exc_rews = (np.sum(rews) - rews[aind]) / (len(rews) - 1)
         rew_angle = 45
     else:
         exc_rews = (np.sum(rews) - rews[aind]) / (len(rews) - 1)
