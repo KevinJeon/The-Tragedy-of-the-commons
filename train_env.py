@@ -184,11 +184,7 @@ class Workspace(object):
         env_info = None
 
         ''' MA variables '''
-        prev_ma_obs = None
-        arr_ma_obs = []
-        ma_action = 0
-        ma_reward = 0
-        self.env.set_apple_color_ratio(ma_action) # Initial MA action
+        training_turn = 'RA'
 
         while self.step < self.cfg.num_train_steps + 1:
 
@@ -197,10 +193,15 @@ class Workspace(object):
                     self.logger.log('train/duration', time.time() - start_time, self.step)
                     start_time = time.time()
                     self.logger.dump(self.step, save=(self.step > self.cfg.num_seed_steps))
-                    if hasattr(self, 'ra_replay_buffer'):
-                        self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
-                    if hasattr(self, 'ma_replay_buffer'):
-                        self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
+
+                    if training_turn == 'RA':
+                        if hasattr(self, 'ra_replay_buffer'):
+                            self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
+                            print('training RA')
+                    if training_turn == 'MA':
+                        if hasattr(self, 'ma_replay_buffer'):
+                            self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
+                            print('training MA')
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
                     self.logger.log('eval/episode', episode - 1, self.step)
@@ -217,6 +218,8 @@ class Workspace(object):
 
                 self.logger.log('train/episode', episode, self.step)
 
+                training_turn = 'MA' if training_turn == 'RA' else 'MA'
+
                 obs, env_info = self.env.reset()
 
                 episode_reward = 0
@@ -231,7 +234,6 @@ class Workspace(object):
             if self.step < self.cfg.num_seed_steps:
                 # Define random actions
                 if type(self.ra_agent) is CPCAgentGroup:
-                    print('RA : ', obs.shape)
                     action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=True)
                 else:
                     action = self.ra_agent.act(obs, sample=True)
@@ -273,7 +275,8 @@ class Workspace(object):
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.ra_agent) in [CPCAgentGroup]:
-                self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
+                if training_turn == 'RA':
+                    self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
             if episode_step == 0:
                 ma_reward = np.zeros((1, 1))
@@ -284,8 +287,8 @@ class Workspace(object):
                     ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
 
             if type(self.ma_agent) in [CPCAgentGroup]:
-                #print('ma', np.sum(ma_obs_in))
-                self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
+                if training_turn == 'MA':
+                    self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
             self.env.punish_agent(ma_action[0])
 
