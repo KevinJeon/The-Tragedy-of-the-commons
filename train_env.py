@@ -197,11 +197,11 @@ class Workspace(object):
                     if training_turn == 'RA':
                         if hasattr(self, 'ra_replay_buffer'):
                             self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
-                            print('training RA')
+
                     if training_turn == 'MA':
                         if hasattr(self, 'ma_replay_buffer'):
                             self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
-                            print('training MA')
+
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
                     self.logger.log('eval/episode', episode - 1, self.step)
@@ -218,7 +218,7 @@ class Workspace(object):
 
                 self.logger.log('train/episode', episode, self.step)
 
-                training_turn = 'MA' if training_turn == 'RA' else 'MA'
+                training_turn = 'MA' if training_turn == 'RA' else 'R A'
 
                 obs, env_info = self.env.reset()
 
