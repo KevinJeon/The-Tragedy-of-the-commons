@@ -6,11 +6,11 @@ defaults:
 experiment: vanilla
 seed: 0
 
-num_train_steps: 5e5
+num_train_steps: 2.5e7
 # replay_buffer_capacity: 1e6 Not use on CPC
 num_seed_steps: 0
 
-eval_frequency: 20000
+eval_frequency: 10000
 num_eval_episodes: 3
 
 device: cuda

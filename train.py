@@ -45,8 +45,7 @@ class Workspace(object):
 
         cfg.ra_agent.obs_dim = self.env.observation_space.shape
         cfg.ra_agent.action_dim = self.env.action_space.n
-        cfg.ra_agent.agent_types = prefer
-        self.obs_dim = 15
+
         try:
             cfg.ra_agent.seq_len = self.env.episode_length
         except:
@@ -59,7 +58,8 @@ class Workspace(object):
                                                 num_agent=self.num_agent,
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.ra_agent.batch_size,
-                                                num_obs=(8 * self.obs_dim, 8 * self.obs_dim, 3), num_action=8,
+                                                num_obs=(self.agent.obs_dim[1], self.agent.obs_dim[2], 3),
+                                                num_action=8,
                                                 num_rec=128)
 
         # self.writer = SummaryWriter(log_dir="tb")
@@ -71,7 +71,7 @@ class Workspace(object):
 
     def evaluate(self):
         average_episode_reward = 0
-
+        average_svo_reward = np.array([0] * 4)
         self.video_recorder.init(enabled=True)
 
 
@@ -81,6 +81,7 @@ class Workspace(object):
 
             done = False
             episode_reward = 0
+            episode_svo_reward = np.array([0] * 4)
             while not done:
 
                 if type(self.agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
@@ -91,7 +92,7 @@ class Workspace(object):
                 else:
                     action = self.agent.act(obs, sample=True)
 
-                obs, rewards, dones, _ = self.env.step(action)
+                obs, rewards, dones, env_info = self.env.step(action)
 
                 done = True in dones
                 if episode_step == self.env.episode_length:
@@ -101,19 +102,29 @@ class Workspace(object):
 
                 ''' Render Individual Sight-view '''
 
+                for i in range(self.num_agent):
+                    episode_svo_reward[i] += svo(rewards, i, self.preferences)
+
+                if type(self.agent) in [CPCAgentGroup]:
+                    self.replay_buffer.add(obs, action, rewards, dones, cpc_info)
 
                 episode_reward += sum(rewards)
 
                 episode_step += 1
 
             average_episode_reward += episode_reward
+            average_svo_reward += episode_svo_reward
         self.video_recorder.save(f'{self.step}.mp4')
 
         if self.cfg.save_model:
             self.agent.save(self.step)
 
         average_episode_reward /= self.cfg.num_eval_episodes
+        average_svo_reward //= self.cfg.num_eval_episodes
+        self.replay_buffer.after_update()
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
+        for i in range(4):
+            self.logger.log('eval/agent{}_SVO_reward'.format(i), average_svo_reward[i], self.step)
         self.logger.dump(self.step)
 
     def run(self):
@@ -139,6 +150,9 @@ class Workspace(object):
                 ''' Log Environment Statistics '''
 
                 if env_info:
+                    total_apples = 0
+                    for item in env_info['agents']:
+                        total_apples += item['eaten_apples']
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
 

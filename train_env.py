@@ -170,8 +170,6 @@ class Workspace(object):
 
         average_episode_reward /= self.cfg.num_eval_episodes
         average_ma_reward /= self.cfg.num_eval_episodes
-        print(self.cfg.num_eval_episodes)
-        print(average_svo_reward)
         average_svo_reward //= self.cfg.num_eval_episodes
         # Clear Buffer
         self.ma_replay_buffer.after_update()
@@ -193,7 +191,6 @@ class Workspace(object):
         arr_ma_obs = []
         ma_action = 0
         epi_ma_reward = 0
-        self.env.set_apple_color_ratio(ma_action) # Initial MA action
 
         while self.step < self.cfg.num_train_steps + 1:
 
