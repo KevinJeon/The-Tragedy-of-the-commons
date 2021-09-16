@@ -91,8 +91,6 @@ class Workspace(object):
         self.writer = None
 
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
-        # self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
-        # self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
 
         self.step = 0
 
@@ -194,13 +192,19 @@ class Workspace(object):
                     start_time = time.time()
                     self.logger.dump(self.step, save=(self.step > self.cfg.num_seed_steps))
 
-                    if training_turn == 'RA':
-                        if hasattr(self, 'ra_replay_buffer'):
-                            self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
+                    if hasattr(self, 'ra_replay_buffer') and training_turn == 'RA':
+                        if (self.ra_replay_buffer.n + 1) % self.ra_agent.batch_size:
+                            training_turn = 'MA'
 
-                    if training_turn == 'MA':
-                        if hasattr(self, 'ma_replay_buffer'):
-                            self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
+                        self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
+                        print(self.ra_replay_buffer.n, self.ra_agent.batch_size)
+
+                    if hasattr(self, 'ma_replay_buffer') and training_turn == 'MA':
+                        if (self.ma_replay_buffer.n + 1) % self.ma_agent.batch_size:
+                            training_turn = 'RA'
+
+                        self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
+                        print(self.ma_replay_buffer.n, self.ra_agent.batch_size)
 
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
@@ -226,8 +230,6 @@ class Workspace(object):
                 episode_step = 0
                 episode += 1
 
-                ma_reward = 0
-
             if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                 obs = self.env.get_numeric_observation()
             '''RA actions'''
@@ -242,8 +244,6 @@ class Workspace(object):
                     action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=True)
                 else:
                     action = self.ra_agent.act(obs, sample=True)
-
-            #self.env.set_apple_color_ratio(random.random())
 
             next_obs, rewards, dones, env_info = self.env.step(action)
             ma_obs = self.env.render(coordination=False)
@@ -275,8 +275,7 @@ class Workspace(object):
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.ra_agent) in [CPCAgentGroup]:
-                if training_turn == 'RA':
-                    self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
+                self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
             # If This is episode's first step, add nothing
             if episode_step == 0:
                 ma_reward = np.zeros((1, 1))
@@ -287,8 +286,7 @@ class Workspace(object):
                     ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
 
             if type(self.ma_agent) in [CPCAgentGroup]:
-                if training_turn == 'MA':
-                    self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
+                self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
             self.env.punish_agent(ma_action[0])
 
