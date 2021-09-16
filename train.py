@@ -45,7 +45,7 @@ class Workspace(object):
 
         cfg.ra_agent.obs_dim = self.env.observation_space.shape
         cfg.ra_agent.action_dim = self.env.action_space.n
-        cfg.ra_agent.agent_types = prefer
+
         try:
             cfg.ra_agent.seq_len = self.env.episode_length
         except:
@@ -58,7 +58,7 @@ class Workspace(object):
                                                 num_agent=self.num_agent,
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.ra_agent.batch_size,
-                                                num_obs=(self.ra_agent.obs_dim[1], self.ra_agent.obs_dim[2], 3),
+                                                num_obs=(self.agent.obs_dim[1], self.agent.obs_dim[2], 3),
                                                 num_action=8,
                                                 num_rec=128)
 

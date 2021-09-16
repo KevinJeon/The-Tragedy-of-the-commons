@@ -9,6 +9,8 @@ def svo(rews, aind, preferences):
         rew_angle = math.atan(exc_rews / int(rews[aind])) * 180 / math.pi
     my_rew = rews[aind]
     preference = preferences[aind]
+    if (exc_rews == 0) and (my_rew ==0):
+        rew_angle = 45
     w = 0.2
     U = my_rew - w * abs(preference - rew_angle)
     return U
