@@ -193,18 +193,16 @@ class Workspace(object):
                     self.logger.dump(self.step, save=(self.step > self.cfg.num_seed_steps))
 
                     if hasattr(self, 'ra_replay_buffer') and training_turn == 'RA':
-                        if (self.ra_replay_buffer.n + 1) % self.ra_agent.batch_size:
+                        if (self.ra_replay_buffer.n + 1) % self.ra_agent.batch_size == 0:
                             training_turn = 'MA'
 
                         self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
-                        print(self.ra_replay_buffer.n, self.ra_agent.batch_size)
 
                     if hasattr(self, 'ma_replay_buffer') and training_turn == 'MA':
-                        if (self.ma_replay_buffer.n + 1) % self.ma_agent.batch_size:
+                        if (self.ma_replay_buffer.n + 1) % self.ma_agent.batch_size == 0:
                             training_turn = 'RA'
 
                         self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
-                        print(self.ma_replay_buffer.n, self.ra_agent.batch_size)
 
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
@@ -221,8 +219,6 @@ class Workspace(object):
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
 
                 self.logger.log('train/episode', episode, self.step)
-
-                training_turn = 'MA' if training_turn == 'RA' else 'R A'
 
                 obs, env_info = self.env.reset()
 
