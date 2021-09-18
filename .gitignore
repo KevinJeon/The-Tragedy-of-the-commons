@@ -2,7 +2,7 @@
 /venv
 *.pyc
 *.swp
-
+/models/ray
 runs
 experiment
 multirun

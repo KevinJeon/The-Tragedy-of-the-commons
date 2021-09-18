@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 
 from logger import Logger
 from models.RuleBasedAgent import *
-from models.CPCAgent import *
+from models.CPCAgent_test import *
 from models.utils.RolloutStorage import RolloutStorage
 from recorder import VideoRecorder
 from tocenv.env import *
@@ -88,9 +88,9 @@ class Workspace(object):
                     obs = self.env.get_numeric_observation()
 
                 if type(self.agent) is CPCAgentGroup:
-                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=True)
+                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=False)
                 else:
-                    action = self.agent.act(obs, sample=True)
+                    action = self.agent.act(obs, sample=False)
 
                 obs, rewards, dones, env_info = self.env.step(action)
 
@@ -156,7 +156,7 @@ class Workspace(object):
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
 
-                if hasattr(self, 'replay_buffer'):
+                if (hasattr(self, 'replay_buffer')) and (self.step > 0):
                     self.agent.train(self.replay_buffer, self.logger, self.step)
                 self.logger.log('train/episode', episode, self.step)
 
@@ -177,9 +177,9 @@ class Workspace(object):
                     action = self.agent.act(obs, sample=True)
             else:
                 if type(self.agent) is CPCAgentGroup:
-                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=False)
+                    action, cpc_info = self.agent.act(self.replay_buffer, obs, episode_step, sample=True)
                 else:
-                    action = self.agent.act(obs, sample=False)
+                    action = self.agent.act(obs, sample=True)
 
             next_obs, rewards, dones, env_info = self.env.step(action)
 

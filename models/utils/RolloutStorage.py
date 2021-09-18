@@ -18,8 +18,6 @@ class RolloutStorage(object):
         self.onehot = tr.eye(num_action)
         # For CPC
         if agent_type == 'ac':
-            self.s_feat = tr.zeros(num_agent, num_step, batch_size, 128)
-            self.a_feat = tr.zeros(num_agent, num_step, batch_size, 128)
             self.h = tr.zeros(num_agent, num_step + 1, batch_size, num_rec)
             self.val = tr.zeros(num_agent, num_step + 1, batch_size, 1)
             self.logprob = tr.zeros(num_agent, num_step, batch_size, 1)
@@ -48,12 +46,10 @@ class RolloutStorage(object):
 
             # For CPC
             if self.agent_type == 'ac':
-                v, logprob, h, s_f, a_f = infos[i]
+                v, logprob, h = infos[i]
                 self.h[i, self.step + 1, self.n].copy_(h.view(-1))
                 self.logprob[i, self.step, self.n].copy_(logprob.view(-1))
                 self.val[i, self.step, self.n].copy_(v.view(-1))
-                self.s_feat[i, self.step, self.n].copy_(s_f.view(-1))
-                self.a_feat[i, self.step, self.n].copy_(a_f.view(-1))
         self.step = (self.step + 1) % self.num_step
 
     def after_update(self):

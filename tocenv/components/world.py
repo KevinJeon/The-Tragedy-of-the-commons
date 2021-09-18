@@ -15,7 +15,7 @@ import math
 from tocenv.env import TOCEnv
 
 import tocenv.components.item as items
-import tocenv.components.agent as agent
+from tocenv.components import agent as agent
 import tocenv.components.skill as skills
 import tocenv.components.block as block
 from tocenv.components.position import Position
