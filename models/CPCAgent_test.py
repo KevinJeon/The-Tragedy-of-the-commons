@@ -184,7 +184,7 @@ class A2CCPCAgent(nn.Module):
         nn.utils.clip_grad_norm_(self.parameters(), self.max_grad_norm)
         self.optimizer.step()
 
-        return vloss.item(), aloss.item(), entropy.item(), cpc_res
+        return vloss.item(), aloss.item(), entropy.item(), nce.item()
 
     def save(self, num):
         make_dir('models')
@@ -258,7 +258,7 @@ class CPCAgentGroup(object):
         memory.compute_return(next_vals, gamma=0.99)
         memory.n += 1
         if memory.n % self.batch_size == 0:  # if (memory.n != 0) and (memory.n % args.batch_size == 0):
-            v_losses, a_losses, entropies = [], [], []
+            v_losses, a_losses, entropies, nces = [], [], [], []
             for i, agent in enumerate(self.agents):
                 # check for return calculate
                 obss, acts, act_inds, rews, rets, masks = \
@@ -269,36 +269,44 @@ class CPCAgentGroup(object):
                 avg_v_loss = 0
                 avg_a_loss = 0
                 avg_entropy = 0
+                avg_nce = 0
                 for j in range(10):
                     samples = (obss[j:(j+1)*100], acts[j:(j+1)*100], act_inds[j:(j+1)*100],
                                rews[j:(j+1)*100], rets[j:(j+1)*100], masks[j:(j+1)*100])
                     infos = (vs[j:(j+1)*100], logprobs[j:(j+1)*100], hs[j:(j+1)*100])
 
-                    v_loss, a_loss, entropy, cpc_res = agent.train(samples, infos)
+                    v_loss, a_loss, entropy, nce = agent.train(samples, infos)
                     avg_v_loss += v_loss
                     avg_a_loss += a_loss
                     avg_entropy += entropy
-                    if logger:
-                        if self.agent_name == 'ma':
-                            logger.log('agent_{0}/train/v_loss'.format(4), avg_v_loss / (j + 1), total_step)
-                            logger.log('agent_{0}/train/a_loss'.format(4), avg_a_loss / (j + 1), total_step)
-                            logger.log('agent_{0}/train/entropy'.format(4), avg_entropy / (j + 1), total_step)
-                            # writer.add_scalar('agent_{0}/train/cpc_res'.format(i), cpc_res / agent_count, total_step)
-                        else:
-                            logger.log('agent_{0}/train/v_loss'.format(i), avg_v_loss / (j + 1), total_step)
-                            logger.log('agent_{0}/train/a_loss'.format(i), avg_a_loss / (j + 1), total_step)
-                            logger.log('agent_{0}/train/entropy'.format(i), avg_entropy / (j + 1), total_step)
-                    v_losses.append(avg_v_loss)
-                    a_losses.append(avg_a_loss)
-                    entropies.append(avg_entropy)
-                if self.agent_name == 'ma':
-                    logger.log('agent_{0}/train/v_loss'.format(4), sum(v_losses) / len(self.agents), total_step)
-                    logger.log('agent_{0}/train/a_loss'.format(4), sum(a_losses) / len(self.agents), total_step)
-                    logger.log('agent_{0}/train/entropy'.format(4), sum(entropies) / len(self.agents), total_step)
-                else:
-                    logger.log('agent_{0}/train/v_loss'.format(0), sum(v_losses) / len(self.agents), total_step)
-                    logger.log('agent_{0}/train/a_loss'.format(0), sum(a_losses) / len(self.agents), total_step)
-                    logger.log('agent_{0}/train/entropy'.format(0), sum(entropies) / len(self.agents), total_step)
+                    avg_nce += nce
+                if logger:
+                    if self.agent_name == 'ma':
+                        logger.log('agent_{0}/train/v_loss'.format(4), avg_v_loss / (j + 1), total_step)
+                        logger.log('agent_{0}/train/a_loss'.format(4), avg_a_loss / (j + 1), total_step)
+                        logger.log('agent_{0}/train/entropy'.format(4), avg_entropy / (j + 1), total_step)
+                        logger.log('agent_{0}/train/nce'.format(4), avg_nce / (j + 1), total_step)
+                        # writer.add_scalar('agent_{0}/train/cpc_res'.format(i), cpc_res / agent_count, total_step)
+                    else:
+                        logger.log('agent_{0}/train/v_loss'.format(i), avg_v_loss / (j + 1), total_step)
+                        logger.log('agent_{0}/train/a_loss'.format(i), avg_a_loss / (j + 1), total_step)
+                        logger.log('agent_{0}/train/entropy'.format(i), avg_entropy / (j + 1), total_step)
+                        logger.log('agent_{0}/train/nce'.format(i), avg_nce / (j + 1), total_step)
+                v_losses.append(avg_v_loss)
+                a_losses.append(avg_a_loss)
+                entropies.append(avg_entropy)
+                nces.append(avg_nce)
+            if self.agent_name == 'ma':
+                logger.log('agent_{0}/train/v_loss'.format(4), sum(v_losses) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/a_loss'.format(4), sum(a_losses) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/entropy'.format(4), sum(entropies) / len(self.agents), total_step)
+                logger.log('agent_{0}/train/entropy'.format(4), sum(nces) / len(self.agents), total_step)
+            else:
+                logger.log('train/v_loss'.format(0), sum(v_losses) / len(self.agents), total_step)
+                logger.log('train/a_loss'.format(0), sum(a_losses) / len(self.agents), total_step)
+                logger.log('train/entropy'.format(0), sum(entropies) / len(self.agents), total_step)
+                logger.log('train/entropy'.format(0), sum(nces) / len(self.agents), total_step)
+            #v_losses, a_losses, entropies, nces = None, None, None, None
             memory.after_update()  # Need to Check!
     def save(self, model_num):
         for agent in self.agents:
