@@ -269,7 +269,6 @@ class CPCAgentGroup(object):
         return actions, infos
 
     def train(self, memory, logger=None, total_step=None):
-        print(self.agent_name, 'traininge')
         with tr.no_grad():
             next_vals = []
             for i, agent in enumerate(self.agents):
