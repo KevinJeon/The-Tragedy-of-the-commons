@@ -21,17 +21,35 @@ class CPC(nn.Module):
         if name == 'ra':
             lin_in = 46464
         else:
-            lin_in = 10816
-        self.encoder = nn.Sequential(
-            nn.Conv2d(num_channel, 6, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm2d(6),
-            nn.ReLU(inplace=True),
-            nn.Flatten(),
-            nn.Linear(lin_in, 1024),
-            nn.ReLU(inplace=True),
-            nn.Linear(1024, 128),
-            nn.ReLU(inplace=True),
-        )
+            lin_in = 11163
+
+        if name == 'ra':
+            self.encoder = nn.Sequential(
+                nn.Conv2d(num_channel, 6, kernel_size=1, stride=1, bias=False),
+                nn.BatchNorm2d(6),
+                nn.ReLU(inplace=True),
+                nn.Flatten(),
+                nn.Linear(lin_in, 1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(1024, 128),
+                nn.ReLU(inplace=True),
+            )
+        else:
+            self.encoder = nn.Sequential(
+                nn.Conv2d(num_channel, 3, kernel_size=3, stride=1, bias=False),
+                nn.MaxPool2d(3, stride=2),
+                nn.BatchNorm2d(3),
+                nn.Conv2d(3, 3, kernel_size=3, stride=1, bias=False),
+                nn.MaxPool2d(3, stride=2),
+                nn.BatchNorm2d(3),
+                nn.ReLU(inplace=True),
+                nn.Flatten(),
+                nn.Linear(lin_in, 1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(1024, 128),
+                nn.ReLU(inplace=True),
+            )
+
         self.gru = nn.GRU(128, 128)
         for n, p in self.gru.named_parameters():
             if 'bias' in n:
@@ -58,6 +76,7 @@ class CPC(nn.Module):
         else:
             bs = self.batch_size
             step = int(n // self.batch_size)
+
         z = self.encoder(obs.reshape(-1, c, he, w)).reshape(bs, step, -1)
         c, h = self.gru(z, h)
         c = c.view(bs * step, -1)
@@ -110,6 +129,7 @@ class A2CCPCAgent(nn.Module):
     def act(self, obs, h, sample=True):
         obs = tr.from_numpy(obs).unsqueeze(0)
         h = h.unsqueeze(0).to(self.device)
+
         obs = obs.permute((0, 3, 1, 2)).to(self.device)
         with tr.no_grad():
             v, z, c , pi, h = self.state_encoder(obs, h.unsqueeze(0))
@@ -249,6 +269,7 @@ class CPCAgentGroup(object):
         return actions, infos
 
     def train(self, memory, logger=None, total_step=None):
+        print(self.agent_name, 'traininge')
         with tr.no_grad():
             next_vals = []
             for i, agent in enumerate(self.agents):
@@ -296,17 +317,12 @@ class CPCAgentGroup(object):
                 a_losses.append(avg_a_loss)
                 entropies.append(avg_entropy)
                 nces.append(avg_nce)
-            if self.agent_name == 'ma':
-                logger.log('agent_{0}/train/v_loss'.format(4), sum(v_losses) / len(self.agents), total_step)
-                logger.log('agent_{0}/train/a_loss'.format(4), sum(a_losses) / len(self.agents), total_step)
-                logger.log('agent_{0}/train/entropy'.format(4), sum(entropies) / len(self.agents), total_step)
-                logger.log('agent_{0}/train/entropy'.format(4), sum(nces) / len(self.agents), total_step)
-            else:
+            if self.agent_name == 'ra':
                 logger.log('train/v_loss'.format(0), sum(v_losses) / len(self.agents), total_step)
                 logger.log('train/a_loss'.format(0), sum(a_losses) / len(self.agents), total_step)
                 logger.log('train/entropy'.format(0), sum(entropies) / len(self.agents), total_step)
                 logger.log('train/entropy'.format(0), sum(nces) / len(self.agents), total_step)
-            #v_losses, a_losses, entropies, nces = None, None, None, None
+
             memory.after_update()  # Need to Check!
     def save(self, model_num):
         for agent in self.agents:

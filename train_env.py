@@ -1,7 +1,3 @@
-import copy
-import logging
-import random
-
 import cv2
 import hydra
 import os
@@ -9,22 +5,15 @@ import time
 import torch
 from omegaconf import DictConfig
 
-import logging
 from logger import Logger
-from models.PPOLSTMAgent import PPOLSTMAgent
 from models.RuleBasedAgent import *
-from models.CPCAgent import *
+from models.CPCAgent_test import *
 from models.utils.RolloutStorage import RolloutStorage
-from models.utils.ManagerReplayStorage import ManagerReplayStorage
 from recorder import VideoRecorder
 from tocenv.env import *
 from utils.logging import *
-import numpy as np
 from utils.svo import svo
-from utils.observation import ma_obs_to_numpy
-
-logger = logging.getLogger(os.path.basename(__file__))
-
+import numpy as np
 
 
 class Workspace(object):
@@ -34,10 +23,13 @@ class Workspace(object):
 
         self.cfg = cfg
 
+        # set_seed_everywhere(cfg.seed)
+
         self.logger = Logger(self.work_dir,
                              save_tb=cfg.log_save_tb,
                              log_frequency=cfg.log_frequency,
                              agent=cfg.ra_agent.name)
+
         self.preferences = list(eval(self.cfg.svo))
         prefer = ['green', 'purple', 'blue', 'orange']
 
@@ -52,16 +44,16 @@ class Workspace(object):
         self.env.reset()
 
         cfg.ra_agent.obs_dim = self.env.observation_space.shape
-        cfg.ra_agent.action_dim = self.env.action_space.n - 1
-
-        cfg.ma_agent.obs_dim = (1, 256, 256, 3)
-
-        cfg.ma_agent.action_dim = 5
+        cfg.ra_agent.action_dim = self.env.action_space.n
 
         try:
             cfg.ra_agent.seq_len = self.env.episode_length
         except:
             pass
+
+
+        cfg.ma_agent.obs_dim = (1, 256, 256, 3)
+        cfg.ma_agent.action_dim = 5
 
         try:
             cfg.ma_agent.seq_len = self.env.episode_length
@@ -77,32 +69,31 @@ class Workspace(object):
                                                 num_step=cfg.env.episode_length,
                                                 batch_size=cfg.ra_agent.batch_size,
                                                 num_obs=(self.ra_agent.obs_dim[1], self.ra_agent.obs_dim[2], 3),
-                                                num_action=7,
+                                                num_action=8,
                                                 num_rec=128)
 
         if type(self.ma_agent) in [CPCAgentGroup]:
             self.ma_replay_buffer = RolloutStorage(agent_type='ac',
                                                 num_agent=1,
                                                 num_step=cfg.env.episode_length,
-                                                batch_size=cfg.ra_agent.batch_size,
-                                                num_obs=(self.ma_agent.obs_dim[1], self.ma_agent.obs_dim[2], 3),
+                                                batch_size=cfg.ma_agent.batch_size,
+                                                num_obs=(256, 256, 3),
                                                 num_action=5,
                                                 num_rec=128)
+
+
+
         self.writer = None
 
-        self.ra_agent.logger = self.logger
-        self.ma_agent.logger = self.logger
         self.video_recorder = VideoRecorder(self.work_dir if cfg.save_video else None)
-        # self.video_recorder_blue = VideoRecorder(self.work_dir if cfg.save_video else None)
-        # self.video_recorder_red = VideoRecorder(self.work_dir if cfg.save_video else None)
 
         self.step = 0
 
     def evaluate(self):
         average_episode_reward = 0
-        average_ma_reward = 0
         average_svo_reward = np.array([0] * 4)
         self.video_recorder.init(enabled=True)
+
 
         for episode in range(self.cfg.num_eval_episodes):
             obs, _ = self.env.reset()
@@ -110,7 +101,6 @@ class Workspace(object):
 
             done = False
             episode_reward = 0
-            epi_ma_reward = 0
             episode_svo_reward = np.array([0] * 4)
             while not done:
 
@@ -118,9 +108,9 @@ class Workspace(object):
                     obs = self.env.get_numeric_observation()
 
                 if type(self.ra_agent) is CPCAgentGroup:
-                    action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=True)
+                    action, cpc_info = self.ra_agent.act(self.replay_buffer, obs, episode_step, sample=False)
                 else:
-                    action = self.ra_agent.act(obs, sample=True)
+                    action = self.ra_agent.act(obs, sample=False)
 
                 obs, rewards, dones, env_info = self.env.step(action)
 
@@ -128,54 +118,31 @@ class Workspace(object):
                 if episode_step == self.env.episode_length:
                     done = True
 
-                ma_obs = self.env.render(coordination=False)
                 self.video_recorder.record(self.env)
 
-                ma_obs_in = np.expand_dims(ma_obs, axis=0)
-
-                if type(self.ma_agent) is CPCAgentGroup:
-                    ma_action, ma_cpc_info = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
-                else:
-                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
-
-                # MA reward shaping
+                ''' Render Individual Sight-view '''
 
                 for i in range(self.num_agent):
                     episode_svo_reward[i] += svo(rewards, i, self.preferences)
+
                 if type(self.ra_agent) in [CPCAgentGroup]:
-                    self.ra_replay_buffer.add(obs, action, rewards, dones, cpc_info)
-
-                if episode_step == 0:
-                    ma_reward = np.zeros((1, 1))
-                else:
-                    ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
-                epi_ma_reward += ma_reward[0]
-                if type(self.ma_agent) in [CPCAgentGroup]:
-                    self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
-
-
-                self.env.punish_agent(ma_action[0])
+                    self.replay_buffer.add(obs, action, rewards, dones, cpc_info)
 
                 episode_reward += sum(rewards)
+
                 episode_step += 1
 
             average_episode_reward += episode_reward
-            average_ma_reward += epi_ma_reward
             average_svo_reward += episode_svo_reward
-
         self.video_recorder.save(f'{self.step}.mp4')
 
         if self.cfg.save_model:
             self.ra_agent.save(self.step)
 
         average_episode_reward /= self.cfg.num_eval_episodes
-        average_ma_reward /= self.cfg.num_eval_episodes
         average_svo_reward //= self.cfg.num_eval_episodes
-        # Clear Buffer
-        self.ma_replay_buffer.after_update()
-        self.ra_replay_buffer.after_update()
+        self.replay_buffer.after_update()
         self.logger.log('eval/episode_reward', average_episode_reward, self.step)
-        self.logger.log('eval/ma_apple', average_ma_reward, self.step)
         for i in range(4):
             self.logger.log('eval/agent{}_SVO_reward'.format(i), average_svo_reward[i], self.step)
         self.logger.dump(self.step)
@@ -186,23 +153,12 @@ class Workspace(object):
         start_time = time.time()
         env_info = None
 
-        ''' MA variables '''
-        prev_ma_obs = None
-        arr_ma_obs = []
-        ma_action = 0
-        epi_ma_reward = 0
-
         while self.step < self.cfg.num_train_steps + 1:
-
             if done or self.step % self.cfg.eval_frequency == 0:
                 if self.step > 0:
                     self.logger.log('train/duration', time.time() - start_time, self.step)
                     start_time = time.time()
                     self.logger.dump(self.step, save=(self.step > self.cfg.num_seed_steps))
-                    if hasattr(self, 'ra_replay_buffer'):
-                        self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
-                    if hasattr(self, 'ma_replay_buffer'):
-                        self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
 
                 if self.step > 0 and self.step % self.cfg.eval_frequency == 0:
                     self.logger.log('eval/episode', episode - 1, self.step)
@@ -219,8 +175,12 @@ class Workspace(object):
                         total_apples += item['eaten_apples']
                     log_statistics_to_writer(self.logger, self.step, env_info['statistics'])
                     log_agent_to_writer(self.logger, self.step, env_info['agents'])
-                    self.logger.log('agent_{0}/train/episode_reward'.format(4), epi_ma_reward, self.step)
-                    self.logger.log('agent_{0}/train/total_apple'.format(4), total_apples, self.step)
+
+                if (hasattr(self, 'ra_replay_buffer')) and (self.step > 0):
+                    self.ra_agent.train(self.ra_replay_buffer, self.logger, self.step)
+
+                if (hasattr(self, 'ma_replay_buffer')) and (self.step > 0):
+                    self.ma_agent.train(self.ma_replay_buffer, self.logger, self.step)
 
                 self.logger.log('train/episode', episode, self.step)
 
@@ -230,15 +190,12 @@ class Workspace(object):
                 episode_step = 0
                 episode += 1
 
-                epi_ma_reward = 0
-
             if type(self.ra_agent) in [RuleBasedAgent, RuleBasedAgentGroup]:
                 obs = self.env.get_numeric_observation()
-            '''RA actions'''
+
             if self.step < self.cfg.num_seed_steps:
                 # Define random actions
                 if type(self.ra_agent) is CPCAgentGroup:
-                    print('RA : ', obs.shape)
                     action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=True)
                 else:
                     action = self.ra_agent.act(obs, sample=True)
@@ -247,24 +204,16 @@ class Workspace(object):
                     action, cpc_info = self.ra_agent.act(self.ra_replay_buffer, obs, episode_step, sample=True)
                 else:
                     action = self.ra_agent.act(obs, sample=True)
-
-            #self.env.set_apple_color_ratio(random.random())
 
             next_obs, rewards, dones, env_info = self.env.step(action)
             ma_obs = self.env.render(coordination=False)
             ma_obs_in = np.expand_dims(ma_obs, axis=0)
+
             '''MA action'''
-            if self.step < self.cfg.num_seed_steps:
-                # Define random actions
-                if type(self.ma_agent) is CPCAgentGroup:
-                    ma_action, ma_cpc_info = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
-                else:
-                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
+            if type(self.ma_agent) is CPCAgentGroup:
+                ma_action, ma_cpc_info = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
             else:
-                if type(self.ma_agent) is CPCAgentGroup:
-                    ma_action, ma_cpc_info = self.ma_agent.act(self.ma_replay_buffer, ma_obs_in, episode_step, sample=True)
-                else:
-                    ma_action = self.ma_agent.act(ma_obs_in, sample=True)
+                ma_action = self.ma_agent.act(ma_obs_in, sample=True)
 
             if self.cfg.render:
                 cv2.imshow('TOCEnv', ma_obs)
@@ -276,26 +225,24 @@ class Workspace(object):
 
             episode_reward += sum(rewards)
             modified_rewards = np.zeros(self.num_agent)
+
             # Applying prosocial SVO
             for i in range(self.num_agent):
                 modified_rewards[i] = svo(rewards, i, self.preferences)
             if type(self.ra_agent) in [CPCAgentGroup]:
                 self.ra_replay_buffer.add(obs, action, modified_rewards, dones, cpc_info)
-            # If This is episode's first step, add nothing
+
             if episode_step == 0:
                 ma_reward = np.zeros((1, 1))
             else:
                 ma_reward = np.reshape(env_info['step_eaten_apple'], (1, -1))
 
-                if int(ma_action[0]) > 0:
-                    ma_reward = ma_reward + np.array([[float(self.cfg.ma_beam_reward)]])
-
             if type(self.ma_agent) in [CPCAgentGroup]:
-                #print('ma', np.sum(ma_obs_in))
                 self.ma_replay_buffer.add(ma_obs_in, ma_action[0], ma_reward, dones, ma_cpc_info)
 
             self.env.punish_agent(ma_action[0])
-            epi_ma_reward += ma_reward
+
+
             obs = next_obs
             episode_step += 1
             self.step += 1

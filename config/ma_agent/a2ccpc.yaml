@@ -1,6 +1,6 @@
 # @package _group_
 name: cpc_agent
-_target_: models.CPCAgent.CPCAgentGroup
+_target_: models.CPCAgent_test.CPCAgentGroup
 
 # Default Parameters
 obs_dim: ???
